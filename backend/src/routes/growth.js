@@ -16,6 +16,16 @@ router.get('/:userId', authMiddleware, async (req, res) => {
       });
     }
 
+    // 安全校验：只能查看自己的成长数据
+    // 管理端可通过 userId 参数查看指定用户，但需额外权限校验
+    if (req.user.userId && req.user.userId !== userId) {
+      return res.status(403).json({
+        code: 403,
+        message: '无权访问其他用户的成长数据',
+        data: null,
+      });
+    }
+
     // TODO: Sprint 3 从云数据库聚合 practice_records 和 assessments
     // 当前返回占位数据
     const mockData = {
