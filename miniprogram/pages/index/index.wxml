@@ -28,6 +28,24 @@
       <view class="card-desc">AI帮你生成英语辩论稿</view>
     </view>
 
+    <view class="entry-card card-portfolio" bindtap="goPortfolio">
+      <view class="card-icon">📝</view>
+      <view class="card-title">辩论作品集</view>
+      <view class="card-desc">记录思考过程，AI评委专业反馈</view>
+    </view>
+
+    <view class="entry-card card-sparring" bindtap="goSparring">
+      <view class="card-icon">🤖</view>
+      <view class="card-title">AI对练</view>
+      <view class="card-desc">不同风格AI对手，实时辩论训练</view>
+    </view>
+
+    <view class="entry-card card-tournament" bindtap="goTournament">
+      <view class="card-icon">🏆</view>
+      <view class="card-title">辩论赛事</view>
+      <view class="card-desc">组织赛事、报名参赛、智能组队</view>
+    </view>
+
     <view class="entry-card card-growth" bindtap="goProfile">
       <view class="card-icon">📊</view>
       <view class="card-title">我的成就</view>

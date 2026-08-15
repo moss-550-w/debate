@@ -16,6 +16,7 @@
 
   <!-- 评测结果 -->
   <view class="result-card" wx:if="{{showResult}}">
+    <view class="mock-badge" wx:if="{{result._is_mock}}">⚠️ 模拟数据（后端未连接）</view>
     <view class="result-header">
       <text class="result-label">评测结果</text>
       <text class="result-level level-{{scoreColor}}">{{getScoreLevel(result.overall)}}</text>

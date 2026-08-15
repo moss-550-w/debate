@@ -1,0 +1,313 @@
+.page-sparring {
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+.select-phase {
+  padding: 30rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 20rpx;
+  margin-top: 20rpx;
+}
+
+.style-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 30rpx;
+}
+
+.style-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  border: 3rpx solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.style-card.selected {
+  background: #f0f9ff;
+}
+
+.style-icon {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.style-name {
+  font-size: 30rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.style-desc {
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.topic-list {
+  margin-bottom: 40rpx;
+}
+
+.topic-item {
+  background: white;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 12rpx;
+  border: 2rpx solid #e5e7eb;
+}
+
+.topic-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.topic-title {
+  font-size: 28rpx;
+  color: #1f2937;
+}
+
+.start-btn {
+  background: #2563eb;
+  color: white;
+  font-size: 30rpx;
+  padding: 24rpx;
+  border-radius: 40rpx;
+  border: none;
+  width: 100%;
+}
+
+/* 对练阶段 */
+.battle-phase {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.battle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background: white;
+  border-bottom: 1rpx solid #e5e7eb;
+}
+
+.opponent-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.opponent-icon {
+  font-size: 40rpx;
+}
+
+.opponent-name {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.battle-topic {
+  font-size: 22rpx;
+  color: #6b7280;
+  display: block;
+}
+
+.end-btn {
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 24rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 30rpx;
+  border: none;
+}
+
+.message-list {
+  flex: 1;
+  padding: 20rpx;
+  overflow-y: auto;
+}
+
+.message {
+  margin-bottom: 20rpx;
+  display: flex;
+}
+
+.message.user {
+  justify-content: flex-end;
+}
+
+.msg-bubble {
+  max-width: 70%;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.8;
+}
+
+.msg-bubble.ai {
+  background: white;
+  border-bottom-left-radius: 4rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.msg-bubble.user {
+  background: #2563eb;
+  color: white;
+  border-bottom-right-radius: 4rpx;
+}
+
+.msg-style-label {
+  font-size: 20rpx;
+  color: #2563eb;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.mock-tag {
+  font-size: 18rpx;
+  color: #f59e0b;
+  display: block;
+  margin-top: 4rpx;
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: space-around;
+  padding: 12rpx 20rpx;
+  background: white;
+  border-top: 1rpx solid #e5e7eb;
+}
+
+.stat-entry {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #2563eb;
+  display: block;
+}
+
+.stat-label {
+  font-size: 20rpx;
+  color: #6b7280;
+}
+
+.input-bar {
+  display: flex;
+  padding: 16rpx 20rpx;
+  background: white;
+  border-top: 1rpx solid #e5e7eb;
+  gap: 16rpx;
+}
+
+.msg-input {
+  flex: 1;
+  padding: 16rpx 24rpx;
+  font-size: 28rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 40rpx;
+  background: #f8fafc;
+}
+
+.send-btn {
+  background: #2563eb;
+  color: white;
+  font-size: 26rpx;
+  padding: 16rpx 32rpx;
+  border-radius: 40rpx;
+  border: none;
+  white-space: nowrap;
+}
+
+.send-btn.disabled {
+  opacity: 0.5;
+}
+
+/* 结果阶段 */
+.result-phase {
+  padding: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.result-card {
+  background: white;
+  border-radius: 30rpx;
+  padding: 60rpx 40rpx;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.08);
+}
+
+.result-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.result-subtitle {
+  font-size: 28rpx;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 40rpx;
+}
+
+.result-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 40rpx;
+}
+
+.result-stat-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #2563eb;
+  display: block;
+}
+
+.result-stat-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+.result-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.primary-btn, .outline-btn {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.primary-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+
+.outline-btn {
+  background: white;
+  color: #2563eb;
+  border: 2rpx solid #2563eb;
+}

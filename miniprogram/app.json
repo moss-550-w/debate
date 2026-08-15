@@ -4,7 +4,10 @@
     "pages/topic/topic",
     "pages/practice/practice",
     "pages/speech/speech",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/portfolio/portfolio",
+    "pages/sparring/sparring",
+    "pages/tournament/tournament"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2563eb",

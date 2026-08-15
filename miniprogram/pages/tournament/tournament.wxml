@@ -1,0 +1,145 @@
+<view class="page-tournament">
+
+  <!-- 顶部 -->
+  <view class="top-bar">
+    <text class="page-title">辩论赛事</text>
+    <button class="match-btn" bindtap="getTeamMatch">🤝 智能组队</button>
+  </view>
+
+  <!-- 赛事列表 -->
+  <view class="tournament-list" wx:if="{{tournaments.length > 0}}">
+    <view class="tournament-card" wx:for="{{tournaments}}" wx:key="_id" bindtap="viewDetail" data-id="{{item._id}}">
+      <view class="t-header">
+        <text class="t-name">{{item.name}}</text>
+        <text class="t-format">{{item.formatLabel}}</text>
+      </view>
+      <view class="t-info">
+        <text class="t-info-item">👥 {{item.team_count || 0}}/{{item.max_teams}} 队</text>
+        <text class="t-info-item">📋 {{item.topicCount}} 道辩题</text>
+        <text class="t-status status-{{item.status}}">{{item.status === 'open' ? '报名中' : '已结束'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{tournaments.length === 0 && !loading}}">
+    <text class="empty-icon">🏆</text>
+    <text class="empty-text">暂无赛事</text>
+    <text class="empty-hint">赛事创建后将在列表中显示</text>
+  </view>
+
+  <!-- 赛事详情弹窗 -->
+  <view class="modal-overlay" wx:if="{{showDetail}}" catchtouchmove="preventDefault">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">{{selectedTournament.name}}</text>
+        <text class="modal-close" bindtap="closeDetail">✕</text>
+      </view>
+
+      <scroll-view class="modal-body" scroll-y>
+        <view class="detail-section">
+          <view class="detail-row">
+            <text class="detail-label">赛制</text>
+            <text class="detail-value">{{selectedTournament.formatLabel}}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">队伍规模</text>
+            <text class="detail-value">{{selectedTournament.teamCount}}/{{selectedTournament.maxTeams}} 队</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">每队人数</text>
+            <text class="detail-value">{{selectedTournament.teamSize}} 人</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">状态</text>
+            <text class="detail-value status-{{selectedTournament.status}}">{{selectedTournament.statusLabel}}</text>
+          </view>
+          <view class="detail-row" wx:if="{{selectedTournament.hasRules}}">
+            <text class="detail-label">规则</text>
+            <text class="detail-value">{{selectedTournament.rules}}</text>
+          </view>
+        </view>
+
+        <!-- 参赛队伍 -->
+        <view class="teams-section">
+          <text class="teams-title">参赛队伍 ({{selectedTournament.teamsCount}})</text>
+          <view class="team-card" wx:for="{{selectedTournament.teams}}" wx:key="_id">
+            <text class="team-name">{{item.team_name}}</text>
+            <view class="team-members">
+              <text class="member-tag" wx:for="{{item.members}}" wx:key="*this">{{item}}</text>
+            </view>
+          </view>
+          <view class="empty-teams" wx:if="{{selectedTournament.teamsCount === 0}}">
+            <text>暂无队伍报名</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="modal-footer" wx:if="{{selectedTournament.isOpen}}">
+        <button class="register-btn" bindtap="openRegister">报名参赛</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 报名弹窗 -->
+  <view class="modal-overlay" wx:if="{{showRegister}}" catchtouchmove="preventDefault">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">报名参赛</text>
+        <text class="modal-close" bindtap="closeRegister">✕</text>
+      </view>
+
+      <scroll-view class="modal-body" scroll-y>
+        <view class="form-group">
+          <text class="form-label">队伍名称</text>
+          <input class="form-input" placeholder="输入队伍名称" value="{{registerForm.team_name}}" bindinput="inputChange" data-field="team_name" />
+        </view>
+
+        <view class="form-group" wx:for="{{registerForm.members}}" wx:for-index="idx" wx:key="idx">
+          <text class="form-label">队员 {{idx + 1}}</text>
+          <input class="form-input" placeholder="队员名称" value="{{item}}" bindinput="memberInputChange" data-index="{{idx}}" data-field="name" />
+          <view class="style-select">
+            <view class="style-option {{registerForm.member_styles[idx] === opt.value ? 'active' : ''}}" wx:for="{{styleOptions}}" wx:key="value" bindtap="selectStyle" data-index="{{idx}}" data-value="{{opt.value}}">{{opt.label}}</view>
+          </view>
+        </view>
+
+        <view class="member-actions">
+          <button class="add-member-btn" bindtap="addMember">+ 添加队员</button>
+          <button class="remove-member-btn" bindtap="removeMember">- 移除队员</button>
+        </view>
+      </scroll-view>
+
+      <view class="modal-footer">
+        <button class="register-btn" bindtap="submitRegister">确认报名</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 组队推荐弹窗 -->
+  <view class="modal-overlay" wx:if="{{showTeamMatch}}" catchtouchmove="preventDefault">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">智能组队推荐</text>
+        <text class="modal-close" bindtap="closeTeamMatch">✕</text>
+      </view>
+
+      <scroll-view class="modal-body" scroll-y wx:if="{{matchRecommendations}}">
+        <view class="style-show">
+          <text class="style-show-label">你的风格</text>
+          <text class="style-show-value">{{matchRecommendations.yourStyleLabel}}</text>
+        </view>
+
+        <text class="recommend-title">推荐搭档</text>
+        <view class="recommend-card" wx:for="{{matchRecommendations.recommendations}}" wx:key="user_id">
+          <text class="recommend-style">{{item.style_label || item.style}}</text>
+          <text class="recommend-score">兼容度: {{item.compatibility_score}}%</text>
+          <text class="recommend-reason">{{item.reason}}</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+</view>

@@ -96,6 +96,18 @@ Page({
     wx.switchTab({ url: '/pages/topic/topic' });
   },
 
+  goPortfolio() {
+    wx.navigateTo({ url: '/pages/portfolio/portfolio' });
+  },
+
+  goSparring() {
+    wx.navigateTo({ url: '/pages/sparring/sparring' });
+  },
+
+  goTournament() {
+    wx.navigateTo({ url: '/pages/tournament/tournament' });
+  },
+
   goTopicDetail(e) {
     const id = e.currentTarget.dataset.id;
     const title = e.currentTarget.dataset.title;

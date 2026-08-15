@@ -1,0 +1,165 @@
+<view class="page-portfolio">
+  <!-- 顶部导航 -->
+  <view class="top-bar">
+    <view class="tab-nav">
+      <view class="tab-item {{activeTab === 'records' ? 'active' : ''}}" bindtap="switchTab" data-tab="records">
+        <text>思考记录</text>
+      </view>
+      <view class="tab-item {{activeTab === 'analysis' ? 'active' : ''}}" bindtap="switchTab" data-tab="analysis">
+        <text>风格分析</text>
+      </view>
+    </view>
+    <button class="add-btn" bindtap="openForm">+ 记录</button>
+  </view>
+
+  <!-- 思考记录列表 -->
+  <view wx:if="{{activeTab === 'records'}}">
+    <scroll-view class="filter-bar" scroll-x>
+      <view class="filter-item {{filterType === '' ? 'active' : ''}}" bindtap="filterByType" data-type="">全部</view>
+      <view class="filter-item {{filterType === 'case' ? 'active' : ''}}" bindtap="filterByType" data-type="case">完整论点</view>
+      <view class="filter-item {{filterType === 'argument' ? 'active' : ''}}" bindtap="filterByType" data-type="argument">论点片段</view>
+      <view class="filter-item {{filterType === 'mechanism' ? 'active' : ''}}" bindtap="filterByType" data-type="mechanism">机制分析</view>
+      <view class="filter-item {{filterType === 'clash' ? 'active' : ''}}" bindtap="filterByType" data-type="clash">反驳思路</view>
+      <view class="filter-item {{filterType === 'question' ? 'active' : ''}}" bindtap="filterByType" data-type="question">未解问题</view>
+    </scroll-view>
+
+    <view class="empty-state" wx:if="{{records.length === 0 && !loading}}">
+      <text class="empty-icon">📝</text>
+      <text class="empty-text">还没有思考记录</text>
+      <text class="empty-hint">点击右上角「+ 记录」开始记录你的思辨过程</text>
+    </view>
+
+    <view class="record-list" wx:for="{{records}}" wx:key="_id">
+      <view class="record-card" bindtap="viewFeedback" data-record="{{item}}">
+        <view class="record-header">
+          <text class="record-type type-{{item.content_type}}">{{item.contentTypeLabel}}</text>
+          <text class="record-position">{{item.positionLabel}}</text>
+          <text class="record-score">{{item.recordScore != null ? item.recordScore + '分' : '?分'}}</text>
+        </view>
+        <text class="record-title">{{item.title}}</text>
+        <text class="record-preview">{{item.displayContent}}{{item.hasMoreContent ? '...' : ''}}</text>
+        <text class="record-time">{{item.displayDate}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 风格分析 -->
+  <view class="analysis-section" wx:if="{{activeTab === 'analysis'}}">
+    <view class="analysis-card" wx:if="{{analysisData.styleLabel}}">
+      <view class="analysis-header">
+        <text class="analysis-title">辩论风格</text>
+        <text class="analysis-style">{{analysisData.styleLabel}}</text>
+      </view>
+      <text class="style-desc" wx:if="{{analysisData.styleDesc}}">{{analysisData.styleDesc}}</text>
+
+      <view class="strength-section">
+        <text class="section-label">💪 优势</text>
+        <view class="tag-list">
+          <text class="strength-tag" wx:for="{{analysisData.strengthAreas}}" wx:key="*this">{{item}}</text>
+          <text class="empty-tag" wx:if="{{analysisData.strengthAreas.length === 0}}">暂无数据</text>
+        </view>
+      </view>
+
+      <view class="weakness-section">
+        <text class="section-label">📈 待提升</text>
+        <view class="tag-list">
+          <text class="weakness-tag" wx:for="{{analysisData.weaknessAreas}}" wx:key="*this">{{item}}</text>
+          <text class="empty-tag" wx:if="{{analysisData.weaknessAreas.length === 0}}">暂无数据</text>
+        </view>
+      </view>
+
+      <view class="focus-card" wx:if="{{analysisData.focusText}}">
+        <text class="focus-label">🎯 推荐训练方向</text>
+        <text class="focus-text">{{analysisData.focusText}}</text>
+      </view>
+
+      <view class="tasks-section" wx:if="{{analysisData.recommendedTasks.length > 0}}">
+        <text class="section-label">推荐训练任务</text>
+        <view class="task-item" wx:for="{{analysisData.recommendedTasks}}" wx:key="title" bindtap="goPractice">
+          <text class="task-title">{{item.title}}</text>
+          <text class="task-desc">{{item.description}}</text>
+        </view>
+      </view>
+
+      <view class="stats-section">
+        <text class="section-label">📊 统计</text>
+        <view class="stats-grid">
+          <view class="stat-item">
+            <text class="stat-value">{{analysisData.totalRecords}}</text>
+            <text class="stat-label">总记录</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-value">{{analysisData.avgScore}}</text>
+            <text class="stat-label">平均分</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-value">{{analysisData.practiceCount}}</text>
+            <text class="stat-label">练习次数</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:if="{{!analysisData.styleLabel}}">
+      <text class="empty-icon">📊</text>
+      <text class="empty-text">暂无分析数据</text>
+      <text class="empty-hint">提交思考记录后，AI将分析你的辩论风格并提供针对性建议</text>
+    </view>
+  </view>
+
+  <!-- 提交表单弹窗 -->
+  <view class="form-overlay" wx:if="{{showForm}}" catchtouchmove="preventDefault">
+    <view class="form-modal">
+      <view class="form-header">
+        <text class="form-title">记录思考过程</text>
+        <text class="form-close" bindtap="closeForm">✕</text>
+      </view>
+
+      <view class="form-body">
+        <view class="form-group">
+          <text class="form-label">记录类型</text>
+          <view class="select-group">
+            <view class="select-item {{formData.content_type === item.value ? 'active' : ''}}" wx:for="{{contentTypes}}" wx:key="value" bindtap="selectType" data-value="{{item.value}}">{{item.label}}</view>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">立场</text>
+          <view class="select-group">
+            <view class="select-item {{formData.position === item.value ? 'active' : ''}}" wx:for="{{positions}}" wx:key="value" bindtap="selectPosition" data-value="{{item.value}}">{{item.label}}</view>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">标题</text>
+          <input class="form-input" placeholder="给这次思考起个标题" value="{{formData.title}}" bindinput="inputChange" data-field="title" />
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">辩题ID（可选）</text>
+          <input class="form-input" placeholder="输入辩题ID" value="{{formData.topic_id}}" bindinput="inputChange" data-field="topic_id" />
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">辩题标题</text>
+          <input class="form-input" placeholder="相关的辩题" value="{{formData.topic_title}}" bindinput="inputChange" data-field="topic_title" />
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">思考内容</text>
+          <textarea class="form-textarea" placeholder="写下你的思考过程...可以是完整论点、论证机制、反驳思路，甚至还没想明白的问题。AI将以专业评委视角提供反馈。" value="{{formData.content}}" bindinput="inputChange" data-field="content" />
+        </view>
+      </view>
+
+      <view class="form-footer">
+        <button class="cancel-btn" bindtap="closeForm">取消</button>
+        <button class="submit-btn" bindtap="submitRecord">提交</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
+  </view>
+</view>

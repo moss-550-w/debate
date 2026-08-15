@@ -89,6 +89,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.mock-badge {
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 22rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  margin-bottom: 12rpx;
+  text-align: center;
+}
+
 .result-header {
   display: flex;
   justify-content: space-between;

@@ -82,13 +82,15 @@ Page({
       }
     } catch (err) {
       console.error('语音评测失败:', err);
-      // 模拟数据兜底
+      wx.showToast({ title: '评测服务暂时不可用，使用模拟数据', icon: 'none' });
+      // 模拟数据兜底（带标识）
       const mock = {
         pronunciation: Math.floor(Math.random() * 30) + 70,
         fluency: Math.floor(Math.random() * 30) + 70,
         integrity: Math.floor(Math.random() * 20) + 80,
         overall: 0,
         word_scores: [],
+        _is_mock: true,
       };
       mock.overall = Math.round((mock.pronunciation + mock.fluency + mock.integrity) / 3);
       this.setData({
