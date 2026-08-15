@@ -12,8 +12,10 @@ Page({
       integrity: 0,
       overall: 0,
     },
+    wordScores: [],
     recorderManager: null,
     tempAudioPath: '',
+    scoreColor: '',
   },
 
   onLoad(options) {
@@ -68,37 +70,63 @@ Page({
       });
 
       if (res.code === 200) {
+        const data = res.data;
         this.setData({
-          result: res.data,
+          result: data,
+          wordScores: data.word_scores || [],
           showResult: true,
+          scoreColor: this.getScoreColor(data.overall),
         });
       } else {
         throw new Error(res.message);
       }
     } catch (err) {
+      console.error('语音评测失败:', err);
       // 模拟数据兜底
+      const mock = {
+        pronunciation: Math.floor(Math.random() * 30) + 70,
+        fluency: Math.floor(Math.random() * 30) + 70,
+        integrity: Math.floor(Math.random() * 20) + 80,
+        overall: 0,
+        word_scores: [],
+      };
+      mock.overall = Math.round((mock.pronunciation + mock.fluency + mock.integrity) / 3);
       this.setData({
-        result: {
-          pronunciation: Math.floor(Math.random() * 30) + 70,
-          fluency: Math.floor(Math.random() * 30) + 70,
-          integrity: Math.floor(Math.random() * 20) + 80,
-          overall: 0,
-        },
+        result: mock,
+        wordScores: [],
         showResult: true,
+        scoreColor: this.getScoreColor(mock.overall),
       });
-      // 修正总分
-      const r = this.data.result;
-      r.overall = Math.round((r.pronunciation + r.fluency + r.integrity) / 3);
-      this.setData({ result: r });
     } finally {
       this.setData({ evaluating: false });
     }
+  },
+
+  getScoreColor(score) {
+    if (score >= 85) return 'green';
+    if (score >= 70) return 'yellow';
+    return 'red';
+  },
+
+  getScoreLevel(score) {
+    if (score >= 85) return '优秀';
+    if (score >= 70) return '良好';
+    if (score >= 60) return '一般';
+    return '需加强';
+  },
+
+  getWordScoreColor(score) {
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    return '#ef4444';
   },
 
   tryAgain() {
     this.setData({
       showResult: false,
       result: { pronunciation: 0, fluency: 0, integrity: 0, overall: 0 },
+      wordScores: [],
+      scoreColor: '',
     });
   },
 

@@ -94,7 +94,14 @@ Page({
 
         const canvas = res[0].node;
         const ctx = canvas.getContext('2d');
-        const dpr = wx.getSystemInfoSync().pixelRatio;
+        // 使用新API获取像素比，兼容旧基础库
+        let dpr = 1;
+        try {
+          const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+          dpr = windowInfo.pixelRatio || 1;
+        } catch (e) {
+          dpr = 1;
+        }
 
         const width = res[0].width;
         const height = res[0].height;
