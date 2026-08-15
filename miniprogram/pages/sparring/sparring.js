@@ -34,16 +34,18 @@ Page({
     step: 'select', // select | battle | result
     selectedStyle: null,
     selectedTopic: null,
-    selectedTopicId: '', // 展平属性，供WXML比较用
+    selectedTopicId: '',
     sessionId: '',
     opponent: { icon: '🤖', name: 'AI对手' },
     messages: [],
     userInput: '',
     stats: { effective_rebuttal_rate: 0, stall_count: 0, total_rounds: 0 },
     sending: false,
+    recording: false,
     battleStartTime: 0,
     lastUserMsgTime: 0,
-    battleTopic: '', // 展平辩题标题
+    battleTopic: '',
+    recorderManager: null,
     OPPONENT_STYLES: OPPONENT_STYLES,
     TOPICS: TOPICS,
   },
@@ -131,6 +133,16 @@ Page({
           stats: res.data.stats,
           lastUserMsgTime: now,
         });
+      } else {
+        // API返回错误，使用模拟回复
+        console.warn('API返回非200，使用模拟回复:', res.code);
+        const style = this.data.selectedStyle;
+        const mockReply = this.getMockReply(msg, style);
+        this.setData({
+          messages: [...this.data.messages, { role: 'ai', content: mockReply, style, styleName: OPPONENT_STYLES[style].name, _mock: true }],
+          stats: { ...this.data.stats, total_rounds: this.data.stats.total_rounds + 1 },
+          lastUserMsgTime: now,
+        });
       }
     } catch (err) {
       console.error('发送消息失败:', err);
@@ -168,12 +180,68 @@ Page({
         'Let me deconstruct your reasoning. You make three assumptions, none of which are properly justified.',
       ],
     };
-    const styleReplies = replies[style] || replies.logic_focused;
+    const styleReplies = replies[style] || replies.data_monster;
     return styleReplies[Math.floor(Math.random() * styleReplies.length)];
   },
 
   endBattle() {
     this.setData({ step: 'result' });
+  },
+
+  startRecord() {
+    // 使用微信录音管理器
+    const recorderManager = wx.getRecorderManager();
+    this.setData({ recording: true, recorderManager });
+
+    const options = {
+      duration: 10000,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 48000,
+      format: 'mp3',
+    };
+
+    recorderManager.onStop(async (res) => {
+      this.setData({ recording: false });
+      if (res.tempFilePath) {
+        try {
+          // 读取音频文件为base64
+          const fs = wx.getFileSystemManager();
+          const audioBase64 = fs.readFileSync(res.tempFilePath, 'base64');
+          // 发送到后端进行语音识别
+          wx.showLoading({ title: '语音识别中...' });
+          const sttRes = await request('/speech-to-text', {
+            method: 'POST',
+            data: { audio: audioBase64, format: 'mp3' },
+          });
+          wx.hideLoading();
+          if (sttRes.code === 200 && sttRes.data && sttRes.data.text) {
+            this.setData({ userInput: sttRes.data.text });
+          } else {
+            wx.showToast({ title: '语音识别失败', icon: 'none' });
+          }
+        } catch (err) {
+          wx.hideLoading();
+          console.error('语音识别请求失败:', err);
+          wx.showToast({ title: '语音识别失败', icon: 'none' });
+        }
+      }
+    });
+
+    recorderManager.onError((err) => {
+      this.setData({ recording: false });
+      console.error('录音失败:', err);
+      wx.showToast({ title: '录音失败', icon: 'none' });
+    });
+
+    recorderManager.start(options);
+  },
+
+  stopRecord() {
+    const rm = this.data.recorderManager;
+    if (rm) {
+      rm.stop();
+    }
   },
 
   restartBattle() {
@@ -188,7 +256,9 @@ Page({
       userInput: '',
       stats: { effective_rebuttal_rate: 0, stall_count: 0, total_rounds: 0 },
       sending: false,
+      recording: false,
       battleTopic: '',
+      recorderManager: null,
     });
   },
 

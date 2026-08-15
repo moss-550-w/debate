@@ -14,6 +14,7 @@ const portfolioRouter = require('./routes/portfolio');
 const tournamentRouter = require('./routes/tournament');
 const commentsRouter = require('./routes/comments');
 const assignmentsRouter = require('./routes/assignments');
+const speechToTextRouter = require('./routes/speechToText');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,7 @@ app.use('/api/portfolio', portfolioRouter);
 app.use('/api/tournament', tournamentRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/assignments', assignmentsRouter);
+app.use('/api/speech-to-text', speechToTextRouter);
 
 // ===== 404 处理 =====
 app.use((req, res) => {

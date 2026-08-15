@@ -72,6 +72,9 @@
 
     <view class="input-bar">
       <input class="msg-input" placeholder="输入你的论点..." value="{{userInput}}" bindinput="inputChange" />
+      <button class="voice-btn {{recording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord">
+        <text>{{recording ? '🔴' : '🎤'}}</text>
+      </button>
       <button class="send-btn {{sending ? 'disabled' : ''}}" bindtap="sendMessage" disabled="{{sending}}">{{sending ? '发送中' : '发送'}}</button>
     </view>
   </view>
