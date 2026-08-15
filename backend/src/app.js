@@ -9,6 +9,7 @@ const generateRouter = require('./routes/generate');
 const evaluateRouter = require('./routes/evaluate');
 const debateRouter = require('./routes/debate');
 const growthRouter = require('./routes/growth');
+const topicsRouter = require('./routes/topics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +43,7 @@ app.use('/api/generate', generateRouter);
 app.use('/api/evaluate', evaluateRouter);
 app.use('/api/debate', debateRouter);
 app.use('/api/growth', growthRouter);
+app.use('/api/topics', topicsRouter);
 
 // ===== 404 处理 =====
 app.use((req, res) => {

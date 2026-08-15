@@ -1,53 +1,102 @@
 /**
  * 辩题与立论相关逻辑
+ * 从后端 API 加载真实辩题数据
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 加载辩题列表
-  loadTopics();
+// 分类中文映射
+const CATEGORY_LABELS = {
+  society: '社会',
+  education: '教育',
+  tech: '科技',
+  environment: '环境',
+};
 
-  // 生成立论
+// 难度中文映射
+const DIFFICULTY_LABELS = {
+  easy: '简单',
+  medium: '中等',
+  hard: '困难',
+};
+
+// 难度颜色
+const DIFFICULTY_COLORS = {
+  easy: '#10b981',
+  medium: '#f59e0b',
+  hard: '#ef4444',
+};
+
+// 缓存辩题数据
+let allTopics = [];
+let currentTopicPage = 1;
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTopics();
   document.getElementById('generateBtn').addEventListener('click', handleGenerate);
 });
 
 /**
- * 加载辩题列表（用于下拉选择和表格）
+ * 从 API 加载辩题列表
  */
 async function loadTopics() {
   try {
-    const res = await apiRequest('/health');
-
-    // 填充下拉选择
-    const select = document.getElementById('practiceTopic');
-    // 模拟辩题数据
-    const mockTopics = [
-      { _id: '1', title: 'Should AI be used in education?', category: 'tech', difficulty: 'medium' },
-      { _id: '2', title: 'Is recycling important for the environment?', category: 'environment', difficulty: 'easy' },
-      { _id: '3', title: 'Should students have homework every day?', category: 'education', difficulty: 'easy' },
-    ];
-
-    select.innerHTML = '<option value="">-- 请选择 --</option>';
-    mockTopics.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t._id;
-      opt.textContent = `${t.title} (${t.difficulty})`;
-      select.appendChild(opt);
-    });
-
-    // 填充辩题表格
-    const tbody = document.getElementById('topicTableBody');
-    tbody.innerHTML = mockTopics.map(t => `
-      <tr>
-        <td>${t.title}</td>
-        <td>${t.category}</td>
-        <td>${t.difficulty}</td>
-        <td><span class="status-badge status-active">已上架</span></td>
-        <td><button class="btn-primary" style="padding:4px 12px;font-size:13px;">编辑</button></td>
-      </tr>
-    `).join('');
+    const res = await apiRequest('/topics?size=100');
+    if (res && res.code === 200) {
+      allTopics = res.data.list;
+      renderTopicSelect(allTopics);
+      renderTopicTable(allTopics);
+    } else {
+      throw new Error('获取辩题失败');
+    }
   } catch (err) {
     console.error('加载辩题失败:', err);
+    renderTopicTable([]);
   }
+}
+
+/**
+ * 渲染辩题下拉选择框
+ */
+function renderTopicSelect(topics) {
+  const select = document.getElementById('practiceTopic');
+  select.innerHTML = '<option value="">-- 请选择辩题 --</option>';
+  topics.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t._id;
+    opt.textContent = `${t.title} [${DIFFICULTY_LABELS[t.difficulty] || t.difficulty}]`;
+    select.appendChild(opt);
+  });
+}
+
+/**
+ * 渲染辩题管理表格
+ */
+function renderTopicTable(topics) {
+  const tbody = document.getElementById('topicTableBody');
+  if (!topics.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-row">暂无辩题数据</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = topics.map(t => {
+    const catLabel = CATEGORY_LABELS[t.category] || t.category;
+    const diffLabel = DIFFICULTY_LABELS[t.difficulty] || t.difficulty;
+    const diffColor = DIFFICULTY_COLORS[t.difficulty] || '#6b7280';
+    return `
+      <tr>
+        <td>
+          <div class="topic-title">${t.title}</div>
+          ${t.background ? `<div class="topic-bg">${t.background.slice(0, 60)}${t.background.length > 60 ? '...' : ''}</div>` : ''}
+        </td>
+        <td><span class="tag tag-${t.category}">${catLabel}</span></td>
+        <td><span style="color:${diffColor};font-weight:600;">${diffLabel}</span></td>
+        <td><span class="status-badge status-active">已上架</span></td>
+        <td><button class="btn-primary" style="padding:4px 12px;font-size:13px;" onclick="alert('编辑功能将在后续版本实现')">编辑</button></td>
+      </tr>
+    `;
+  }).join('');
+
+  // 更新统计
+  document.getElementById('topicCount').textContent = topics.length;
 }
 
 /**
@@ -64,13 +113,14 @@ async function handleGenerate() {
 
   const btn = document.getElementById('generateBtn');
   btn.disabled = true;
-  btn.textContent = '生成中...';
+  btn.textContent = '⏳ 生成中（约30秒）...';
 
   try {
     const res = await apiRequest('/generate', {
       method: 'POST',
       body: JSON.stringify({
         topic_id: topicId,
+        topic_title: allTopics.find(t => t._id === topicId)?.title || '',
         position,
         user_role: 'pupil',
       }),
@@ -105,10 +155,11 @@ async function handleGenerate() {
       `;
 
       resultDiv.style.display = '';
+      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
       showToast('立论生成成功', 'success');
     }
   } catch (err) {
-    showToast('生成立论失败', 'error');
+    showToast('生成立论失败，请稍后重试', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '生成立论';
