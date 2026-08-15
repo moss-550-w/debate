@@ -30,8 +30,11 @@ Page({
       practiceCount: 0,
     },
     showForm: false,
+    showFeedback: false,
+    currentRecord: null,
     filterType: '',
     loading: true,
+    submitting: false,
     formData: {
       topic_id: '',
       topic_title: '',
@@ -126,39 +129,65 @@ Page({
       wx.showToast({ title: '请填写标题和内容', icon: 'none' });
       return;
     }
+    this.setData({ submitting: true });
     try {
-      wx.showLoading({ title: '提交中...' });
       const res = await request('/portfolio', {
         method: 'POST',
         data: fd,
       });
-      wx.hideLoading();
+      this.setData({ submitting: false });
       if (res.code === 200) {
         wx.showToast({ title: '提交成功', icon: 'success' });
         this.setData({ showForm: false });
         this.loadData();
+      } else {
+        wx.showToast({ title: (res && res.message) || '提交失败', icon: 'none' });
       }
     } catch (err) {
-      wx.hideLoading();
+      this.setData({ submitting: false });
       wx.showToast({ title: '提交失败', icon: 'none' });
     }
   },
 
+  _expandFeedback(record) {
+    const fb = record.ai_feedback;
+    const r = Object.assign({}, record);
+    if (!fb) {
+      r.aiFeedbackStrengths = [];
+      r.aiFeedbackWeaknesses = [];
+      r.aiFeedbackDims = [];
+      return r;
+    }
+    r.aiFeedbackStrengths = fb.strengths && fb.strengths.length ? fb.strengths : ['暂无'];
+    r.aiFeedbackWeaknesses = fb.weaknesses && fb.weaknesses.length ? fb.weaknesses : ['暂无'];
+    const dimsRaw = fb.dimensions || {};
+    const dimLabels = [
+      { key: 'logic', name: '逻辑性' },
+      { key: 'evidence', name: '论据' },
+      { key: 'expression', name: '表达' },
+      { key: 'structure', name: '结构' },
+      { key: 'creativity', name: '创意' },
+    ];
+    r.aiFeedbackDims = dimLabels.map(d => {
+      const s = dimsRaw[d.key] != null ? Number(dimsRaw[d.key]) : 15;
+      return { name: d.name, score: Math.min(20, Math.max(0, s)), percent: Math.min(100, s * 5) };
+    });
+    return r;
+  },
+
   viewFeedback(e) {
     const record = e.currentTarget.dataset.record;
-    if (!record.ai_feedback) {
-      wx.showModal({ title: 'AI评委反馈', content: '暂无反馈', showCancel: false });
-      return;
-    }
-    const fb = record.ai_feedback;
-    const strengths = fb.strengths && Array.isArray(fb.strengths) ? fb.strengths.join('、') : '无';
-    const weaknesses = fb.weaknesses && Array.isArray(fb.weaknesses) ? fb.weaknesses.join('、') : '无';
-    const suggestions = fb.suggestions && Array.isArray(fb.suggestions) ? fb.suggestions.join('、') : '无';
-    wx.showModal({
-      title: 'AI评委反馈',
-      content: `评分: ${fb.judge_score || '?'}/100\n\n${fb.judge_comment || ''}\n\n优势: ${strengths}\n待提升: ${weaknesses}\n建议: ${suggestions}`,
-      showCancel: false,
-    });
+    if (!record) return;
+    const expanded = this._expandFeedback(record);
+    this.setData({ showFeedback: true, currentRecord: expanded });
+  },
+
+  closeFeedback() {
+    this.setData({ showFeedback: false, currentRecord: null });
+  },
+
+  preventDefault() {
+    // 遮罩捕获触摸滚动
   },
 
   filterByType(e) {

@@ -2,28 +2,18 @@
 
   <!-- 选择阶段 -->
   <view class="select-phase" wx:if="{{step === 'select'}}">
-    <view class="section-title">选择对手风格</view>
+    <text class="section-title">选择对手风格</text>
     <view class="style-list">
-      <view class="style-card {{selectedStyle === 'data_monster' ? 'selected' : ''}}" bindtap="selectStyle" data-style="data_monster" style="border-color: {{selectedStyle === 'data_monster' ? '#10b981' : '#e5e7eb'}}">
-        <text class="style-icon">📊</text>
-        <text class="style-name">数据狂魔型</text>
-        <text class="style-desc">擅长用数据、统计和事实案例攻击你的论点</text>
-      </view>
-      <view class="style-card {{selectedStyle === 'value_emotional' ? 'selected' : ''}}" bindtap="selectStyle" data-style="value_emotional" style="border-color: {{selectedStyle === 'value_emotional' ? '#f59e0b' : '#e5e7eb'}}">
-        <text class="style-icon">❤️</text>
-        <text class="style-name">价值煽情型</text>
-        <text class="style-desc">擅长从道德、价值观和情感层面打动听众</text>
-      </view>
-      <view class="style-card {{selectedStyle === 'logic_deconstruction' ? 'selected' : ''}}" bindtap="selectStyle" data-style="logic_deconstruction" style="border-color: {{selectedStyle === 'logic_deconstruction' ? '#8b5cf6' : '#e5e7eb'}}">
-        <text class="style-icon">🔍</text>
-        <text class="style-name">逻辑拆解型</text>
-        <text class="style-desc">擅长拆解对方逻辑漏洞，寻找论证缺陷</text>
+      <view class="style-card {{selectedStyle === item.id ? 'selected' : ''}}" wx:for="{{STYLE_LIST}}" wx:key="id" bindtap="selectStyle" data-style="{{item.id}}">
+        <text class="style-icon">{{item.icon}}</text>
+        <text class="style-name">{{item.name}}</text>
+        <text class="style-desc">{{item.description}}</text>
       </view>
     </view>
 
-    <view class="section-title">选择辩题</view>
+    <text class="section-title">选择辩题</text>
     <view class="topic-list">
-      <view class="topic-item {{selectedTopicId === item.id ? 'active' : ''}}" wx:for="{{TOPICS}}" wx:key="id" bindtap="selectTopic" data-topic="{{item}}">
+      <view class="topic-item {{selectedTopicId === item.id ? 'active' : ''}}" wx:for="{{TOPIC_LIST}}" wx:key="id" bindtap="selectTopic" data-topic="{{item}}">
         <text class="topic-title">{{item.title}}</text>
       </view>
     </view>
@@ -44,38 +34,53 @@
       <button class="end-btn" bindtap="endBattle">结束</button>
     </view>
 
-    <scroll-view class="message-list" scroll-y scroll-into-view="lastMsg" scroll-with-animation>
-      <view class="message {{msg.role === 'ai' ? 'ai' : 'user'}}" wx:for="{{messages}}" wx:for-index="idx" wx:key="idx">
-        <view class="msg-bubble {{msg.role === 'ai' ? 'ai' : 'user'}}">
-          <text wx:if="{{msg.role === 'ai' && msg.style}}" class="msg-style-label">{{msg.styleName}}</text>
-          <text class="msg-text">{{msg.content}}</text>
-          <text wx:if="{{msg._mock}}" class="mock-tag">模拟回复</text>
+    <!-- 调试信息：消息数量显示 -->
+    <view class="debug-strip" wx:if="{{debugMsgCount >= 0}}">消息数：{{debugMsgCount}}</view>
+
+    <!-- 语音识别状态条（全程可见） -->
+    <view class="voice-bar voice-bar-{{voiceStep}}" wx:if="{{voiceStep !== 'idle' && voiceStatusText}}">
+      <text class="voice-bar-text">{{voiceStatusText}}</text>
+    </view>
+
+    <!-- 显式高度的消息区（绝对关键！） -->
+    <scroll-view class="message-list" scroll-y style="height: {{scrollViewHeight}}px;" scroll-with-animation scroll-into-view="msg-{{debugMsgCount}}">
+      <view class="message-wrap" wx:for="{{messages}}" wx:for-item="msg" wx:for-index="midx" wx:key="midx" id="msg-{{midx + 1}}">
+        <view class="msg-row msg-row-{{msg.role}}">
+          <view class="bubble bubble-{{msg.role}}">
+            <text class="tag" wx:if="{{msg.role === 'ai' && msg.styleName}}">{{msg.styleName}}</text>
+            <text class="txt">{{msg.content}}</text>
+          </view>
         </view>
       </view>
-      <view id="lastMsg" style="height: 1rpx;"></view>
+      <view style="height: 40rpx;"></view>
     </scroll-view>
 
     <view class="stats-bar">
       <view class="stat-entry">
-        <text class="stat-value">{{stats.total_rounds || 0}}</text>
+        <text class="stat-value">{{statsDisplay.totalRounds}}</text>
         <text class="stat-label">轮次</text>
       </view>
       <view class="stat-entry">
-        <text class="stat-value">{{stats.effective_rebuttal_rate ? Math.round(stats.effective_rebuttal_rate * 100) + '%' : '0%'}}</text>
+        <text class="stat-value">{{statsDisplay.effectiveRate}}</text>
         <text class="stat-label">有效反驳</text>
       </view>
       <view class="stat-entry">
-        <text class="stat-value">{{stats.stall_count || 0}}</text>
+        <text class="stat-value">{{statsDisplay.stallCount}}</text>
         <text class="stat-label">卡壳</text>
       </view>
     </view>
 
     <view class="input-bar">
-      <input class="msg-input" placeholder="输入你的论点..." value="{{userInput}}" bindinput="inputChange" />
-      <button class="voice-btn {{recording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord">
-        <text>{{recording ? '🔴' : '🎤'}}</text>
+      <input class="msg-input" placeholder="输入你的论点..." value="{{userInput}}" bindinput="inputChange" confirm-type="send" bindconfirm="sendMessage" disabled="{{sending}}" />
+      <button class="voice-btn voice-btn-{{recording ? 'on' : voiceStep}}"
+              bindtap="toggleRecord"
+              bindtouchstart="startRecord"
+              bindtouchend="stopRecord"
+              bindtouchcancel="stopRecord"
+              hover-class="none">
+        <text class="voice-icon">{{recording ? '🔴' : '🎤'}}</text>
       </button>
-      <button class="send-btn {{sending ? 'disabled' : ''}}" bindtap="sendMessage" disabled="{{sending}}">{{sending ? '发送中' : '发送'}}</button>
+      <button class="send-btn" bindtap="sendMessage" disabled="{{sending}}">{{sending ? '发送中' : '发送'}}</button>
     </view>
   </view>
 
@@ -84,22 +89,20 @@
     <view class="result-card">
       <text class="result-title">对练结束</text>
       <text class="result-subtitle">与 {{opponent.name}} 的对练数据</text>
-
       <view class="result-stats">
         <view class="result-stat-item">
-          <text class="result-stat-value">{{stats.total_rounds || 0}}</text>
+          <text class="result-stat-value">{{statsDisplay.totalRounds}}</text>
           <text class="result-stat-label">总轮次</text>
         </view>
         <view class="result-stat-item">
-          <text class="result-stat-value">{{stats.effective_rebuttal_rate ? Math.round(stats.effective_rebuttal_rate * 100) + '%' : '0%'}}</text>
+          <text class="result-stat-value">{{statsDisplay.effectiveRate}}</text>
           <text class="result-stat-label">有效反驳率</text>
         </view>
         <view class="result-stat-item">
-          <text class="result-stat-value">{{stats.stall_count || 0}}</text>
+          <text class="result-stat-value">{{statsDisplay.stallCount}}</text>
           <text class="result-stat-label">卡壳次数</text>
         </view>
       </view>
-
       <view class="result-actions">
         <button class="primary-btn" bindtap="restartBattle">再来一次</button>
         <button class="outline-btn" bindtap="goBack">返回</button>

@@ -84,20 +84,20 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
       logger.warn('百度语音识别调用失败，使用模拟文本', { error: err.message });
     }
 
-    // 降级：基于音频特征生成模拟文本
+    // 降级：基于音频特征生成模拟文本（辩论场景专用）
     const audioBytes = Buffer.byteLength(audio, 'base64');
     const estimatedDuration = audioBytes / 2000;
 
-    // 根据音频时长生成不同文本
+    // 辩论场景常见论点短句
     let text = '';
     if (estimatedDuration < 2) {
-      text = 'I agree with that point.';
+      text = 'I think the evidence supports my position.';
     } else if (estimatedDuration < 4) {
-      text = 'I think this is a very important issue that we need to consider carefully.';
+      text = 'That is a good point, but let me offer a different perspective. The key issue here is about fairness.';
     } else if (estimatedDuration < 6) {
-      text = 'From my perspective, the evidence clearly supports our position. Let me explain why this matters.';
+      text = 'From my perspective, the evidence clearly supports our position. Let me explain why this matters for our society and our future.';
     } else {
-      text = 'I believe that we need to look at this from multiple angles. First, the data shows a clear trend. Second, the logical implications are significant. And finally, we must consider the broader impact on society.';
+      text = 'I believe that we need to look at this from multiple angles. First, the data shows a clear trend. Second, the logical implications are significant. And finally, we must consider the broader impact on society as a whole.';
     }
 
     return res.json({

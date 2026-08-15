@@ -37,10 +37,10 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
     const { topic_id, topic_title, position, user_speech, opponent_style, session_id, response_time_ms } = req.body;
 
     // 校验必填参数
-    if (!topic_id || !user_speech || !opponent_style || !session_id) {
+    if (!topic_id || !user_speech || !opponent_style) {
       return res.status(400).json({
         code: 400,
-        message: '缺少必填参数: topic_id, user_speech, opponent_style, session_id',
+        message: '缺少必填参数: topic_id, user_speech, opponent_style',
         data: null,
       });
     }
@@ -53,14 +53,29 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
       });
     }
 
-    // 获取 session
-    const session = debateSessions.get(session_id);
+    // 获取 session；不存在时自动创建（兼容后端重启/本地mock会话）
+    let session = session_id ? debateSessions.get(session_id) : null;
+    let sessionId = session_id;
     if (!session) {
-      return res.status(404).json({
-        code: 404,
-        message: '对练会话不存在或已过期',
-        data: null,
-      });
+      sessionId = generateSessionId();
+      session = {
+        userId: req.user.userId,
+        topic: topic_title || 'General debate topic',
+        topic_id,
+        position: isValidPosition(position) ? position : 'pro',
+        style: opponent_style,
+        history: [],
+        stats: {
+          total_rounds: 0,
+          effective_count: 0,
+          rebuttal_score_sum: 0,
+          stall_count: 0,
+        },
+        createdAt: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+      };
+      debateSessions.set(sessionId, session);
+      logger.info('对练会话自动重建', { session_id: sessionId, reason: session_id ? '原会话不存在' : '未提供session_id' });
     }
 
     // 权限校验：只能操作自己的 session
@@ -113,7 +128,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
     session.lastActivity = new Date().toISOString();
 
     logger.info('辩论对练回复成功', {
-      session_id,
+      session_id: sessionId,
       round: session.stats.total_rounds,
       opponent_style,
     });
@@ -121,6 +136,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
     res.json({
       code: 200,
       data: {
+        session_id: sessionId,
         ai_reply: aiResult.reply,
         reply_style: opponent_style,
         round: session.stats.total_rounds,
