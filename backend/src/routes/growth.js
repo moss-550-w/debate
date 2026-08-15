@@ -65,6 +65,13 @@ router.get('/:userId', authMiddleware, async (req, res) => {
       stats: {
         totalCount: 20,
         totalDuration: 1800,
+        sparringSessions: 5,
+        avgEffectiveRebuttalRate: 0.68,
+        totalStallCount: 3,
+        sparringHistory: [
+          { date: '2026-08-10', style: 'data_monster', rounds: 4, avgScore: 72 },
+          { date: '2026-08-12', style: 'value_emotional', rounds: 3, avgScore: 65 },
+        ],
       },
     };
 

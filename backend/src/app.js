@@ -10,6 +10,9 @@ const evaluateRouter = require('./routes/evaluate');
 const debateRouter = require('./routes/debate');
 const growthRouter = require('./routes/growth');
 const topicsRouter = require('./routes/topics');
+const portfolioRouter = require('./routes/portfolio');
+const tournamentRouter = require('./routes/tournament');
+const commentsRouter = require('./routes/comments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +47,9 @@ app.use('/api/evaluate', evaluateRouter);
 app.use('/api/debate', debateRouter);
 app.use('/api/growth', growthRouter);
 app.use('/api/topics', topicsRouter);
+app.use('/api/portfolio', portfolioRouter);
+app.use('/api/tournament', tournamentRouter);
+app.use('/api/comments', commentsRouter);
 
 // ===== 404 处理 =====
 app.use((req, res) => {

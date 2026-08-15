@@ -58,6 +58,22 @@
             <span class="nav-icon">🎯</span>
             <span>立论练习</span>
           </a>
+          <a href="#" class="nav-item" data-page="portfolio">
+            <span class="nav-icon">📝</span>
+            <span>作品集</span>
+          </a>
+          <a href="#" class="nav-item" data-page="sparring">
+            <span class="nav-icon">⚔️</span>
+            <span>对练</span>
+          </a>
+          <a href="#" class="nav-item" data-page="tournament">
+            <span class="nav-icon">🏆</span>
+            <span>赛事</span>
+          </a>
+          <a href="#" class="nav-item" data-page="comments">
+            <span class="nav-icon">💬</span>
+            <span>评论</span>
+          </a>
         </nav>
         <div class="sidebar-footer">
           <span id="currentUser"></span>
@@ -165,6 +181,162 @@
             <div id="argumentContent"></div>
           </div>
         </section>
+
+        <!-- 作品集 -->
+        <section id="portfolioPage" class="page-section" style="display:none;">
+          <h2>辩论作品集</h2>
+          <div class="portfolio-toolbar" style="margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select id="portfolioTopic" class="form-select" style="flex:1;min-width:200px;">
+              <option value="">-- 选择辩题 --</option>
+            </select>
+            <select id="portfolioType" class="form-select" style="width:140px;">
+              <option value="argument">单一论点</option>
+              <option value="case">完整 Case</option>
+              <option value="mechanism">机制分析</option>
+              <option value="clash">反驳思路</option>
+              <option value="question">未解问题</option>
+            </select>
+            <select id="portfolioPosition" class="form-select" style="width:100px;">
+              <option value="pro">正方</option>
+              <option value="con">反方</option>
+            </select>
+            <button id="portfolioSubmitBtn" class="btn-primary">提交记录</button>
+          </div>
+          <textarea id="portfolioContent" placeholder="写下你的思考过程... 可以是完整 case、单一 argument、mechanism 分析、clash 反驳思路，或一个还没想明白的问题" style="width:100%;min-height:180px;padding:12px;border:1px solid var(--border);border-radius:var(--radius);font-size:15px;resize:vertical;box-sizing:border-box;"></textarea>
+          <div id="portfolioFeedback" class="argument-result" style="display:none;margin-top:16px;"></div>
+          <div class="section-header" style="margin-top:24px;">
+            <h3>我的作品集</h3>
+            <button id="portfolioAnalysisBtn" class="btn-secondary">查看风格分析</button>
+          </div>
+          <div id="portfolioAnalysis" style="display:none;margin-bottom:16px;padding:16px;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);"></div>
+          <div id="portfolioList"></div>
+        </section>
+
+        <!-- 对练 -->
+        <section id="sparringPage" class="page-section" style="display:none;">
+          <h2>AI 对练</h2>
+          <div class="sparring-setup" id="sparringSetup">
+            <div class="form-group">
+              <label>选择辩题</label>
+              <select id="sparringTopic" class="form-select" style="width:100%;">
+                <option value="">-- 请选择 --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>立场</label>
+              <div class="radio-group">
+                <label><input type="radio" name="sparringPos" value="pro" checked> 正方 (Pro)</label>
+                <label><input type="radio" name="sparringPos" value="con"> 反方 (Con)</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>选择对手风格</label>
+              <div class="sparring-styles" style="display:flex;gap:12px;flex-wrap:wrap;">
+                <label class="style-card active" data-style="data_monster" style="flex:1;min-width:160px;padding:16px;border:2px solid var(--primary);border-radius:var(--radius);cursor:pointer;text-align:center;">
+                  <div style="font-size:32px;margin-bottom:8px;">📊</div>
+                  <div style="font-weight:600;">数据狂魔型</div>
+                  <div style="font-size:13px;color:#6b7280;margin-top:4px;">擅长用数据攻击</div>
+                </label>
+                <label class="style-card" data-style="value_emotional" style="flex:1;min-width:160px;padding:16px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:center;">
+                  <div style="font-size:32px;margin-bottom:8px;">💖</div>
+                  <div style="font-weight:600;">价值煽情型</div>
+                  <div style="font-size:13px;color:#6b7280;margin-top:4px;">擅长情感打动</div>
+                </label>
+                <label class="style-card" data-style="logic_deconstruction" style="flex:1;min-width:160px;padding:16px;border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;text-align:center;">
+                  <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+                  <div style="font-weight:600;">逻辑拆解型</div>
+                  <div style="font-size:13px;color:#6b7280;margin-top:4px;">擅长找逻辑漏洞</div>
+                </label>
+              </div>
+            </div>
+            <button id="startSparringBtn" class="btn-primary">开始对练</button>
+          </div>
+          <div id="sparringArea" style="display:none;">
+            <div class="sparring-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div>
+                <span id="sparringOpponent" style="font-weight:600;font-size:16px;"></span>
+                <span id="sparringRound" style="margin-left:12px;color:#6b7280;">第 1 轮</span>
+              </div>
+              <div id="sparringStats" style="display:flex;gap:16px;font-size:13px;color:#6b7280;">
+                <span>有效反驳率: <b id="sparringRebuttalRate">0%</b></span>
+                <span>卡壳次数: <b id="sparringStallCount">0</b></span>
+              </div>
+            </div>
+            <div id="sparringChat" class="sparring-chat" style="height:400px;overflow-y:auto;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;"></div>
+            <div style="display:flex;gap:8px;">
+              <textarea id="sparringInput" placeholder="输入你的反驳..." style="flex:1;height:60px;padding:10px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;resize:none;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSparringMessage()}"></textarea>
+              <button id="sendSparringBtn" class="btn-primary" style="align-self:flex-end;">发送</button>
+              <button id="endSparringBtn" class="btn-secondary" style="align-self:flex-end;">结束</button>
+            </div>
+          </div>
+          <div id="sparringHistory" style="margin-top:24px;">
+            <h3>对练历史</h3>
+            <div id="sparringHistoryList"></div>
+          </div>
+        </section>
+
+        <!-- 赛事 -->
+        <section id="tournamentPage" class="page-section" style="display:none;">
+          <h2>赛事管理</h2>
+          <div class="section-header">
+            <button id="createTournamentBtn" class="btn-primary">+ 创建赛事</button>
+          </div>
+          <div id="tournamentForm" style="display:none;margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
+            <div class="form-group">
+              <label>赛事名称</label>
+              <input type="text" id="tournamentName" class="form-select" style="width:100%;" placeholder="如：2026秋季辩论赛">
+            </div>
+            <div class="form-group">
+              <label>赛制</label>
+              <select id="tournamentFormat" class="form-select" style="width:200px;">
+                <option value="round_robin">循环赛</option>
+                <option value="points">积分赛</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>最大队伍数</label>
+              <input type="number" id="tournamentMaxTeams" class="form-select" style="width:100px;" value="8" min="2" max="16">
+            </div>
+            <div class="form-group">
+              <label>每队人数</label>
+              <input type="number" id="tournamentTeamSize" class="form-select" style="width:100px;" value="2" min="1" max="4">
+            </div>
+            <button id="saveTournamentBtn" class="btn-primary">保存</button>
+            <button id="cancelTournamentBtn" class="btn-secondary" style="margin-left:8px;">取消</button>
+          </div>
+          <div id="tournamentList"></div>
+        </section>
+
+        <!-- 评论 -->
+        <section id="commentsPage" class="page-section" style="display:none;">
+          <h2>评论与点评</h2>
+          <div class="section-header">
+            <button id="createAssignmentBtn" class="btn-primary">+ 发布议题</button>
+          </div>
+          <div id="assignmentForm" style="display:none;margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
+            <div class="form-group">
+              <label>议题标题</label>
+              <input type="text" id="assignmentTitle" class="form-select" style="width:100%;" placeholder="如：本周议题：AI的利与弊">
+            </div>
+            <div class="form-group">
+              <label>辩题</label>
+              <select id="assignmentTopic" class="form-select" style="width:100%;">
+                <option value="">-- 请选择 --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>要求说明</label>
+              <textarea id="assignmentRequirements" class="form-select" style="width:100%;height:80px;" placeholder="如：至少包含2个论点，每个论点需有论据支撑"></textarea>
+            </div>
+            <div class="form-group">
+              <label>截止日期</label>
+              <input type="date" id="assignmentDeadline" class="form-select" style="width:200px;">
+            </div>
+            <button id="saveAssignmentBtn" class="btn-primary">发布</button>
+            <button id="cancelAssignmentBtn" class="btn-secondary" style="margin-left:8px;">取消</button>
+          </div>
+          <div id="assignmentList"></div>
+        </section>
       </main>
     </div>
   </div>
@@ -175,5 +347,9 @@
   <script src="js/auth.js"></script>
   <script src="js/debate.js"></script>
   <script src="js/growth.js"></script>
+  <script src="js/portfolio.js"></script>
+  <script src="js/sparring.js"></script>
+  <script src="js/tournament.js"></script>
+  <script src="js/comments.js"></script>
 </body>
 </html>
