@@ -4,20 +4,20 @@
   <view class="select-phase" wx:if="{{step === 'select'}}">
     <view class="section-title">选择对手风格</view>
     <view class="style-list">
-      <view class="style-card {{selectedStyle === 'data_driven' ? 'selected' : ''}}" bindtap="selectStyle" data-style="data_driven" style="border-color: {{selectedStyle === 'data_driven' ? '#10b981' : '#e5e7eb'}}">
+      <view class="style-card {{selectedStyle === 'data_monster' ? 'selected' : ''}}" bindtap="selectStyle" data-style="data_monster" style="border-color: {{selectedStyle === 'data_monster' ? '#10b981' : '#e5e7eb'}}">
         <text class="style-icon">📊</text>
         <text class="style-name">数据狂魔型</text>
-        <text class="style-desc">注重数据和事实，每句话都要有数据支撑</text>
+        <text class="style-desc">擅长用数据、统计和事实案例攻击你的论点</text>
       </view>
-      <view class="style-card {{selectedStyle === 'value_driven' ? 'selected' : ''}}" bindtap="selectStyle" data-style="value_driven" style="border-color: {{selectedStyle === 'value_driven' ? '#f59e0b' : '#e5e7eb'}}">
+      <view class="style-card {{selectedStyle === 'value_emotional' ? 'selected' : ''}}" bindtap="selectStyle" data-style="value_emotional" style="border-color: {{selectedStyle === 'value_emotional' ? '#f59e0b' : '#e5e7eb'}}">
         <text class="style-icon">❤️</text>
         <text class="style-name">价值煽情型</text>
-        <text class="style-desc">注重价值观和情感共鸣，用故事打动人心</text>
+        <text class="style-desc">擅长从道德、价值观和情感层面打动听众</text>
       </view>
-      <view class="style-card {{selectedStyle === 'logic_focused' ? 'selected' : ''}}" bindtap="selectStyle" data-style="logic_focused" style="border-color: {{selectedStyle === 'logic_focused' ? '#8b5cf6' : '#e5e7eb'}}">
+      <view class="style-card {{selectedStyle === 'logic_deconstruction' ? 'selected' : ''}}" bindtap="selectStyle" data-style="logic_deconstruction" style="border-color: {{selectedStyle === 'logic_deconstruction' ? '#8b5cf6' : '#e5e7eb'}}">
         <text class="style-icon">🔍</text>
         <text class="style-name">逻辑拆解型</text>
-        <text class="style-desc">注重逻辑推理，擅长拆解论证漏洞</text>
+        <text class="style-desc">擅长拆解对方逻辑漏洞，寻找论证缺陷</text>
       </view>
     </view>
 

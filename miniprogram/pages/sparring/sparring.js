@@ -1,22 +1,22 @@
 const { request } = require('../../utils/request');
 
 const OPPONENT_STYLES = {
-  data_driven: {
+  data_monster: {
     name: '数据狂魔型',
     icon: '📊',
-    description: '注重数据和事实，每句话都要有数据支撑，喜欢用统计和研究结果说话',
+    description: '擅长用数据、统计和事实案例攻击你的论点',
     color: '#10b981',
   },
-  value_driven: {
+  value_emotional: {
     name: '价值煽情型',
     icon: '❤️',
-    description: '注重价值观和情感共鸣，擅长用故事和案例打动人心，强调价值判断',
+    description: '擅长从道德、价值观和情感层面打动听众',
     color: '#f59e0b',
   },
-  logic_focused: {
+  logic_deconstruction: {
     name: '逻辑拆解型',
     icon: '🔍',
-    description: '注重逻辑推理和论证结构，擅长拆解对方论点中的逻辑漏洞',
+    description: '擅长拆解对方逻辑漏洞，寻找论证缺陷',
     color: '#8b5cf6',
   },
 };
@@ -152,17 +152,17 @@ Page({
 
   getMockReply(userMsg, style) {
     const replies = {
-      data_driven: [
+      data_monster: [
         'Interesting point. According to studies, 78% of data shows the opposite. Let me provide specific statistics to support my claim.',
         'I see your argument. However, recent research from 2024 indicates that 62% of cases contradict your position.',
         'Let me cite some data. A meta-analysis of 50 studies found that your claim only holds up in 30% of scenarios.',
       ],
-      value_driven: [
+      value_emotional: [
         'I hear what you are saying, but think about the bigger picture. The real question is about our values as a society.',
         'While your logic seems sound, we must consider the human impact. Stories of real people show us a different truth.',
         'At the heart of this debate is a fundamental question about what kind of world we want to live in.',
       ],
-      logic_focused: [
+      logic_deconstruction: [
         'I see a logical flaw in your argument. Your premise A does not necessarily lead to conclusion B. Let me explain the gap.',
         'Your argument commits a fallacy of false cause. The correlation you mentioned does not imply causation.',
         'Let me deconstruct your reasoning. You make three assumptions, none of which are properly justified.',
