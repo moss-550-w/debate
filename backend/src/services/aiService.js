@@ -26,7 +26,7 @@ const templateArguments = {
  * @returns {Promise<object>}
  */
 async function callDoubao(topic, position, role) {
-  const apiKey = process.env.DOUBAO_API_KEY;
+  const apiKey = process.env.DOUBAO_API_KEY?.trim();
   const apiUrl = process.env.DOUBAO_API_URL;
 
   if (!apiKey) {
@@ -36,7 +36,7 @@ async function callDoubao(topic, position, role) {
   const prompt = buildPrompt(topic, position, role);
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), 60000);
 
   try {
     const response = await fetch(apiUrl, {
@@ -46,7 +46,7 @@ async function callDoubao(topic, position, role) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'doubao-pro-32k',
+        model: 'ep-20260426144920-pwjqk',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         response_format: { type: 'json_object' },

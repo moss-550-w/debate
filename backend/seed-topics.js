@@ -1,0 +1,820 @@
+/**
+ * 辩题种子数据脚本
+ *
+ * 从 BP motions.docx 提取的辩题，格式化为 topics 集合格式。
+ *
+ * 使用方式：
+ *   1. 确保云函数可用：node seed-topics.js
+ *   2. 或直接复制 JSON 到云数据库手动导入
+ *
+ * 分类映射：
+ *   education  - 教育类
+ *   tech       - 科技类
+ *   environment - 环境类
+ *   society    - 社会类（含职业、媒体、文化、体育、艺术等）
+ */
+
+const seedTopics = [
+  // ============================================================
+  // Career and Life（职业与生活）
+  // ============================================================
+  {
+    _id: 'topic_career_001',
+    title: 'This House would support a child\'s choice to pursue a digital creative career over formal education',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['digital creative', 'content creation', 'formal education', 'career path'],
+    background: 'As a middle-class parent, would you support your child choosing a career in content creation, audio-visual design, etc. instead of pursuing a traditional formal education?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_002',
+    title: 'THR the narrative of true love',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['narrative', 'true love', 'romanticize'],
+    background: 'This House regrets the narrative of true love — the societal tendency to romanticize the concept of "true love" as the ultimate goal in life.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_003',
+    title: 'This House, as a parent, would raise their child to accept being mediocre',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['mediocre', 'acceptance', 'expectation'],
+    background: 'In a highly competitive society, should parents teach their children to accept being average rather than constantly pushing them to excel?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_004',
+    title: 'THO the standardized tests',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['standardized test', 'assessment', 'academic evaluation'],
+    background: 'This House opposes the standardized tests — the practice of using uniform examinations to evaluate student performance.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_005',
+    title: 'This House would implement a mandatory 4-year rest period after high school before university',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['rest period', 'gap year', 'post-secondary', 'mandatory'],
+    background: 'This House would implement a mandatory 4-year rest period after high school before students are permitted to attend post-secondary institutions.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_006',
+    title: 'This House believes that parents should push their children to play sports rather than to study',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['sports', 'academic', 'extracurricular', 'priority'],
+    background: 'Axiom\'26 — The 14th Annual Asian Parliamentary Debate Tournament. Should parents prioritize sports over academics for their children?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_007',
+    title: 'This House, as middle-class Filipino parents, would prioritize financial stability over personal fulfillment for their children\'s career choices',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['financial stability', 'personal fulfillment', 'career choice', 'priority'],
+    background: 'Should parents advise their children to choose careers based on financial stability rather than personal passion?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_008',
+    title: 'This House would choose a career based on money instead of passion',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['career', 'money', 'passion', 'choice'],
+    background: 'A simple debate on whether one should prioritize financial gain over personal passion when choosing a career.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_009',
+    title: 'This House believes that college graduates should prioritize being career generalists over career specialists',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['generalist', 'specialist', 'career', 'skill'],
+    background: 'Career generalists have a wide spectrum of knowledge (e.g. gaining skills usable in various industries), while career specialists are subject matter experts in their areas of study (e.g. staying in one industry, getting specialist training).',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_010',
+    title: 'This House, as a recent graduate, would choose to be overemployed over pursuing a traditional career path',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['overemployed', 'remote work', 'traditional career', 'multiple jobs'],
+    background: 'The overemployment movement refers to remote working professionals who work multiple full-time remote jobs simultaneously, meeting the minimum requirements of each job.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_011',
+    title: 'Should personal happiness be prioritized over career success?',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['happiness', 'career success', 'priority'],
+    background: 'A fundamental debate about life priorities: should individuals pursue personal happiness over career achievement?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_012',
+    title: 'THR the glorification of stable lifestyles',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['stable lifestyle', 'routine', 'glorification'],
+    background: 'A stable lifestyle entails consistently complying with responsibilities, routines and fixed ratios of time between distinct aspects of life (e.g. work, friends, family). This House opposes the glorification of such lifestyles.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_013',
+    title: 'This House would choose to raise their child in a small town rather than in a metropolitan city',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['small town', 'metropolitan', 'upbringing', 'environment'],
+    background: 'Rifaaqat BPD 2025 — Should parents choose to raise children in a small town environment rather than a big city?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_014',
+    title: 'This House would invest in long-term debate classes for their child',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['debate', 'education investment', 'skill development'],
+    background: 'You are the parent of a young child in middle school who has never shown interest in debate. You want your child to become a good debater as it is helpful for university applications and general success.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_015',
+    title: 'This House prefers instilling children with self-reliant personality traits over relationship-preserving traits in competitive societies',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['self-reliant', 'resilient', 'relationship', 'personality'],
+    background: 'Personality A is characterized by self-reliance and resilience — being direct, blunt, and not averse to confrontation. Personality B is characterized by preserving relationships — being pleasant, appeasing, and averse to confrontation. In highly competitive societies (e.g. India, China), which should parents prioritize?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_016',
+    title: 'This House supports the rise of a youth culture oriented around leisure and exploration rather than productivity',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['leisure', 'exploration', 'productivity', 'youth culture'],
+    background: 'Davao Novice Cup 2025 — Should we celebrate a youth culture that values leisure and exploration over constant productivity?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_017',
+    title: 'This House, as a parent of daughters, would teach them to navigate sexism by being socially acceptable rather than confrontational',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['sexism', 'socially acceptable', 'confrontational', 'parenting'],
+    background: 'Dulwich Schools 2025 — As a parent of daughters, would you prioritize teaching them to navigate sexism by being socially acceptable and well-mannered, rather than encouraging them to be confrontational and blunt?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_018',
+    title: 'THO the romanticization of challenges during youth',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['romanticization', 'challenges', 'youth', 'struggle'],
+    background: 'India ABP Fundraiser 2025 — This House opposes the idea that challenges and struggles during youth should be romanticized.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_019',
+    title: 'This House prefers a world where children are raised to aspire to be single rather than married',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['single', 'married', 'aspiration', 'relationship'],
+    background: 'Brandeis IV — Should we raise children to aspire to a single life rather than marriage as the default life goal?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_020',
+    title: 'This House would teach children to prioritize logic over emotional responses',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['logic', 'emotional response', 'reasoning', 'education'],
+    background: 'McMaster High Schools 2026 — Should children be taught to prioritize logical reasoning over emotional responses in decision-making?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_021',
+    title: 'This House would choose to be a younger sibling over an older sibling',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['sibling', 'birth order', 'family dynamics'],
+    background: 'Mukalma Parliamentary Debate 2026 — A lighthearted debate about the advantages and disadvantages of birth order.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_022',
+    title: 'This House prefers a world where all humans are born as adults',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['adulthood', 'childhood', 'development', 'maturity'],
+    background: 'This motion assumes that humans have developed technology that allows people to be born with full brain development and adult cognitive maturity.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_023',
+    title: 'We should ban parental monitoring apps',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['monitoring', 'privacy', 'parental control', 'surveillance'],
+    background: 'Parental monitoring apps allow parents to track children\'s location or device activity. Examples include Life360 (location tracking) and Bark (messaging reports). This does not include apps that only restrict screentime or content.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_024',
+    title: 'This House would allow parents to choose their child\'s characteristics before birth',
+    category: 'tech',
+    difficulty: 'hard',
+    vocab_list: ['genetic selection', 'designer baby', 'characteristics', 'ethics'],
+    background: 'Assuming the technology exists, this House would allow parents to choose their child\'s characteristics (intelligence, talents, appearances, etc.) before birth.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_025',
+    title: 'This House would allow parents to use KNO-U on their newly-born children',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['talent detection', 'testing', 'parental choice'],
+    background: 'KNO-U is a 100% safe technology that allows special advanced testing on children to know what their most likely greatest talent would be. The children would not know what the test result was.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_026',
+    title: 'This House would make schools put students into classes based on academic ability, not age',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['ability grouping', 'academic level', 'age-based', 'streaming'],
+    background: 'Should schools group students by academic ability rather than age?',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_027',
+    title: 'THR the decline of the joint family',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['joint family', 'extended family', 'generational', 'living arrangement'],
+    background: 'A joint family is an extended family structure where multiple generations (grandparents, parents, children, aunts, uncles) reside under one roof, sharing a common kitchen, property and expenses.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_028',
+    title: 'This House would institutionalize teacher-student relations based on authority rather than equality',
+    category: 'education',
+    difficulty: 'hard',
+    vocab_list: ['authority', 'equality', 'teacher-student', 'discipline'],
+    background: 'As the government of a developing country, this House would institutionalize teacher-student relations based on authority rather than equality in public education. Authority-based relationships position teachers as hierarchically respected figures; equality-based relationships position teachers as facilitators with warm, horizontal relationships.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_029',
+    title: 'This House prefers a return to the norm of one parent working and the other staying at home',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['stay-at-home', 'working parent', 'gender roles', 'family structure'],
+    background: 'In a world where both men and women were equally likely to do it, This House prefers a return to the norm of families in which one parent works and the other remains at home.',
+    status: 1,
+  },
+  {
+    _id: 'topic_career_030',
+    title: 'This House, as parents of an extraordinarily talented child with financial limitations, would push their child to pursue their talent',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['talent', 'financial limitation', 'parental support', 'sacrifice'],
+    background: 'As parents of an extraordinarily talented (academic, sport, art, etc.) child with financial limitations, would you push your child to pursue their talent over letting them find their own path?',
+    status: 1,
+  },
+
+  // ============================================================
+  // Education（教育）
+  // ============================================================
+  {
+    _id: 'topic_edu_001',
+    title: 'THS streaming students in school',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['streaming', 'ability grouping', 'tracking', 'tailored education'],
+    background: 'Streaming is a practice in schools where students are grouped into different classes or courses based on their abilities, achievements, or interests. It aims to provide more tailored education by matching teaching methods and materials to the specific needs of each group.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_002',
+    title: 'AI literacy classes should be required in primary schools',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['AI literacy', 'primary school', 'technology education', 'curriculum'],
+    background: 'Should artificial intelligence literacy be a mandatory part of primary school education?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_003',
+    title: 'THW abolish standardized testing in primary schools',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['standardized testing', 'assessment', 'primary education', 'exam'],
+    background: 'This House would abolish standardized testing in primary schools, removing uniform examinations for young students.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_004',
+    title: 'THBT schools should have the right to regulate student hairstyles',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['hairstyle', 'school regulation', 'dress code', 'student rights'],
+    background: 'Should schools have the authority to regulate and enforce rules about student hairstyles?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_005',
+    title: 'Reading is more important than writing',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['reading', 'writing', 'literacy', 'education priority'],
+    background: 'A fundamental debate about literacy education: which skill is more important for students to develop?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_006',
+    title: 'Reading physical books is more enjoyable than reading e-books on a screen',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['physical books', 'e-books', 'reading experience', 'digital'],
+    background: 'A comparison of the reading experience between traditional physical books and digital e-books.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_007',
+    title: 'THW implement a digital detox day every week at school',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['digital detox', 'screen time', 'technology', 'school policy'],
+    background: 'This House would implement a "digital detox" day every week at school, where students and staff avoid using digital devices.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_008',
+    title: 'THR the development of AI assistants over human teachers for personalized learning',
+    category: 'education',
+    difficulty: 'medium',
+    vocab_list: ['AI assistant', 'human teacher', 'personalized learning', 'education technology'],
+    background: 'This House regrets the development of AI assistants over human teachers for personalized learning — the trend of replacing human teachers with AI-powered learning tools.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_009',
+    title: 'THW require all new cars to be electric by 2030',
+    category: 'environment',
+    difficulty: 'medium',
+    vocab_list: ['electric vehicle', 'emission', 'environmental policy', 'renewable'],
+    background: 'This House would mandate that all newly manufactured cars must be electric by the year 2030.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_010',
+    title: 'THW ban single-use plastics in our city',
+    category: 'environment',
+    difficulty: 'easy',
+    vocab_list: ['single-use plastic', 'environment', 'ban', 'sustainability'],
+    background: 'This House would ban single-use plastics in our city to reduce environmental pollution.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_011',
+    title: 'THBT countries should prioritize accepting climate change refugees',
+    category: 'environment',
+    difficulty: 'medium',
+    vocab_list: ['climate refugee', 'immigration', 'climate change', 'humanitarian'],
+    background: 'Should countries prioritize accepting refugees displaced by climate change over other types of immigrants?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_012',
+    title: 'Zoos should be banned',
+    category: 'environment',
+    difficulty: 'easy',
+    vocab_list: ['zoo', 'animal rights', 'conservation', 'captivity'],
+    background: 'A debate on whether zoos should be abolished due to animal welfare concerns.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_013',
+    title: 'Junk food should be banned from school canteens',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['junk food', 'school canteen', 'health', 'nutrition'],
+    background: 'Should schools ban unhealthy food options from their canteens to promote student health?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_014',
+    title: 'THBT social media platforms should have a minimum age of 16',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['social media', 'age restriction', 'minor protection', 'online safety'],
+    background: 'This House believes that social media platforms should require users to be at least 16 years old.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_015',
+    title: 'THW ban social media for youngsters under 18',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['social media', 'ban', 'minor', 'online safety'],
+    background: 'Waterloo Online Schools Open 2026 — This House would ban social media access for individuals under the age of 18.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_016',
+    title: 'Watching short dramas is better than watching long TV shows',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['short drama', 'TV show', 'entertainment', 'attention span'],
+    background: 'A debate about modern entertainment consumption: are short-form dramas superior to traditional long-form TV shows?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_017',
+    title: 'Social media platforms should ban the use of beauty filters',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['beauty filter', 'social media', 'body image', 'regulation'],
+    background: 'Should social media platforms prohibit the use of beauty filters that alter users\' appearance?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_018',
+    title: 'The social features of children\'s smartwatches do more harm than good',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['smartwatch', 'children', 'social features', 'screen time'],
+    background: 'A debate on whether the social and communication features of children\'s smartwatches cause more harm than benefit.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_019',
+    title: 'It would be beneficial if robots take over most jobs in the future',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['robots', 'automation', 'jobs', 'future of work'],
+    background: 'A debate on the potential benefits and drawbacks of widespread job automation by robots.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_020',
+    title: 'Fast food chains should be required to offer healthier menu options',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['fast food', 'healthy options', 'regulation', 'nutrition'],
+    background: 'Should fast food restaurants be mandated to provide healthier menu choices as their primary offerings?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_021',
+    title: 'Remote work is more beneficial than traditional office jobs',
+    category: 'tech',
+    difficulty: 'easy',
+    vocab_list: ['remote work', 'office', 'productivity', 'work-life balance'],
+    background: 'A debate on whether working from home is more beneficial for productivity and well-being than working in a traditional office.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_022',
+    title: 'Wearable tech in healthcare invades privacy',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['wearable tech', 'healthcare', 'privacy', 'data'],
+    background: 'Does the use of wearable technology in healthcare constitute an invasion of patient privacy?',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_023',
+    title: 'AI in diagnostics risks patient outcomes more than it improves them',
+    category: 'tech',
+    difficulty: 'hard',
+    vocab_list: ['AI diagnostics', 'healthcare', 'patient safety', 'medical technology'],
+    background: 'A debate on whether artificial intelligence in medical diagnostics creates more risks than benefits for patient outcomes.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_024',
+    title: 'THP a world where people have no fear of failure',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['fear of failure', 'risk-taking', 'psychology', 'motivation'],
+    background: 'This House prefers a world where people have no fear of failure — examining whether fear of failure is a necessary motivator.',
+    status: 1,
+  },
+  {
+    _id: 'topic_edu_025',
+    title: 'Participation in a debate tournament is more valuable than winning',
+    category: 'education',
+    difficulty: 'easy',
+    vocab_list: ['debate', 'participation', 'winning', 'value'],
+    background: 'Is the experience and learning from participating in a debate tournament more valuable than the outcome of winning?',
+    status: 1,
+  },
+
+  // ============================================================
+  // Media（媒体）
+  // ============================================================
+  {
+    _id: 'topic_media_001',
+    title: 'THR the dominant narrative of good always winning in children\'s media',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['narrative', 'children\'s media', 'good vs evil', 'moral'],
+    background: 'Sumanthiran-Molamure Novice Debating Championship 2026 — This House regrets the dominant narrative of good always winning in children\'s media.',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_002',
+    title: 'This House supports parents encouraging children to pursue careers as online influencers',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['online influencer', 'social media', 'career', 'parental support'],
+    background: 'Vietnam International Schools\' Debating Championships 2025 — Should parents encourage their children to pursue careers as online influencers?',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_003',
+    title: 'THW ban child actors',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['child actor', 'entertainment', 'child labor', 'protection'],
+    background: 'Asian Online Debating Championship 2026 — This House would ban the use of child actors in film, television, and other media productions.',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_004',
+    title: 'THR the dominance of micro celebrity culture',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['micro-celebrity', 'influencer', 'social media', 'fame'],
+    background: 'Africa World Schools Debating Championships 2026 — A micro-celebrity is an individual who gains moderate but dedicated fame primarily through social media platforms, often within a specific niche such as beauty, fitness, comedy, lifestyle, or activism.',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_005',
+    title: 'THO the rise in transmedia',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['transmedia', 'storytelling', 'multiplatform', 'franchise'],
+    background: 'Philippine Schools Debating Championship 2026 — Transmedia is the technique of adapting a single story or story experience across multiple platforms and formats. Examples include Five Nights at Freddy\'s, Minecraft, Star Wars, and Marvel spanning books, films, TV shows, video games, etc.',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_006',
+    title: 'THR the sanitisation of Hans Christian Andersen\'s work',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['sanitisation', 'fairy tale', 'adaptation', 'children\'s literature'],
+    background: 'Hans Christian Andersen\'s original works are sometimes dark and complex. Modern adaptations have been sanitised to remove darkness and complexity, favoring happily-ever-after endings. This House regrets this trend.',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_007',
+    title: 'THBT celebrities have a responsibility to be role models',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['celebrity', 'role model', 'responsibility', 'influence'],
+    background: 'Do celebrities have a moral obligation to serve as positive role models for their fans and the public?',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_008',
+    title: 'THBT it is better to be a specialist than a generalist',
+    category: 'society',
+    difficulty: 'easy',
+    vocab_list: ['specialist', 'generalist', 'expertise', 'breadth vs depth'],
+    background: 'A classic debate: is it better to develop deep expertise in one area (specialist) or have broad knowledge across many areas (generalist)?',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_009',
+    title: 'THR a world where everyone knows the truth about everything',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['truth', 'knowledge', 'ignorance', 'bliss'],
+    background: 'This House regrets a world where everyone knows the truth about everything — examining whether ignorance can sometimes be beneficial.',
+    status: 1,
+  },
+  {
+    _id: 'topic_media_010',
+    title: 'THR the glorification of humility',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['humility', 'glorification', 'virtue', 'culture'],
+    background: 'Oxford Schools Singapore 2026 — This House regrets the glorification of humility in society.',
+    status: 1,
+  },
+
+  // ============================================================
+  // Technology（科技）
+  // ============================================================
+  {
+    _id: 'topic_tech_001',
+    title: 'This House prefers a world where all high-stakes life decisions are made by AI rather than by individuals',
+    category: 'tech',
+    difficulty: 'hard',
+    vocab_list: ['AI decision-making', 'high-stakes', 'autonomy', 'algorithm'],
+    background: 'This House prefers a world where all high-stakes life decisions (e.g., career path, choice of spouse, medical treatment) are made by a perfectly objective AI, rather than by individuals.',
+    status: 1,
+  },
+  {
+    _id: 'topic_tech_002',
+    title: 'This House believes that all parents should use Child-GPT before making the decision to have children',
+    category: 'tech',
+    difficulty: 'hard',
+    vocab_list: ['AI evaluation', 'parenting', 'child welfare', 'technology'],
+    background: 'Child-GPT is a technology used to measure someone\'s eligibility to have children (through birth or adoption). It evaluates the extent to which an individual would be a healthy/responsible parent. The technology has shown success in reducing child abuse during its trial period.',
+    status: 1,
+  },
+  {
+    _id: 'topic_tech_003',
+    title: 'THW permanently delete the account',
+    category: 'tech',
+    difficulty: 'medium',
+    vocab_list: ['digital footprint', 'social media', 'privacy', 'identity'],
+    background: 'You are in your early 20s starting a new life in a city where you know almost no one. Your public social media account contains controversial opinions, vulnerable posts, and personal beliefs you no longer hold. You must choose to permanently delete the entire account or leave it unchanged — you cannot selectively delete or archive individual posts.',
+    status: 1,
+  },
+  {
+    _id: 'topic_tech_004',
+    title: 'This House regrets the rise of the "protecting your peace" culture',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['mental health', 'boundaries', 'peace', 'conflict avoidance'],
+    background: '"Protecting your peace" means intentionally safeguarding your mental, emotional, and physical well-being by actively distancing yourself from sources of stress (e.g. choosing not to be involved in a conflict between your friends).',
+    status: 1,
+  },
+  {
+    _id: 'topic_tech_005',
+    title: 'This House, as a citizen in an Asian society, would pursue warabel',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['work-life balance', 'career', 'personal life', 'Asian society'],
+    background: '"Warabel" describes the phenomenon of balancing individual pursuits (e.g. spending time with family and socializing with friends) and work, even at the expense of increased salaries and career opportunities.',
+    status: 1,
+  },
+
+  // ============================================================
+  // Sports（体育）
+  // ============================================================
+  {
+    _id: 'topic_sport_001',
+    title: 'This House believes that sports organizations should have the power to punish athletes for conduct outside of sports',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['sports organization', 'athlete conduct', 'discipline', 'jurisdiction'],
+    background: 'Sumanthiran-Molamure Novice Debating Championship 2026 — Should sports governing bodies have the authority to penalize athletes for their behavior outside of sporting events?',
+    status: 1,
+  },
+  {
+    _id: 'topic_sport_002',
+    title: 'This House supports the creation of Enhanced Games',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['enhanced games', 'doping', 'performance enhancement', 'sports ethics'],
+    background: 'The Enhanced Games is a proposed international multi-sport event that permits athletes to be medically-supervised for human enhancements, challenging traditional drug-free sport models. It offers massive financial incentives (e.g., $1 million for breaking world records).',
+    status: 1,
+  },
+  {
+    _id: 'topic_sport_003',
+    title: 'This House would ban any reference to nationality in the Olympics',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['nationality', 'Olympics', 'nationalism', 'sportsmanship'],
+    background: 'While commonly viewed as a contest between nations, officially the Olympic Games are competitions between athletes and teams, not between countries. According to Rule 6 of the Olympic Charter, the Games focus on individual and team performance rather than national rivalry.',
+    status: 1,
+  },
+
+  // ============================================================
+  // Art（艺术）
+  // ============================================================
+  {
+    _id: 'topic_art_001',
+    title: 'This House supports the emphasis on negative experiences as the primary source of artistic creativity',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['negative experience', 'artistic creativity', 'trauma', 'inspiration'],
+    background: '2026 Spring NHSDLC BP Open — This House supports the emphasis on negative experiences (e.g., trauma, bad living conditions) as the primary source of artistic creativity.',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_002',
+    title: 'This House would abolish gendered categories in art awards',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['gender', 'art awards', 'Oscars', 'Grammys', 'equality'],
+    background: 'This House would abolish gendered categories in art awards such as the Oscars and Grammys.',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_003',
+    title: 'This House would remove classical literature containing discriminatory themes from educational curricula',
+    category: 'education',
+    difficulty: 'hard',
+    vocab_list: ['classical literature', 'discrimination', 'curriculum', 'censorship'],
+    background: 'This House would remove classical literature containing discriminatory themes (e.g. The Adventures of Huckleberry Finn, The Merchant of Venice) from educational curricula.',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_004',
+    title: 'This House believes that the painting should have been displayed with the damage, rather than restored',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['art restoration', 'damage', 'authenticity', 'preservation'],
+    background: '"Who\'s Afraid of Red Yellow and Blue? #3" by Barnett Newman was slashed by a vandal in 1986 while hanging in the Stedelijk Museum in Amsterdam. In 1991, the painting was restored. Should it have been displayed with the damage instead?',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_005',
+    title: 'This House would return all cultural artifacts to their country of origin',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['cultural artifact', 'repatriation', 'museum', 'heritage'],
+    background: 'Many museums house artifacts acquired during colonial eras or through historical conflicts. Repatriation is the process of returning these items (like the Elgin Marbles or Benin Bronzes) to their countries of origin. This debate weighs heritage rights against the role of "Universal Museums" in global education and preservation.',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_006',
+    title: 'This House supports the rise of the stigma against acting childish',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['childish', 'stigma', 'maturity', 'social norms'],
+    background: 'Axiom\'26 — Should society stigmatize adults behaving in childish ways?',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_007',
+    title: 'THR the glorification of a sense of belonging',
+    category: 'society',
+    difficulty: 'medium',
+    vocab_list: ['belonging', 'community', 'identity', 'glorification'],
+    background: 'Vietnam Asian Schools Debating Championship 2026 — This House regrets the glorification of a "sense of belonging" in society.',
+    status: 1,
+  },
+  {
+    _id: 'topic_art_008',
+    title: 'This House believes that parents should teach daughters to assume men are guilty until proven innocent',
+    category: 'society',
+    difficulty: 'hard',
+    vocab_list: ['gender', 'trust', 'safety', 'parenting'],
+    background: '2026 Spring NHSDLC BP Open — For the purposes of the debate, assuming a man is "guilty until proven innocent" means to assume he is ill-intentioned until proven otherwise.',
+    status: 1,
+  },
+];
+
+// ============================================================
+// 导出 & 打印统计
+// ============================================================
+const stats = {};
+seedTopics.forEach(t => {
+  stats[t.category] = (stats[t.category] || 0) + 1;
+});
+
+console.log('辩题种子数据统计:');
+console.log('====================');
+Object.entries(stats).forEach(([cat, count]) => {
+  console.log(`  ${cat.padEnd(12)} ${count} 条`);
+});
+console.log('====================');
+console.log(`  总计: ${seedTopics.length} 条\n`);
+
+// 导出 JSON
+const fs = require('fs');
+const outputPath = 'topics-seed.json';
+fs.writeFileSync(outputPath, JSON.stringify(seedTopics, null, 2), 'utf-8');
+console.log(`已导出到: ${outputPath}`);
+
+// 生成云函数调用脚本
+console.log('\n导入方式:');
+console.log('  1. 打开微信开发者工具 → 云开发 → 数据库 → topics 集合');
+console.log('  2. 点击"导入" → 选择 topics-seed.json');
+console.log('  3. 或运行: node seed-topics.js --import\n');
+
+// 如果带 --import 参数，尝试通过云函数导入
+if (process.argv.includes('--import')) {
+  console.log('正在通过云函数导入...');
+  const cloud = require('wx-server-sdk');
+  cloud.init({ env: process.env.CLOUD_ENV });
+  const db = cloud.database();
+
+  (async () => {
+    for (const topic of seedTopics) {
+      try {
+        await db.collection('topics').add({ data: topic });
+        console.log(`  ✅ ${topic._id}`);
+      } catch (err) {
+        console.error(`  ❌ ${topic._id}: ${err.message}`);
+      }
+    }
+    console.log('\n导入完成!');
+  })();
+}
+
+module.exports = seedTopics;
