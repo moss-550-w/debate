@@ -1,0 +1,33 @@
+<view class="page-topic">
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <picker mode="selector" range="{{categories}}" bindchange="onCategoryChange">
+      <view class="filter-btn">{{currentCategory}} ▼</view>
+    </picker>
+    <picker mode="selector" range="{{difficulties}}" bindchange="onDifficultyChange">
+      <view class="filter-btn">{{currentDifficulty}} ▼</view>
+    </picker>
+  </view>
+
+  <!-- 辩题列表 -->
+  <view class="topic-list">
+    <view class="topic-card" wx:for="{{topics}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
+      <view class="topic-header">
+        <text class="topic-title">{{item.title}}</text>
+        <text class="topic-diff diff-{{item.difficulty}}">{{item.difficulty}}</text>
+      </view>
+      <view class="topic-meta">
+        <text class="topic-category">{{item.category}}</text>
+      </view>
+    </view>
+
+    <view class="empty-tip" wx:if="{{topics.length === 0}}">
+      <text>暂无辩题，请稍后再来</text>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{hasMore}}">
+    <button class="load-btn" bindtap="loadMore">加载更多</button>
+  </view>
+</view>

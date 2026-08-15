@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英语辩论能力训练平台 - 管理端</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/theme-kids.css" id="theme-style" disabled>
+</head>
+<body>
+  <!-- 登录页 -->
+  <div id="loginPage" class="page">
+    <div class="login-container">
+      <div class="login-card">
+        <h1 class="login-title">英语辩论能力训练平台</h1>
+        <p class="login-subtitle">管理端</p>
+        <form id="loginForm" class="login-form">
+          <div class="form-group">
+            <label for="phone">手机号</label>
+            <input type="tel" id="phone" placeholder="请输入手机号" maxlength="11" required>
+          </div>
+          <div class="form-group">
+            <label for="code">验证码</label>
+            <div class="code-row">
+              <input type="text" id="code" placeholder="请输入验证码" maxlength="6" required>
+              <button type="button" id="sendCodeBtn" class="btn-code">获取验证码</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary btn-full">登 录</button>
+        </form>
+        <p class="login-hint">MVP阶段验证码：123456</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理后台 -->
+  <div id="adminPage" class="page" style="display:none;">
+    <div class="admin-layout">
+      <!-- 左侧菜单 -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>辩论平台</h2>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active" data-page="dashboard">
+            <span class="nav-icon">📊</span>
+            <span>数据看板</span>
+          </a>
+          <a href="#" class="nav-item" data-page="topics">
+            <span class="nav-icon">📋</span>
+            <span>辩题管理</span>
+          </a>
+          <a href="#" class="nav-item" data-page="users">
+            <span class="nav-icon">👥</span>
+            <span>用户列表</span>
+          </a>
+          <a href="#" class="nav-item" data-page="practice">
+            <span class="nav-icon">🎯</span>
+            <span>立论练习</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <span id="currentUser"></span>
+          <button id="logoutBtn" class="btn-logout">退出</button>
+        </div>
+      </aside>
+
+      <!-- 主内容区 -->
+      <main class="main-content">
+        <!-- 数据看板 -->
+        <section id="dashboardPage" class="page-section">
+          <h2>数据看板</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="statUsers">0</div>
+              <div class="stat-label">注册用户</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statPractices">0</div>
+              <div class="stat-label">练习次数</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statDuration">0</div>
+              <div class="stat-label">累计时长(分钟)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statAvgScore">0</div>
+              <div class="stat-label">平均分</div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <div id="radarChart" class="chart-box">
+              <p class="chart-placeholder">雷达图（ECharts）将在 Sprint 3 集成</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 辩题管理 -->
+        <section id="topicsPage" class="page-section" style="display:none;">
+          <div class="section-header">
+            <h2>辩题管理</h2>
+            <button id="addTopicBtn" class="btn-primary">+ 新增辩题</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>辩题</th>
+                <th>分类</th>
+                <th>难度</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="topicTableBody">
+              <tr><td colspan="5" class="empty-row">暂无数据</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 用户列表 -->
+        <section id="usersPage" class="page-section" style="display:none;">
+          <h2>用户列表</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>昵称</th>
+                <th>角色</th>
+                <th>年级</th>
+                <th>练习次数</th>
+                <th>累计时长</th>
+                <th>注册时间</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr><td colspan="6" class="empty-row">暂无数据</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- 立论练习 -->
+        <section id="practicePage" class="page-section" style="display:none;">
+          <h2>立论练习</h2>
+          <div class="practice-form">
+            <div class="form-group">
+              <label>选择辩题</label>
+              <select id="practiceTopic" class="form-select">
+                <option value="">-- 请选择 --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>立场</label>
+              <div class="radio-group">
+                <label><input type="radio" name="position" value="pro" checked> 正方 (Pro)</label>
+                <label><input type="radio" name="position" value="con"> 反方 (Con)</label>
+              </div>
+            </div>
+            <button id="generateBtn" class="btn-primary">生成立论</button>
+          </div>
+          <div id="argumentResult" class="argument-result" style="display:none;">
+            <h3>生成结果</h3>
+            <div id="argumentContent"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/debate.js"></script>
+  <script src="js/growth.js"></script>
+</body>
+</html>

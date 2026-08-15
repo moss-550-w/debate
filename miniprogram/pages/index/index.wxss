@@ -1,0 +1,129 @@
+.page-index {
+  padding: 20rpx;
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+/* 用户横幅 */
+.user-banner {
+  display: flex;
+  align-items: center;
+  background: #2563eb;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  color: white;
+}
+
+.user-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-right: 20rpx;
+}
+
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.user-grade {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-top: 4rpx;
+}
+
+.login-btn {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: none;
+  font-size: 26rpx;
+  padding: 10rpx 30rpx;
+  border-radius: 40rpx;
+}
+
+/* 入口卡片 */
+.card-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.entry-card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 36rpx 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.card-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.card-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 8rpx;
+}
+
+.card-desc {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+/* 热门辩题 */
+.quick-section {
+  margin-bottom: 30rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.topic-scroll {
+  white-space: nowrap;
+}
+
+.topic-tag {
+  display: inline-flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 16rpx;
+  padding: 20rpx 30rpx;
+  margin-right: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  min-width: 200rpx;
+}
+
+.tag-title {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.tag-diff {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}

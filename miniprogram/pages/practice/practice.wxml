@@ -1,0 +1,70 @@
+<view class="page-practice">
+  <!-- 步骤1：选择辩题和立场 -->
+  <view class="section" wx:if="{{step === 1}}">
+    <text class="section-title">选择辩题</text>
+    <picker mode="selector" range="{{topicNames}}" bindchange="onTopicChange">
+      <view class="picker-box">{{selectedTopicName || '请选择辩题'}} ▼</view>
+    </picker>
+
+    <text class="section-title" style="margin-top: 30rpx;">选择立场</text>
+    <view class="position-group">
+      <view class="position-btn {{position === 'pro' ? 'active' : ''}}" data-pos="pro" bindtap="selectPosition">
+        <text class="pos-icon">👍</text>
+        <text>正方 (Pro)</text>
+      </view>
+      <view class="position-btn {{position === 'con' ? 'active' : ''}}" data-pos="con" bindtap="selectPosition">
+        <text class="pos-icon">👎</text>
+        <text>反方 (Con)</text>
+      </view>
+    </view>
+
+    <button class="primary-btn" bindtap="startGenerate" wx:if="{{selectedTopicId && position}}">
+      开始生成
+    </button>
+  </view>
+
+  <!-- 步骤2：生成中 -->
+  <view class="section loading-section" wx:elif="{{step === 2}}">
+    <view class="loading-animation">
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+    </view>
+    <text class="loading-text">AI 正在为你生成立论稿...</text>
+    <text class="loading-hint">这可能需要几秒钟</text>
+  </view>
+
+  <!-- 步骤3：结果展示 -->
+  <view class="section" wx:elif="{{step === 3}}">
+    <view class="result-header">
+      <text class="result-title">立论稿</text>
+      <text class="result-position">{{position === 'pro' ? '正方' : '反方'}}</text>
+    </view>
+
+    <view class="points-list">
+      <view class="point-card" wx:for="{{result.points}}" wx:key="title">
+        <view class="point-num">{{index + 1}}</view>
+        <view class="point-content">
+          <text class="point-title">{{item.title}}</text>
+          <text class="point-sentence">{{item.sentence}}</text>
+          <text class="point-translation">{{item.translation}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="conclusion-card">
+      <text class="conclusion-label">总结</text>
+      <text class="conclusion-text">{{result.conclusion}}</text>
+    </view>
+
+    <view class="full-text-card">
+      <text class="full-text-label">完整逐字稿</text>
+      <text class="full-text">{{result.full_text}}</text>
+    </view>
+
+    <view class="action-bar">
+      <button class="primary-btn" bindtap="goSpeech">开始跟读练习</button>
+      <button class="outline-btn" bindtap="reset">重新选题</button>
+    </view>
+  </view>
+</view>

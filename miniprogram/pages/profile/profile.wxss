@@ -1,0 +1,154 @@
+.page-profile {
+  padding: 20rpx;
+  background: #f0f2f5;
+  min-height: 100vh;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* 雷达图 */
+.radar-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.radar-placeholder {
+  height: 400rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.placeholder-text {
+  font-size: 28rpx;
+  color: #6b7280;
+}
+
+.placeholder-subtext {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+}
+
+.radar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 40rpx;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.legend-dot.baseline { background: #9ca3af; }
+.legend-dot.latest { background: #2563eb; }
+
+/* 统计 */
+.stats-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #2563eb;
+  display: block;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+/* 历史记录 */
+.history-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx;
+  background: #f8fafc;
+  border-radius: 12rpx;
+}
+
+.history-type {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-weight: 500;
+}
+
+.type-argument { background: #dbeafe; color: #2563eb; }
+.type-speech { background: #d1fae5; color: #065f46; }
+
+.history-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+}
+
+.history-score {
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.history-date {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 40rpx;
+  color: #6b7280;
+  font-size: 26rpx;
+}

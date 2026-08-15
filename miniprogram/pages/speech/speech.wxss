@@ -1,0 +1,197 @@
+.page-speech {
+  padding: 20rpx;
+  background: #f0f2f5;
+  min-height: 100vh;
+}
+
+.ref-text-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.ref-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #2563eb;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.ref-text {
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #1f2937;
+}
+
+/* 录音区域 */
+.record-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.record-btn {
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: #dbeafe;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.2);
+  transition: all 0.2s;
+  margin-bottom: 20rpx;
+}
+
+.record-btn.recording {
+  background: #fee2e2;
+  box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.2);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.record-icon {
+  font-size: 60rpx;
+  margin-bottom: 8rpx;
+}
+
+.record-text {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.record-hint {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+/* 评测结果 */
+.result-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-label {
+  font-size: 30rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+  margin-bottom: 30rpx;
+}
+
+.score-item {
+  text-align: center;
+  padding: 20rpx;
+  background: #f8fafc;
+  border-radius: 16rpx;
+}
+
+.score-item.highlight {
+  background: #dbeafe;
+}
+
+.score-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #2563eb;
+  display: block;
+}
+
+.score-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+.action-bar {
+  display: flex;
+  gap: 20rpx;
+}
+
+.primary-btn, .outline-btn {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.primary-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+
+.outline-btn {
+  background: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+}
+
+/* 加载遮罩 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.loading-box {
+  background: white;
+  padding: 60rpx;
+  border-radius: 20rpx;
+  text-align: center;
+}
+
+.loading-animation {
+  display: flex;
+  gap: 12rpx;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.loading-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: #2563eb;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dot:nth-child(1) { animation-delay: -0.32s; }
+.loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}

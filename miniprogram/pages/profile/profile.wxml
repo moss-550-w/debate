@@ -1,0 +1,63 @@
+<view class="page-profile">
+  <!-- 雷达图区域 -->
+  <view class="radar-section">
+    <text class="section-title">能力对比</text>
+    <view class="radar-placeholder" id="radarContainer">
+      <text class="placeholder-text">雷达图将在 Sprint 3 集成</text>
+      <text class="placeholder-subtext">ECharts + wx-canvas</text>
+    </view>
+    <view class="radar-legend">
+      <view class="legend-item">
+        <view class="legend-dot baseline"></view>
+        <text>前测 (Baseline)</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot latest"></view>
+        <text>最新 (Latest)</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计概览 -->
+  <view class="stats-section">
+    <text class="section-title">练习统计</text>
+    <view class="stats-grid">
+      <view class="stat-item">
+        <text class="stat-value">{{stats.totalCount}}</text>
+        <text class="stat-label">练习次数</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{Math.round(stats.totalDuration / 60)}}</text>
+        <text class="stat-label">累计分钟</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{stats.avgScore}}</text>
+        <text class="stat-label">平均分</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{stats.daysActive}}</text>
+        <text class="stat-label">活跃天数</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史记录 -->
+  <view class="history-section">
+    <text class="section-title">最近练习</text>
+    <view class="history-list">
+      <view class="history-item" wx:for="{{history}}" wx:key="_id">
+        <view class="history-type type-{{item.type}}">
+          {{item.type === 'argument' ? '立论' : '跟读'}}
+        </view>
+        <view class="history-info">
+          <text class="history-score">总分: {{item.score.overall || item.score.pronunciation || 0}}</text>
+          <text class="history-date">{{formatDate(item.created_at)}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-tip" wx:if="{{history.length === 0}}">
+      <text>还没有练习记录，去首页开始练习吧！</text>
+    </view>
+  </view>
+</view>

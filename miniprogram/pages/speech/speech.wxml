@@ -1,0 +1,57 @@
+<view class="page-speech">
+  <!-- 参考文本 -->
+  <view class="ref-text-card">
+    <text class="ref-label">参考文本</text>
+    <text class="ref-text">{{refText}}</text>
+  </view>
+
+  <!-- 录音区域 -->
+  <view class="record-area">
+    <view class="record-btn {{recording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord">
+      <text class="record-icon">{{recording ? '🔴' : '🎤'}}</text>
+      <text class="record-text">{{recording ? '录音中...' : '按住说话'}}</text>
+    </view>
+    <text class="record-hint">{{recording ? '松开自动提交评测' : '长按按钮开始录音'}}</text>
+  </view>
+
+  <!-- 评测结果 -->
+  <view class="result-card" wx:if="{{showResult}}">
+    <text class="result-label">评测结果</text>
+
+    <view class="score-grid">
+      <view class="score-item">
+        <text class="score-value">{{result.pronunciation}}</text>
+        <text class="score-label">发音</text>
+      </view>
+      <view class="score-item">
+        <text class="score-value">{{result.fluency}}</text>
+        <text class="score-label">流利度</text>
+      </view>
+      <view class="score-item">
+        <text class="score-value">{{result.integrity}}</text>
+        <text class="score-label">完整度</text>
+      </view>
+      <view class="score-item highlight">
+        <text class="score-value">{{result.overall}}</text>
+        <text class="score-label">总分</text>
+      </view>
+    </view>
+
+    <view class="action-bar">
+      <button class="primary-btn" bindtap="tryAgain">再来一次</button>
+      <button class="outline-btn" bindtap="goBack">返回</button>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-overlay" wx:if="{{evaluating}}">
+    <view class="loading-box">
+      <view class="loading-animation">
+        <view class="loading-dot"></view>
+        <view class="loading-dot"></view>
+        <view class="loading-dot"></view>
+      </view>
+      <text>正在评测...</text>
+    </view>
+  </view>
+</view>
