@@ -32,6 +32,14 @@ let currentTopicPage = 1;
 document.addEventListener('DOMContentLoaded', () => {
   loadTopics();
   document.getElementById('generateBtn').addEventListener('click', handleGenerate);
+
+  // CSV导出
+  document.getElementById('exportCsvBtn').addEventListener('click', exportTopicsCsv);
+
+  // 新增辩题
+  document.getElementById('addTopicBtn').addEventListener('click', () => {
+    showToast('新增辩题功能将在云数据库接入后开放', 'info');
+  });
 });
 
 /**
@@ -164,4 +172,40 @@ async function handleGenerate() {
     btn.disabled = false;
     btn.textContent = '生成立论';
   }
+}
+
+/**
+ * 导出辩题列表为 CSV 文件
+ */
+function exportTopicsCsv() {
+  if (!allTopics.length) {
+    showToast('暂无辩题数据可导出', 'error');
+    return;
+  }
+
+  // CSV 头部
+  const headers = ['辩题ID', '辩题名称', '分类', '难度', '背景说明', '状态'];
+  const rows = allTopics.map(t => [
+    t._id,
+    `"${(t.title || '').replace(/"/g, '""')}"`,
+    CATEGORY_LABELS[t.category] || t.category,
+    DIFFICULTY_LABELS[t.difficulty] || t.difficulty,
+    `"${(t.background || '').replace(/"/g, '""')}"`,
+    t.status === 1 ? '已上架' : '已下架',
+  ]);
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const bom = '\uFEFF'; // UTF-8 BOM for Excel
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `辩题数据_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(`已导出 ${allTopics.length} 条辩题`, 'success');
 }

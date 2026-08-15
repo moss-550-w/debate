@@ -1,56 +1,178 @@
 /**
- * 成长数据与看板逻辑
+ * 成长数据与看板逻辑（Sprint 3 — ECharts 雷达图）
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 加载看板数据
-  loadDashboard();
+  loadGrowthDashboard();
 });
 
 /**
- * 加载看板统计
+ * 加载成长看板数据
  */
-async function loadDashboard() {
+async function loadGrowthDashboard() {
   try {
-    // 模拟数据
-    const mockStats = {
-      totalUsers: 12,
-      totalPractices: 45,
-      totalDuration: 3600,
-      avgScore: 76,
-    };
+    const res = await apiRequest('/growth/admin_demo');
+    if (res.code !== 200 || !res.data) {
+      showToast('加载成长数据失败', 'error');
+      return;
+    }
 
-    document.getElementById('statUsers').textContent = mockStats.totalUsers;
-    document.getElementById('statPractices').textContent = mockStats.totalPractices;
-    document.getElementById('statDuration').textContent = Math.round(mockStats.totalDuration / 60);
-    document.getElementById('statAvgScore').textContent = mockStats.avgScore;
+    const data = res.data;
 
-    // 加载用户列表
-    loadUsers();
+    // 1. 渲染雷达图
+    renderRadarChart(data.baseline, data.latest);
+
+    // 2. 渲染统计数据
+    renderStats(data);
+
+    // 3. 渲染练习记录列表
+    renderHistory(data.history);
   } catch (err) {
-    console.error('加载看板数据失败:', err);
+    console.error('加载成长数据失败:', err);
+    showToast('加载成长数据失败，请稍后重试', 'error');
   }
 }
 
 /**
- * 加载用户列表
+ * 渲染 ECharts 双雷达对比图
+ * @param {object} baseline - 基准水平五维数据
+ * @param {object} latest - 当前水平五维数据
  */
-async function loadUsers() {
-  const mockUsers = [
-    { nickname: '小明', role: 'pupil', grade: 'G5', total_count: 15, total_duration: 1200, created_at: '2026-08-01' },
-    { nickname: '小红', role: 'pupil', grade: 'G4', total_count: 20, total_duration: 1800, created_at: '2026-08-02' },
-    { nickname: '李老师', role: 'college', grade: '', total_count: 10, total_duration: 600, created_at: '2026-08-03' },
-  ];
+function renderRadarChart(baseline, latest) {
+  const dom = document.getElementById('radarChart');
+  if (!dom) return;
 
+  const chart = echarts.init(dom);
+
+  const option = {
+    legend: {
+      data: ['基准水平', '当前水平'],
+      bottom: 0,
+    },
+    radar: {
+      indicator: [
+        { name: '发音', max: 100 },
+        { name: '流利度', max: 100 },
+        { name: '逻辑', max: 100 },
+        { name: '词汇', max: 100 },
+        { name: '反应', max: 100 },
+      ],
+      shape: 'polygon',
+      splitNumber: 5,
+      axisName: {
+        color: '#333',
+        fontSize: 13,
+      },
+    },
+    series: [
+      {
+        type: 'radar',
+        data: [
+          {
+            value: [
+              baseline.pronunciation,
+              baseline.fluency,
+              baseline.logic,
+              baseline.vocabulary,
+              baseline.reaction,
+            ],
+            name: '基准水平',
+            lineStyle: {
+              color: '#9ca3af',
+              type: 'dashed',
+              width: 2,
+            },
+            areaStyle: {
+              color: 'rgba(156, 163, 175, 0.1)',
+            },
+            itemStyle: {
+              color: '#9ca3af',
+            },
+          },
+          {
+            value: [
+              latest.pronunciation,
+              latest.fluency,
+              latest.logic,
+              latest.vocabulary,
+              latest.reaction,
+            ],
+            name: '当前水平',
+            lineStyle: {
+              color: '#3b82f6',
+              type: 'solid',
+              width: 2,
+            },
+            areaStyle: {
+              color: 'rgba(59, 130, 246, 0.15)',
+            },
+            itemStyle: {
+              color: '#3b82f6',
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  chart.setOption(option);
+
+  // 响应窗口缩放
+  window.addEventListener('resize', () => chart.resize());
+}
+
+/**
+ * 渲染统计数据到看板卡片
+ * @param {object} data - API 返回的数据对象
+ */
+function renderStats(data) {
+  // 计算所有历史记录的平均分
+  let avgScore = 0;
+  if (data.history.length > 0) {
+    let totalAvg = 0;
+    data.history.forEach((h) => {
+      const scores = Object.values(h.score).filter((v) => typeof v === 'number');
+      totalAvg += scores.reduce((a, b) => a + b, 0) / scores.length;
+    });
+    avgScore = Math.round(totalAvg / data.history.length);
+  }
+
+  document.getElementById('statUsers').textContent = 1;
+  document.getElementById('statPractices').textContent = data.stats.totalCount;
+  document.getElementById('statDuration').textContent = Math.round(data.stats.totalDuration / 60);
+  document.getElementById('statAvgScore').textContent = avgScore;
+}
+
+/**
+ * 渲染练习记录列表
+ * @param {Array} history - 历史记录数组
+ */
+function renderHistory(history) {
   const tbody = document.getElementById('userTableBody');
-  tbody.innerHTML = mockUsers.map(u => `
-    <tr>
-      <td>${u.nickname || '未设置'}</td>
-      <td>${u.role === 'pupil' ? '小学生' : '大学生'}</td>
-      <td>${u.grade || '-'}</td>
-      <td>${u.total_count}</td>
-      <td>${Math.round(u.total_duration / 60)}分钟</td>
-      <td>${formatDate(u.created_at)}</td>
-    </tr>
-  `).join('');
+  if (!tbody) return;
+
+  if (!history || history.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-row">暂无数据</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = history
+    .map((h) => {
+      const scores = Object.values(h.score).filter((v) => typeof v === 'number');
+      const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      const typeLabel = h.type === 'argument' ? '立论练习' : '演讲练习';
+      const scoreDetail = `发音${h.score.pronunciation} 流利度${h.score.fluency} 逻辑${h.score.logic} 词汇${h.score.vocabulary} 反应${h.score.reaction}`;
+
+      return `
+        <tr>
+          <td>${typeLabel}</td>
+          <td>${avg}分</td>
+          <td>${scoreDetail}</td>
+          <td>1</td>
+          <td>-</td>
+          <td>${formatDate(h.created_at)}</td>
+        </tr>
+      `;
+    })
+    .join('');
 }

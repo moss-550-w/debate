@@ -61,7 +61,10 @@
         </nav>
         <div class="sidebar-footer">
           <span id="currentUser"></span>
-          <button id="logoutBtn" class="btn-logout">退出</button>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <button id="themeToggleBtn" class="btn-theme-toggle" title="切换主题">🎨</button>
+            <button id="logoutBtn" class="btn-logout">退出</button>
+          </div>
         </div>
       </aside>
 
@@ -89,9 +92,7 @@
             </div>
           </div>
           <div class="chart-container">
-            <div id="radarChart" class="chart-box">
-              <p class="chart-placeholder">雷达图（ECharts）将在 Sprint 3 集成</p>
-            </div>
+            <div id="radarChart" class="chart-box" style="height:360px;"></div>
           </div>
         </section>
 
@@ -99,7 +100,10 @@
         <section id="topicsPage" class="page-section" style="display:none;">
           <div class="section-header">
             <h2>辩题管理 <span id="topicCount" style="font-size:14px;color:#6b7280;font-weight:400;"></span></h2>
-            <button id="addTopicBtn" class="btn-primary">+ 新增辩题</button>
+            <div style="display:flex;gap:8px;">
+              <button id="addTopicBtn" class="btn-primary">+ 新增辩题</button>
+              <button id="exportCsvBtn" class="btn-secondary">导出CSV</button>
+            </div>
           </div>
           <table class="data-table">
             <thead>
@@ -165,6 +169,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/auth.js"></script>

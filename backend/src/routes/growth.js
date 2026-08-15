@@ -26,8 +26,26 @@ router.get('/:userId', authMiddleware, async (req, res) => {
       });
     }
 
-    // TODO: Sprint 3 从云数据库聚合 practice_records 和 assessments
-    // 当前返回占位数据
+    // 生成 20 条 mock 历史记录，最近 20 天每天一条
+    const history = [];
+    for (let i = 0; i < 20; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (19 - i));
+      const type = i % 2 === 0 ? 'argument' : 'speech';
+      history.push({
+        _id: String(i + 1),
+        type,
+        score: {
+          pronunciation: Math.floor(Math.random() * 36) + 60,
+          fluency: Math.floor(Math.random() * 36) + 60,
+          logic: Math.floor(Math.random() * 36) + 60,
+          vocabulary: Math.floor(Math.random() * 36) + 60,
+          reaction: Math.floor(Math.random() * 36) + 60,
+        },
+        created_at: date.toISOString(),
+      });
+    }
+
     const mockData = {
       baseline: {
         pronunciation: 60,
@@ -43,23 +61,10 @@ router.get('/:userId', authMiddleware, async (req, res) => {
         vocabulary: 80,
         reaction: 70,
       },
-      history: [
-        {
-          _id: '1',
-          type: 'argument',
-          score: { pronunciation: 75, fluency: 70, logic: 65, vocabulary: 78, reaction: 60 },
-          created_at: new Date().toISOString(),
-        },
-        {
-          _id: '2',
-          type: 'speech',
-          score: { pronunciation: 80, fluency: 75, integrity: 85 },
-          created_at: new Date().toISOString(),
-        },
-      ],
+      history,
       stats: {
-        totalCount: 15,
-        totalDuration: 600,
+        totalCount: 20,
+        totalDuration: 1800,
       },
     };
 
