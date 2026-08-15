@@ -1,0 +1,20 @@
+# 环境变量（含 API Key）
+.env
+
+# 日志
+logs/
+*.log
+
+# 依赖
+node_modules/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE 配置
+.vscode/
+.idea/
+
+# 微信开发者工具
+miniprogram/project.config.json

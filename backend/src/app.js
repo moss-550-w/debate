@@ -68,7 +68,6 @@ async function start() {
   try {
     if (process.env.CLOUD_ENV) {
       db.init(process.env.CLOUD_ENV);
-      logger.info('云数据库已连接');
     } else {
       logger.warn('CLOUD_ENV 未设置，数据库功能暂不可用');
     }

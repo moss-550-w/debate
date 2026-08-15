@@ -168,8 +168,8 @@ function parseResult(data) {
   try {
     return JSON.parse(content);
   } catch {
-    const repair = require('json-repair');
-    const repaired = repair(content);
+    const { jsonrepair } = require('jsonrepair');
+    const repaired = jsonrepair(content);
     return JSON.parse(repaired);
   }
 }

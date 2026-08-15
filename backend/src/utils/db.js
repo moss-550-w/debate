@@ -1,16 +1,24 @@
-const cloud = require('wx-server-sdk');
 const logger = require('./logger');
 
 let db = null;
 
 /**
  * 初始化云数据库连接
+ * 注意：wx-server-sdk 仅在云函数环境可用。
+ * 在轻量服务器上运行时，需要先通过云函数代理数据库操作，
+ * 或使用云开发 HTTP API。
  * @param {string} env - 云环境ID
  */
 function init(env) {
-  cloud.init({ env });
-  db = cloud.database();
-  logger.info('数据库初始化完成', { env });
+  try {
+    const cloud = require('wx-server-sdk');
+    cloud.init({ env });
+    db = cloud.database();
+    logger.info('数据库初始化完成', { env });
+  } catch (err) {
+    logger.warn('wx-server-sdk 不可用，数据库操作将通过云函数代理', { error: err.message });
+    db = null;
+  }
 }
 
 /**
