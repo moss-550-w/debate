@@ -1,20 +1,25 @@
 <view class="page-index">
-  <!-- 用户信息 -->
   <view class="user-banner">
     <view class="user-avatar">{{userInfo.nickname ? userInfo.nickname[0] : '?'}}</view>
     <view class="user-info">
-      <text class="user-name">{{userInfo.nickname || '未登录'}}</text>
+      <text class="user-name">{{userInfo.nickname || '小辩手'}}</text>
       <text class="user-grade">{{userInfo.grade || '小学'}}</text>
     </view>
-    <button class="login-btn" wx:if="{{!isLoggedIn}}" bindtap="handleLogin">登录</button>
   </view>
 
-  <!-- 三大入口卡片 -->
+  <view class="assignment-banner" wx:if="{{currentAssignment}}">
+    <text class="assignment-icon">📌</text>
+    <view class="assignment-info">
+      <text class="assignment-label">当前任务</text>
+      <text class="assignment-title">{{currentAssignment.topic_title}}</text>
+    </view>
+  </view>
+
   <view class="card-grid">
-    <view class="entry-card card-speech" bindtap="goSpeech">
+    <view class="entry-card card-speech" bindtap="goTopicList">
       <view class="card-icon">🎙️</view>
       <view class="card-title">跟读挑战</view>
-      <view class="card-desc">听录音，模仿跟读，提升发音</view>
+      <view class="card-desc">选择辩题，录音跟读，AI评分</view>
     </view>
 
     <view class="entry-card card-argument" bindtap="goPractice">
@@ -30,13 +35,12 @@
     </view>
   </view>
 
-  <!-- 快捷入口 -->
   <view class="quick-section">
     <text class="section-title">热门辩题</text>
     <scroll-view class="topic-scroll" scroll-x>
-      <view class="topic-tag" wx:for="{{hotTopics}}" wx:key="id" bindtap="goTopicDetail" data-id="{{item._id}}">
+      <view class="topic-tag" wx:for="{{hotTopics}}" wx:key="_id" bindtap="goTopicDetail" data-id="{{item._id}}" data-title="{{item.title}}">
         <text class="tag-title">{{item.title}}</text>
-        <text class="tag-diff">{{item.difficulty}}</text>
+        <text class="tag-diff diff-{{item.difficulty}}">{{item.difficultyLabel}}</text>
       </view>
     </scroll-view>
   </view>

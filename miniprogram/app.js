@@ -1,16 +1,37 @@
-// app.js
 App({
   globalData: {
     userInfo: null,
     openid: '',
-    cloudEnv: 'your-cloud-env-id', // 替换为实际云环境ID
-    apiBaseUrl: 'http://localhost:3000/api', // 替换为实际服务器地址
+    apiBaseUrl: 'http://localhost:3000/api',
   },
 
   onLaunch() {
-    wx.cloud.init({
-      env: this.globalData.cloudEnv,
-      traceUser: true,
-    });
+    this.autoLogin();
+  },
+
+  autoLogin() {
+    let openid = wx.getStorageSync('openid');
+    let userInfo = wx.getStorageSync('userInfo');
+    if (!openid) {
+      openid = 'mp_user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      userInfo = {
+        _id: openid,
+        openid: openid,
+        nickname: '小辩手',
+        role: 'pupil',
+        grade: 'G5',
+        ability_baseline: { pronunciation: 55, fluency: 50, logic: 45, vocabulary: 60, reaction: 40 },
+        ability_latest: { pronunciation: 78, fluency: 72, logic: 68, vocabulary: 80, reaction: 70 },
+        total_count: 15,
+        total_duration: 1800,
+        created_at: new Date().toISOString(),
+        agreement_version: 'v1',
+      };
+      wx.setStorageSync('openid', openid);
+      wx.setStorageSync('token', openid);
+      wx.setStorageSync('userInfo', userInfo);
+    }
+    this.globalData.openid = openid;
+    this.globalData.userInfo = userInfo;
   },
 });

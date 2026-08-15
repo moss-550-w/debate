@@ -11,6 +11,48 @@
   margin-bottom: 16rpx;
 }
 
+/* 用户头部 */
+.user-header {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.avatar {
+  width: 100rpx;
+  height: 100rpx;
+  background: rgba(255,255,255,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.user-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.nickname {
+  font-size: 36rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.grade {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.8);
+}
+
 /* 雷达图 */
 .radar-section {
   background: white;
@@ -20,26 +62,18 @@
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
 }
 
-.radar-placeholder {
-  height: 400rpx;
+.radar-container {
+  width: 100%;
+  height: 480rpx;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
-  border-radius: 12rpx;
   margin-bottom: 16rpx;
 }
 
-.placeholder-text {
-  font-size: 28rpx;
-  color: #6b7280;
-}
-
-.placeholder-subtext {
-  font-size: 24rpx;
-  color: #9ca3af;
-  margin-top: 8rpx;
+.radar-canvas {
+  width: 100%;
+  height: 100%;
 }
 
 .radar-legend {

@@ -17,8 +17,10 @@ router.get('/:userId', authMiddleware, async (req, res) => {
     }
 
     // 安全校验：只能查看自己的成长数据
-    // 管理端可通过 userId 参数查看指定用户，但需额外权限校验
-    if (req.user.userId && req.user.userId !== userId) {
+    // 支持通过 userId（数据库_id）或 openid 访问
+    const isSelf = req.user.openid === userId || req.user.userId === userId;
+    const isAdmin = req.user.role === 'coach' || req.user.role === 'admin';
+    if (!isSelf && !isAdmin) {
       return res.status(403).json({
         code: 403,
         message: '无权访问其他用户的成长数据',

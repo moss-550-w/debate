@@ -110,6 +110,28 @@
           <div class="chart-container">
             <div id="radarChart" class="chart-box" style="height:360px;"></div>
           </div>
+          <div class="stats-grid" style="margin-top:16px;">
+            <div class="stat-card">
+              <div class="stat-value" id="statCompletionRate">0%</div>
+              <div class="stat-label">全班完成率</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statStrongest">-</div>
+              <div class="stat-label">最强维度</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statWeakest">-</div>
+              <div class="stat-label">最弱维度</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="statImprovement">+0%</div>
+              <div class="stat-label">提升幅度</div>
+            </div>
+          </div>
+          <div class="chart-container" style="margin-top:16px;">
+            <h3 style="margin-bottom:12px;font-size:15px;color:var(--text);">各维度强弱项分析</h3>
+            <div id="dimensionChart" class="chart-box" style="height:300px;"></div>
+          </div>
         </section>
 
         <!-- 辩题管理 -->
@@ -120,6 +142,10 @@
               <button id="addTopicBtn" class="btn-primary">+ 新增辩题</button>
               <button id="exportCsvBtn" class="btn-secondary">导出CSV</button>
             </div>
+          </div>
+          <div id="currentAssignmentBanner" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;margin-bottom:16px;font-size:14px;color:#0369a1;">
+            <span style="font-size:18px;">📌</span>
+            <span class="banner-text"></span>
           </div>
           <table class="data-table">
             <thead>
@@ -179,6 +205,10 @@
           <div id="argumentResult" class="argument-result" style="display:none;">
             <h3>生成结果</h3>
             <div id="argumentContent"></div>
+            <div id="speechTranscriptArea" style="display:none;margin-top:16px;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);">
+              <h4 style="margin-bottom:8px;color:#166534;font-size:14px;">🎤 语音转写文本</h4>
+              <p id="speechTranscriptText" style="font-size:15px;line-height:1.7;color:#333;white-space:pre-wrap;"></p>
+            </div>
           </div>
         </section>
 

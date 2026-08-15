@@ -62,8 +62,21 @@
 }
 
 .topic-category {
-  font-size: 24rpx;
-  color: #6b7280;
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.tag-society { background: #fef3c7; color: #92400e; }
+.tag-education { background: #dbeafe; color: #1e40af; }
+.tag-tech { background: #e0e7ff; color: #3730a3; }
+.tag-environment { background: #d1fae5; color: #065f46; }
+
+.loading-tip {
+  text-align: center;
+  padding: 40rpx;
+  color: #9ca3af;
+  font-size: 26rpx;
 }
 
 .empty-tip {

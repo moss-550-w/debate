@@ -47,13 +47,30 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function loadTopics() {
   try {
-    const res = await apiRequest('/topics?size=100');
-    if (res && res.code === 200) {
-      allTopics = res.data.list;
+    const [topicsRes, assignmentRes] = await Promise.all([
+      apiRequest('/topics?size=100'),
+      apiRequest('/assignments/current'),
+    ]);
+
+    if (topicsRes && topicsRes.code === 200) {
+      allTopics = topicsRes.data.list;
       renderTopicSelect(allTopics);
       renderTopicTable(allTopics);
     } else {
       throw new Error('获取辩题失败');
+    }
+
+    // 显示当前已发布的任务横幅
+    const banner = document.getElementById('currentAssignmentBanner');
+    if (assignmentRes && assignmentRes.code === 200 && assignmentRes.data.is_active) {
+      if (banner) {
+        banner.style.display = 'flex';
+        banner.querySelector('.banner-text').textContent = `当前任务：${assignmentRes.data.topic_title}`;
+      }
+    } else {
+      if (banner) {
+        banner.style.display = 'none';
+      }
     }
   } catch (err) {
     console.error('加载辩题失败:', err);
@@ -98,7 +115,10 @@ function renderTopicTable(topics) {
         <td><span class="tag tag-${t.category}">${catLabel}</span></td>
         <td><span style="color:${diffColor};font-weight:600;">${diffLabel}</span></td>
         <td><span class="status-badge status-active">已上架</span></td>
-        <td><button class="btn-primary" style="padding:4px 12px;font-size:13px;" onclick="alert('编辑功能将在后续版本实现')">编辑</button></td>
+        <td>
+          <button class="btn-primary" style="padding:4px 12px;font-size:13px;margin-right:4px;" onclick="alert('编辑功能将在后续版本实现')">编辑</button>
+          <button onclick="publishAssignment('${t._id}', '${t.title.replace(/'/g, "\\'")}')" class="btn-secondary" style="padding:4px 12px;font-size:13px;">布置</button>
+        </td>
       </tr>
     `;
   }).join('');
@@ -164,6 +184,17 @@ async function handleGenerate() {
 
       resultDiv.style.display = '';
       resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // 展示语音转写文本（模拟）
+      const transcriptArea = document.getElementById('speechTranscriptArea');
+      const transcriptText = document.getElementById('speechTranscriptText');
+      if (data.full_text) {
+        transcriptArea.style.display = '';
+        transcriptText.textContent = data.full_text;
+      } else {
+        transcriptArea.style.display = 'none';
+      }
+
       showToast('立论生成成功', 'success');
     }
   } catch (err) {
@@ -208,4 +239,35 @@ function exportTopicsCsv() {
   URL.revokeObjectURL(url);
 
   showToast(`已导出 ${allTopics.length} 条辩题`, 'success');
+}
+
+/**
+ * 发布任务（布置辩题）
+ */
+async function publishAssignment(topicId, topicTitle) {
+  try {
+    const res = await apiRequest('/assignments/publish', {
+      method: 'POST',
+      body: JSON.stringify({
+        topic_id: topicId,
+        topic_title: topicTitle,
+      }),
+    });
+
+    if (res && res.code === 200) {
+      showToast(`已发布任务：${topicTitle}`, 'success');
+      // 刷新当前任务横幅
+      const assignmentRes = await apiRequest('/assignments/current');
+      const banner = document.getElementById('currentAssignmentBanner');
+      if (assignmentRes && assignmentRes.code === 200 && assignmentRes.data.is_active && banner) {
+        banner.style.display = 'flex';
+        banner.querySelector('.banner-text').textContent = `当前任务：${assignmentRes.data.topic_title}`;
+      }
+    } else {
+      showToast(res?.message || '发布任务失败', 'error');
+    }
+  } catch (err) {
+    console.error('发布任务失败:', err);
+    showToast('发布任务失败，请稍后重试', 'error');
+  }
 }

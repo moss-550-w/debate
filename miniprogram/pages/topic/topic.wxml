@@ -11,23 +11,27 @@
 
   <!-- 辩题列表 -->
   <view class="topic-list">
-    <view class="topic-card" wx:for="{{topics}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}">
+    <view class="topic-card" wx:for="{{topics}}" wx:key="_id" bindtap="goDetail" data-id="{{item._id}}" data-title="{{item.title}}">
       <view class="topic-header">
         <text class="topic-title">{{item.title}}</text>
-        <text class="topic-diff diff-{{item.difficulty}}">{{item.difficulty}}</text>
+        <text class="topic-diff diff-{{item.difficulty}}">{{item.difficultyLabel}}</text>
       </view>
       <view class="topic-meta">
-        <text class="topic-category">{{item.category}}</text>
+        <text class="topic-category tag-{{item.category}}">{{item.categoryLabel}}</text>
       </view>
     </view>
 
-    <view class="empty-tip" wx:if="{{topics.length === 0}}">
+    <view class="loading-tip" wx:if="{{loading}}">
+      <text>加载中...</text>
+    </view>
+
+    <view class="empty-tip" wx:if="{{!loading && topics.length === 0}}">
       <text>暂无辩题，请稍后再来</text>
     </view>
   </view>
 
   <!-- 加载更多 -->
-  <view class="load-more" wx:if="{{hasMore}}">
+  <view class="load-more" wx:if="{{hasMore && !loading && topics.length > 0}}">
     <button class="load-btn" bindtap="loadMore">加载更多</button>
   </view>
 </view>

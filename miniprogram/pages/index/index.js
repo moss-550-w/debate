@@ -1,96 +1,104 @@
-const { callFunction } = require('../../utils/cloud');
+const { request } = require('../../utils/request');
+
+const DIFFICULTY_LABELS = {
+  easy: '简单',
+  medium: '中等',
+  hard: '困难',
+};
 
 Page({
   data: {
-    isLoggedIn: false,
+    isLoggedIn: true,
     userInfo: {},
     hotTopics: [],
+    currentAssignment: null,
   },
 
   onLoad() {
-    this.checkLogin();
+    this.loadUserInfo();
     this.loadHotTopics();
+    this.loadCurrentAssignment();
   },
 
   onShow() {
-    this.checkLogin();
+    this.loadUserInfo();
   },
 
-  // 检查登录状态
-  checkLogin() {
-    const openid = wx.getStorageSync('openid');
+  loadUserInfo() {
     const userInfo = wx.getStorageSync('userInfo');
-    if (openid && userInfo) {
+    const openid = wx.getStorageSync('openid');
+    if (userInfo && openid) {
+      this.setData({ isLoggedIn: true, userInfo });
+      const app = getApp();
+      app.globalData.openid = openid;
+      app.globalData.userInfo = userInfo;
+    } else {
+      // 触发自动登录
+      const app = getApp();
+      app.autoLogin();
       this.setData({
         isLoggedIn: true,
-        userInfo,
+        userInfo: app.globalData.userInfo,
       });
     }
   },
 
-  // 登录
-  async handleLogin() {
-    wx.showLoading({ title: '登录中...' });
-    try {
-      const { code } = await wx.login();
-      const result = await callFunction('userLogin', { code });
-
-      wx.setStorageSync('openid', result.openid);
-      wx.setStorageSync('token', result.openid);
-      wx.setStorageSync('userInfo', result.user);
-
-      this.setData({
-        isLoggedIn: true,
-        userInfo: result.user,
-      });
-
-      wx.showToast({ title: '登录成功' });
-    } catch (err) {
-      console.error('登录失败:', err);
-      wx.showToast({ title: '登录失败', icon: 'none' });
-    } finally {
-      wx.hideLoading();
-    }
-  },
-
-  // 加载热门辩题
   async loadHotTopics() {
     try {
-      const result = await callFunction('getTopicList', { page: 1, size: 5 });
-      this.setData({ hotTopics: result.list });
+      const res = await request('/topics?size=5');
+      if (res.code === 200) {
+        const topics = (res.data.list || []).map(t => ({
+          ...t,
+          difficultyLabel: DIFFICULTY_LABELS[t.difficulty] || t.difficulty,
+        }));
+        this.setData({ hotTopics: topics });
+      }
     } catch (err) {
-      // 模拟数据
+      console.error('加载热门辩题失败:', err);
       this.setData({
         hotTopics: [
-          { _id: '1', title: 'AI in Education', difficulty: 'medium' },
-          { _id: '2', title: 'Recycling', difficulty: 'easy' },
-          { _id: '3', title: 'Homework', difficulty: 'easy' },
+          { _id: '1', title: 'Should AI be used in education?', difficulty: 'medium', difficultyLabel: '中等' },
+          { _id: '2', title: 'Is recycling important?', difficulty: 'easy', difficultyLabel: '简单' },
+          { _id: '3', title: 'Should students have homework?', difficulty: 'easy', difficultyLabel: '简单' },
         ],
       });
     }
   },
 
+  async loadCurrentAssignment() {
+    try {
+      const res = await request('/assignments/current');
+      if (res.code === 200 && res.data && res.data.is_active) {
+        this.setData({ currentAssignment: res.data });
+      }
+    } catch (err) {
+      // ignore
+    }
+  },
+
+  handleLogin() {
+    wx.showToast({ title: '已自动登录', icon: 'success' });
+  },
+
   goSpeech() {
-    if (!this.data.isLoggedIn) return this.showLoginTip();
-    wx.navigateTo({ url: '/pages/speech/speech' });
+    wx.switchTab({ url: '/pages/topic/topic' });
   },
 
   goPractice() {
-    if (!this.data.isLoggedIn) return this.showLoginTip();
     wx.navigateTo({ url: '/pages/practice/practice' });
   },
 
   goProfile() {
-    if (!this.data.isLoggedIn) return this.showLoginTip();
-    wx.navigateTo({ url: '/pages/profile/profile' });
+    wx.switchTab({ url: '/pages/profile/profile' });
+  },
+
+  goTopicList() {
+    wx.switchTab({ url: '/pages/topic/topic' });
   },
 
   goTopicDetail(e) {
     const id = e.currentTarget.dataset.id;
-    wx.navigateTo({ url: `/pages/topic/topic?id=${id}` });
-  },
-
-  showLoginTip() {
-    wx.showToast({ title: '请先登录', icon: 'none' });
+    const title = e.currentTarget.dataset.title;
+    wx.navigateTo({ url: `/pages/practice/practice?topicId=${id}&topicTitle=${encodeURIComponent(title)}` });
   },
 });

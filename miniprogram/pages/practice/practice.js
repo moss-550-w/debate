@@ -1,5 +1,4 @@
 const { request } = require('../../utils/request');
-const { callFunction } = require('../../utils/cloud');
 
 Page({
   data: {
@@ -9,6 +8,7 @@ Page({
     selectedTopicId: '',
     selectedTopicName: '',
     position: 'pro',
+    positionLabel: '正方',
     result: null,
   },
 
@@ -16,51 +16,56 @@ Page({
     if (options.topicId) {
       this.setData({ selectedTopicId: options.topicId });
     }
+    if (options.topicTitle) {
+      this.setData({ selectedTopicName: decodeURIComponent(options.topicTitle) });
+    }
     this.loadTopics();
   },
 
   async loadTopics() {
     try {
-      const result = await callFunction('getTopicList', { page: 1, size: 50 });
-      const topics = result.list || [];
-      this.setData({
-        topics,
-        topicNames: topics.map(t => t.title),
-      });
-      // 如果从辩题列表进入，自动选中
-      if (this.data.selectedTopicId) {
-        const idx = topics.findIndex(t => t._id === this.data.selectedTopicId);
-        if (idx >= 0) {
-          this.setData({
-            selectedTopicName: topics[idx].title,
-          });
+      const res = await request('/topics?size=100');
+      if (res.code === 200) {
+        const topics = res.data.list || [];
+        this.setData({
+          topics,
+          topicNames: topics.map(t => t.title),
+        });
+        // 如果从辩题列表进入且没有传标题，自动选中
+        if (this.data.selectedTopicId && !this.data.selectedTopicName) {
+          const idx = topics.findIndex(t => t._id === this.data.selectedTopicId);
+          if (idx >= 0) {
+            this.setData({
+              selectedTopicName: topics[idx].title,
+            });
+          }
         }
+      } else {
+        throw new Error(res.message);
       }
     } catch (err) {
-      // 模拟数据
-      const mockTopics = [
-        { _id: '1', title: 'Should AI be used in education?', category: 'tech', difficulty: 'medium' },
-        { _id: '2', title: 'Is recycling important?', category: 'environment', difficulty: 'easy' },
-        { _id: '3', title: 'Should students have homework?', category: 'education', difficulty: 'easy' },
-      ];
-      this.setData({
-        topics: mockTopics,
-        topicNames: mockTopics.map(t => t.title),
-      });
+      console.error('加载辩题失败:', err);
+      wx.showToast({ title: '加载辩题失败', icon: 'none' });
     }
   },
 
   onTopicChange(e) {
-    const index = e.detail.value;
+    const index = parseInt(e.detail.value);
     const topic = this.data.topics[index];
-    this.setData({
-      selectedTopicId: topic._id,
-      selectedTopicName: topic.title,
-    });
+    if (topic) {
+      this.setData({
+        selectedTopicId: topic._id,
+        selectedTopicName: topic.title,
+      });
+    }
   },
 
   selectPosition(e) {
-    this.setData({ position: e.currentTarget.dataset.pos });
+    const pos = e.currentTarget.dataset.pos;
+    this.setData({
+      position: pos,
+      positionLabel: pos === 'pro' ? '正方' : '反方',
+    });
   },
 
   async startGenerate() {
@@ -76,6 +81,7 @@ Page({
         method: 'POST',
         data: {
           topic_id: this.data.selectedTopicId,
+          topic_title: this.data.selectedTopicName,
           position: this.data.position,
           user_role: 'pupil',
         },
@@ -87,6 +93,7 @@ Page({
         throw new Error(res.message);
       }
     } catch (err) {
+      console.error('生成立论失败:', err);
       // 模拟数据兜底
       this.setData({
         result: {
@@ -99,10 +106,15 @@ Page({
         },
         step: 3,
       });
+      wx.showToast({ title: '使用示例数据', icon: 'none' });
     }
   },
 
   goSpeech() {
+    if (!this.data.result || !this.data.result.full_text) {
+      wx.showToast({ title: '还没有立论内容', icon: 'none' });
+      return;
+    }
     wx.navigateTo({
       url: `/pages/speech/speech?text=${encodeURIComponent(this.data.result.full_text)}`,
     });
@@ -114,6 +126,7 @@ Page({
       selectedTopicId: '',
       selectedTopicName: '',
       position: 'pro',
+      positionLabel: '正方',
       result: null,
     });
   },

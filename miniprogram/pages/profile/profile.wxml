@@ -1,10 +1,18 @@
 <view class="page-profile">
+  <!-- 用户信息头部 -->
+  <view class="user-header">
+    <view class="avatar">{{userInfo.nickname ? userInfo.nickname[0] : '?'}}</view>
+    <view class="user-meta">
+      <text class="nickname">{{userInfo.nickname || '小辩手'}}</text>
+      <text class="grade">{{userInfo.grade || '小学'}}</text>
+    </view>
+  </view>
+
   <!-- 雷达图区域 -->
   <view class="radar-section">
     <text class="section-title">能力对比</text>
-    <view class="radar-placeholder" id="radarContainer">
-      <text class="placeholder-text">雷达图将在 Sprint 3 集成</text>
-      <text class="placeholder-subtext">ECharts + wx-canvas</text>
+    <view class="radar-container">
+      <canvas type="2d" id="radarCanvas" class="radar-canvas"></canvas>
     </view>
     <view class="radar-legend">
       <view class="legend-item">
