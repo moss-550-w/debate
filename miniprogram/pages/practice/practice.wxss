@@ -193,6 +193,122 @@
   margin-top: 24rpx;
 }
 
+.china-section {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background: #fffaf0;
+  border: 1px solid #f2d9a6;
+  border-radius: 16rpx;
+}
+
+.china-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.china-kicker, .china-title, .china-story-title, .china-label {
+  display: block;
+}
+
+.china-kicker {
+  color: #b45309;
+  font-size: 22rpx;
+}
+
+.china-title {
+  margin-top: 4rpx;
+  color: #7c2d12;
+  font-size: 34rpx;
+  font-weight: bold;
+}
+
+.china-perspective {
+  flex: 1;
+  color: #92400e;
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.china-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.china-keyword {
+  padding: 8rpx 14rpx;
+  color: #92400e;
+  background: #ffedd5;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+}
+
+.china-story-block, .china-insight, .china-argument {
+  padding: 18rpx;
+  margin-bottom: 14rpx;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 10rpx;
+}
+
+.china-story-title {
+  margin-bottom: 8rpx;
+  color: #431407;
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.china-story-background, .china-story-text, .china-insight-text, .china-argument-text {
+  display: block;
+  color: #57534e;
+  font-size: 25rpx;
+  line-height: 1.65;
+}
+
+.china-story-text {
+  margin-top: 8rpx;
+}
+
+.china-label {
+  margin-bottom: 6rpx;
+  color: #92400e;
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.china-source {
+  display: block;
+  margin-bottom: 18rpx;
+  color: #78716c;
+  font-size: 21rpx;
+}
+
+.china-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.china-add-btn, .china-speech-btn {
+  flex: 1;
+  padding: 14rpx 8rpx;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+}
+
+.china-add-btn {
+  color: white;
+  background: #b45309;
+}
+
+.china-speech-btn {
+  color: #92400e;
+  background: white;
+  border: 1px solid #d97706;
+}
+
 .primary-btn {
   background: #2563eb;
   color: white;

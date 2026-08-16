@@ -43,6 +43,57 @@ const templateArguments = {
   ],
 };
 
+const defaultChinaPerspective = {
+  elements: ['中国文化经验', '长期主义', '现实生活启示'],
+  story: {
+    title: '愚公移山：把长期目标变成持续行动',
+    background: '《列子·汤问》记载，愚公家门前有两座大山，出行十分不便。',
+    story: '愚公决定带领家人持续挖山。面对质疑，他认为只要一代代坚持，山就会越来越小，最终能够改变生活环境。',
+    insight: '这个故事提醒我们，面对复杂问题时，长期目标需要被拆解成具体行动。',
+    debate_argument: 'A Chinese cultural story teaches us that a difficult goal can become possible when people turn long-term values into consistent action.',
+    source_note: '《列子·汤问》；寓言故事，适合作为文化观点使用。',
+  },
+};
+
+function normalizeChinaPerspective(result, topic) {
+  const china = result.china_elements || {};
+  const story = result.china_story || {};
+  const elements = Array.isArray(china.keywords)
+    ? china.keywords.filter(Boolean).slice(0, 5)
+    : [];
+  const normalizedStory = {
+    title: story.title || '',
+    background: story.background || '',
+    story: story.story || '',
+    insight: story.insight || story.debate_value || '',
+    debate_argument: story.debate_argument || '',
+    source_note: story.source_note || '',
+  };
+
+  if (
+    elements.length === 0 ||
+    !normalizedStory.title ||
+    !normalizedStory.story ||
+    !normalizedStory.debate_argument
+  ) {
+    return {
+      china_elements: {
+        keywords: defaultChinaPerspective.elements,
+        perspective: `围绕“${topic}”提炼中国文化中的行动与责任经验`,
+      },
+      china_story: defaultChinaPerspective.story,
+    };
+  }
+
+  return {
+    china_elements: {
+      keywords: elements,
+      perspective: china.perspective || '从中国经验理解这个辩题',
+    },
+    china_story: normalizedStory,
+  };
+}
+
 /**
  * 调用豆包API
  * @param {string} topic - 辩题
@@ -141,7 +192,7 @@ async function generateArgument(topic, position, role) {
     logger.info('调用豆包API', { topic, position, role });
     const result = await callDoubao(topic, position, role);
     logger.info('豆包API调用成功');
-    return result;
+    return { ...result, ...normalizeChinaPerspective(result, topic) };
   } catch (err) {
     logger.warn('豆包API调用失败，切换备用模型', { error: err.message });
   }
@@ -151,13 +202,13 @@ async function generateArgument(topic, position, role) {
     logger.info('调用通义千问API', { topic, position, role });
     const result = await callQwen(topic, position, role);
     logger.info('通义千问API调用成功');
-    return result;
+    return { ...result, ...normalizeChinaPerspective(result, topic) };
   } catch (err) {
     logger.error('所有模型调用失败，使用预设模板', { error: err.message });
   }
 
   // 最终兜底：预设模板
-  return getTemplate(position);
+  return { ...getTemplate(position), ...normalizeChinaPerspective({}, topic) };
 }
 
 /**
@@ -178,8 +229,23 @@ Respond with JSON format:
     { "title": "point title", "sentence": "English sentence", "translation": "Chinese translation" }
   ],
   "conclusion": "conclusion sentence",
-  "full_text": "complete speech text"
-}`;
+  "full_text": "complete speech text",
+  "china_elements": {
+    "keywords": ["中国元素1", "中国元素2"],
+    "perspective": "这个辩题与中国经验的联系"
+  },
+  "china_story": {
+    "title": "中国故事标题",
+    "background": "故事背景，使用准确、易懂的中文",
+    "story": "故事内容，包含人物、事件和冲突",
+    "insight": "这个故事对辩题的启发",
+    "debate_argument": "A short English argument that can be added to the speech",
+    "source_note": "可靠来源或明确标注为寓言"
+  }
+}
+
+The China section is mandatory. Choose a relevant Chinese historical, cultural, social, scientific, educational, or everyday-life example. Do not invent facts. Keep the story separate from the English speech and make its debate value explicit.
+`;
 }
 
 /**

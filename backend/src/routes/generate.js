@@ -62,6 +62,8 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
         points: argument.points || [],
         conclusion: safeConclusion,
         full_text: safeFullText,
+        china_elements: argument.china_elements || null,
+        china_story: argument.china_story || null,
       },
     });
   } catch (err) {

@@ -62,6 +62,42 @@
       <text class="full-text">{{result.full_text}}</text>
     </view>
 
+    <view class="china-section" wx:if="{{result.china_story}}">
+      <view class="china-header">
+        <view>
+          <text class="china-kicker">思辨中国</text>
+          <text class="china-title">中国视角</text>
+        </view>
+        <text class="china-perspective">{{result.china_elements.perspective}}</text>
+      </view>
+
+      <view class="china-keywords">
+        <text class="china-keyword" wx:for="{{result.china_elements.keywords}}" wx:key="*this">{{item}}</text>
+      </view>
+
+      <view class="china-story-block">
+        <text class="china-story-title">{{result.china_story.title}}</text>
+        <text class="china-story-background">{{result.china_story.background}}</text>
+        <text class="china-story-text">{{result.china_story.story}}</text>
+      </view>
+
+      <view class="china-insight">
+        <text class="china-label">对辩题的启发</text>
+        <text class="china-insight-text">{{result.china_story.insight}}</text>
+      </view>
+
+      <view class="china-argument">
+        <text class="china-label">可使用的英文论据</text>
+        <text class="china-argument-text">{{result.china_story.debate_argument}}</text>
+      </view>
+      <text class="china-source">{{result.china_story.source_note}}</text>
+
+      <view class="china-actions">
+        <button class="china-add-btn" bindtap="addChinaArgument" disabled="{{chinaAdded}}">{{chinaAdded ? '已加入逐字稿' : '加入立论'}}</button>
+        <button class="china-speech-btn" bindtap="goChinaSpeech">跟读这段论据</button>
+      </view>
+    </view>
+
     <view class="action-bar">
       <button class="primary-btn" bindtap="goSpeech">开始跟读练习</button>
       <button class="outline-btn" bindtap="reset">重新选题</button>

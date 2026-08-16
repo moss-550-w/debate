@@ -10,6 +10,7 @@ Page({
     position: 'pro',
     positionLabel: '正方',
     result: null,
+    chinaAdded: false,
   },
 
   onLoad(options) {
@@ -121,6 +122,28 @@ Page({
     });
   },
 
+  addChinaArgument() {
+    const story = this.data.result && this.data.result.china_story;
+    if (!story || !story.debate_argument || this.data.chinaAdded) return;
+
+    this.setData({
+      chinaAdded: true,
+      result: {
+        ...this.data.result,
+        full_text: `${this.data.result.full_text} ${story.debate_argument}`,
+      },
+    });
+    wx.showToast({ title: '已加入逐字稿', icon: 'success' });
+  },
+
+  goChinaSpeech() {
+    const story = this.data.result && this.data.result.china_story;
+    if (!story || !story.debate_argument) return;
+    wx.navigateTo({
+      url: `/pages/speech/speech?text=${encodeURIComponent(story.debate_argument)}`,
+    });
+  },
+
   reset() {
     this.setData({
       step: 1,
@@ -129,6 +152,7 @@ Page({
       position: 'pro',
       positionLabel: '正方',
       result: null,
+      chinaAdded: false,
     });
   },
 });

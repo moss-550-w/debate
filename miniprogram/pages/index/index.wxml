@@ -53,6 +53,15 @@
     </view>
   </view>
 
+  <view class="china-entry" bindtap="goChinaPractice">
+    <view class="china-entry-copy">
+      <text class="china-entry-kicker">辩论：思辨中国</text>
+      <text class="china-entry-title">从中国故事找到论据</text>
+      <text class="china-entry-desc">今天，从传统文化与现实经验换一个角度思考</text>
+    </view>
+    <text class="china-entry-arrow">›</text>
+  </view>
+
   <view class="quick-section">
     <text class="section-title">热门辩题</text>
     <scroll-view class="topic-scroll" scroll-x>

@@ -90,6 +90,46 @@
   color: #6b7280;
 }
 
+.china-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+  padding: 24rpx 26rpx;
+  background: #fffaf0;
+  border: 1px solid #f2d9a6;
+  border-radius: 16rpx;
+}
+
+.china-entry-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.china-entry-kicker {
+  color: #b45309;
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.china-entry-title {
+  color: #431407;
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+.china-entry-desc {
+  color: #78716c;
+  font-size: 23rpx;
+}
+
+.china-entry-arrow {
+  color: #b45309;
+  font-size: 52rpx;
+  line-height: 1;
+}
+
 /* 热门辩题 */
 .quick-section {
   margin-bottom: 30rpx;
