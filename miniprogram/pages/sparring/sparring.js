@@ -54,6 +54,7 @@ Page({
     opponent: { icon: '🤖', name: 'AI对手' },
     messages: [],
     userInput: '',
+    textInputFocused: false,
     statsDisplay: { totalRounds: 0, effectiveRate: '0%', stallCount: 0 },
     sending: false,
     recording: false,
@@ -72,7 +73,7 @@ Page({
   onLoad() {
     const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
     const winH = info.windowHeight || 667;
-    const reserved = 100 + 64 + 56 + 76 + 8; // 额外多预留给语音状态条
+    const reserved = 100 + 64 + 56 + 188 + 8; // 额外多预留给双行输入区
     this.setData({ scrollViewHeight: Math.max(160, winH - reserved) });
     // 清理可能的录音定时器
     this._recordTimer = null;
@@ -168,6 +169,7 @@ Page({
     const beforeMsgs = this.data.messages.concat([{ role: 'user', content: text }]);
     this.setData({
       userInput: '',
+      textInputFocused: false,
       sending: true,
       messages: beforeMsgs,
       debugMsgCount: beforeMsgs.length,
@@ -309,13 +311,11 @@ Page({
         if (!startedOk) {
           // 没真正开始录音
           this._setVoice('fail', '录音未启动，建议真机测试');
-          this._sendFallbackSpeech();
           return;
         }
         const elapsed = (Date.now() - this._recordStartAt) / 1000;
         if (!res || !res.tempFilePath || elapsed < 0.4) {
           this._setVoice('fail', '录音时间太短或未生成录音文件');
-          this._sendFallbackSpeech();
           return;
         }
         this._processAudioFile(res.tempFilePath, Math.round(elapsed * 10) / 10);
@@ -327,7 +327,6 @@ Page({
         console.error('录音错误:', err);
         const msg = (err && err.errMsg) ? err.errMsg : '录音失败';
         this._setVoice('fail', '❌ 录音失败：' + msg.slice(0, 20));
-        this._sendFallbackSpeech();
       });
 
       rm.start({
@@ -335,13 +334,12 @@ Page({
         sampleRate: 16000,
         numberOfChannels: 1,
         encodeBitRate: 48000,
-        format: 'mp3',
+        format: 'wav',
       });
     } catch (e) {
       this._clearRecordTimer();
       this.setData({ recording: false });
       this._setVoice('fail', '启动录音失败');
-      this._sendFallbackSpeech();
     }
   },
 
@@ -361,40 +359,40 @@ Page({
       audioBase64 = buf || '';
     } catch (e) {
       this._setVoice('fail', '读取录音文件失败');
-      this._sendFallbackSpeech();
       return;
     }
     if (!audioBase64 || audioBase64.length < 20) {
-      this._setVoice('fallback', '音频数据为空，使用示例文本');
-      this._sendFallbackSpeech();
+      this._setVoice('fail', '音频数据为空，请重新录音');
       return;
     }
 
     let recognizedText = '';
+    let recognitionMessage = '未识别到清晰英文，请重新录音或手动输入';
     try {
       this._setVoice('uploading', `调用语音识别API...`);
-      const timeoutP = new Promise((_, reject) => setTimeout(() => reject(new Error('t')), 12000));
+      const timeoutP = new Promise((_, reject) => setTimeout(() => reject(new Error('t')), 20000));
       const r = await Promise.race([
         request('/speech-to-text', {
           method: 'POST',
-          data: { audio: audioBase64, format: 'mp3', duration_sec: durationSec },
+          data: { audio: audioBase64, format: 'wav', duration_sec: durationSec },
+          timeout: 20000,
         }),
         timeoutP,
       ]).catch(() => null);
       if (r && r.code === 200 && r.data && r.data.text) {
         recognizedText = r.data.text;
+      } else if (r && r.message) {
+        recognitionMessage = r.message;
       }
     } catch (e) {
       // ignore
     }
 
     if (recognizedText) {
-      this._setVoice('ok', '✅ 识别成功：' + recognizedText.slice(0, 30));
-      this.setData({ userInput: recognizedText });
-      this.sendMessage();
+      this._setVoice('ok', '✅ 识别完成，请检查文字后发送');
+      this.setData({ userInput: recognizedText, textInputFocused: true });
     } else {
-      this._setVoice('fallback', '🌀 识别API未返回，发送示例论点');
-      this._sendFallbackSpeech();
+      this._setVoice('fail', recognitionMessage);
     }
   },
 
@@ -412,24 +410,6 @@ Page({
     }
   },
 
-  _sendFallbackSpeech() {
-    const pool = [
-      'I think the evidence strongly supports my position.',
-      'Let me give you a concrete example from real life.',
-      'That is a good point, but let me offer another perspective.',
-      'The key issue here is about fairness and justice.',
-      'I would like to challenge your core assumption.',
-    ];
-    const t = pool[Math.floor(Math.random() * pool.length)];
-    this.setData({ userInput: t });
-    this.sendMessage();
-  },
-
-  stopRecord() {
-    const rm = this.data._recorderManager;
-    if (rm) rm.stop();
-  },
-
   restartBattle() {
     this.setData({
       step: 'select',
@@ -440,6 +420,7 @@ Page({
       opponent: { icon: '🤖', name: 'AI对手' },
       messages: [],
       userInput: '',
+      textInputFocused: false,
       statsDisplay: { totalRounds: 0, effectiveRate: '0%', stallCount: 0 },
       sending: false,
       recording: false,

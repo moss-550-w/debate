@@ -171,4 +171,4 @@ async function evaluate(audioBase64, refText, format = 'wav') {
   };
 }
 
-module.exports = { evaluate, SpeechEvaluationError };
+module.exports = { evaluate, transcribeEnglish, SpeechEvaluationError };

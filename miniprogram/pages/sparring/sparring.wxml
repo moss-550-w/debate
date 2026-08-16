@@ -71,16 +71,15 @@
     </view>
 
     <view class="input-bar">
-      <input class="msg-input" placeholder="输入你的论点..." value="{{userInput}}" bindinput="inputChange" confirm-type="send" bindconfirm="sendMessage" disabled="{{sending}}" />
-      <button class="voice-btn voice-btn-{{recording ? 'on' : voiceStep}}"
-              bindtap="toggleRecord"
-              bindtouchstart="startRecord"
-              bindtouchend="stopRecord"
-              bindtouchcancel="stopRecord"
-              hover-class="none">
-        <text class="voice-icon">{{recording ? '🔴' : '🎤'}}</text>
-      </button>
-      <button class="send-btn" bindtap="sendMessage" disabled="{{sending}}">{{sending ? '发送中' : '发送'}}</button>
+      <textarea class="msg-input" placeholder="输入你的论点，或使用语音后校正识别结果..." value="{{userInput}}" bindinput="inputChange" focus="{{textInputFocused}}" auto-height maxlength="500" show-confirm-bar="false" disabled="{{sending}}" />
+      <view class="input-actions">
+        <button class="voice-btn voice-btn-{{recording ? 'on' : voiceStep}}"
+                bindtap="toggleRecord"
+                hover-class="none">
+          <text class="voice-icon">{{recording ? '🔴' : '🎤'}}</text>
+        </button>
+        <button class="send-btn" bindtap="sendMessage" disabled="{{sending}}">{{sending ? '发送中' : '发送'}}</button>
+      </view>
     </view>
   </view>
 
