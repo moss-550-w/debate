@@ -49,8 +49,11 @@ async function isAvailable() {
     availableCache = true;
   } catch (err) {
     const msg = (err && (err.errMsg || err.message)) || String(err);
-    if (/not\s*exist|不存在/i.test(msg)) {
-      // 连接正常，仅探测集合尚未创建
+    const code = err && (err.code || err.errCode);
+    // 仅"集合不存在"视为连接正常（wx-server-sdk 错误码 -502001 或消息含 collection not exist）
+    // 环境不存在、鉴权失败、网络错误等都判定为不可用
+    if ((code === -502001 || /collection\s+not\s+exist|集合不存在/i.test(msg))
+        && !/env\s+not\s+exist|INVALID_ENV|环境不存在/i.test(msg)) {
       availableCache = true;
     } else {
       logger.warn('云数据库不可用', { error: msg });
@@ -125,10 +128,12 @@ async function query(collectionName, where = {}, options = {}) {
  */
 async function add(collectionName, data) {
   try {
-    const res = await collection(collectionName).add({
-      data: { ...data, created_at: getDB().serverDate() },
-    });
-    return res._id;
+    const insertData = { ...data };
+    if (!('created_at' in insertData)) {
+      insertData.created_at = getDB().serverDate();
+    }
+    const res = await collection(collectionName).add({ data: insertData });
+    return res._id || (data._id || null);
   } catch (err) {
     logger.error(`数据库新增失败 [${collectionName}]`, { error: err.message });
     throw err;
@@ -143,9 +148,11 @@ async function add(collectionName, data) {
  */
 async function update(collectionName, id, data) {
   try {
-    await collection(collectionName).doc(id).update({
-      data: { ...data, updated_at: getDB().serverDate() },
-    });
+    const updateData = { ...data };
+    if (!('updated_at' in updateData)) {
+      updateData.updated_at = getDB().serverDate();
+    }
+    await collection(collectionName).doc(id).update({ data: updateData });
     return true;
   } catch (err) {
     logger.error(`数据库更新失败 [${collectionName}]`, { id, error: err.message });
@@ -161,9 +168,11 @@ async function update(collectionName, id, data) {
  */
 async function set(collectionName, id, data) {
   try {
-    await collection(collectionName).doc(id).set({
-      data: { ...data, updated_at: getDB().serverDate() },
-    });
+    const setData = { ...data };
+    if (!('updated_at' in setData)) {
+      setData.updated_at = getDB().serverDate();
+    }
+    await collection(collectionName).doc(id).set({ data: setData });
     return true;
   } catch (err) {
     logger.error(`数据库写入失败 [${collectionName}]`, { id, error: err.message });

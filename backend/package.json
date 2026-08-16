@@ -16,5 +16,9 @@
     "multer": "^1.4.5-lts.1",
     "wx-server-sdk": "~2.6.3",
     "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudbase/manager-node": "^5.7.0",
+    "@cloudbase/node-sdk": "^3.18.3"
   }
 }

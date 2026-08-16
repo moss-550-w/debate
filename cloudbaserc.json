@@ -18,7 +18,7 @@
           "uploadType": "package",
           "containerPort": 3000,
           "cpu": 0.5,
-          "mem": 1.0,
+          "mem": 1,
           "minNum": 0,
           "maxNum": 1,
           "policyType": "cpu",
@@ -30,5 +30,8 @@
         }
       }
     }
+  },
+  "cloudrun": {
+    "name": "debate-api"
   }
 }
