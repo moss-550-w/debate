@@ -79,6 +79,45 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/comments/assignments
+ * 获取议题列表（学生端）
+ * 注意：必须注册在 GET /:recordId 之前，否则 /assignments 会被当作 recordId 吞掉
+ */
+router.get('/assignments', async (req, res) => {
+  try {
+    const allAssignments = Array.from(assignments.values());
+
+    // 按创建时间倒序排列
+    allAssignments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // 标记当前可提交的议题
+    const now = new Date();
+    const result = allAssignments.map(a => ({
+      ...a,
+      is_open: a.status === 'open' && (!a.deadline || new Date(a.deadline) >= now),
+    }));
+
+    logger.info('获取议题列表成功', { total: result.length });
+
+    res.json({
+      code: 200,
+      message: 'ok',
+      data: {
+        total: result.length,
+        assignments: result,
+      },
+    });
+  } catch (err) {
+    logger.error('获取议题列表失败', { error: err.message });
+    res.status(500).json({
+      code: 500,
+      message: '获取议题列表失败',
+      data: null,
+    });
+  }
+});
+
+/**
  * GET /api/comments/:recordId
  * 获取某条记录的评论列表
  */
@@ -166,44 +205,6 @@ router.post('/teacher-assignment', authMiddleware, async (req, res) => {
     res.status(500).json({
       code: 500,
       message: '发布议题失败',
-      data: null,
-    });
-  }
-});
-
-/**
- * GET /api/comments/assignments
- * 获取议题列表（学生端）
- */
-router.get('/assignments', async (req, res) => {
-  try {
-    const allAssignments = Array.from(assignments.values());
-
-    // 按创建时间倒序排列
-    allAssignments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    // 标记当前可提交的议题
-    const now = new Date();
-    const result = allAssignments.map(a => ({
-      ...a,
-      is_open: a.status === 'open' && (!a.deadline || new Date(a.deadline) >= now),
-    }));
-
-    logger.info('获取议题列表成功', { total: result.length });
-
-    res.json({
-      code: 200,
-      message: 'ok',
-      data: {
-        total: result.length,
-        assignments: result,
-      },
-    });
-  } catch (err) {
-    logger.error('获取议题列表失败', { error: err.message });
-    res.status(500).json({
-      code: 500,
-      message: '获取议题列表失败',
       data: null,
     });
   }

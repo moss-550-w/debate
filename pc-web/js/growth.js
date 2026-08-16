@@ -74,6 +74,35 @@ function updateDashboardWithClassData(students, stats) {
 
   const baselineAvg = dims.reduce((s, d) => s + d.value, 0) / dims.length;
   document.getElementById('statImprovement').textContent = '+' + stats.avg_overall.toFixed(1);
+
+  // 渲染用户列表表格
+  renderUserTable(students);
+}
+
+/**
+ * 渲染用户列表表格
+ */
+function renderUserTable(students) {
+  const tbody = document.getElementById('userTableBody');
+  if (!tbody) return;
+
+  if (!students || students.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-row">暂无数据</td></tr>';
+    return;
+  }
+
+  const roleLabels = { pupil: '学生', teacher: '老师', admin: '管理员' };
+
+  tbody.innerHTML = students.map(s => `
+    <tr>
+      <td>${escapeHtml(s.name || '未命名')}</td>
+      <td>${roleLabels[s.role] || '学生'}</td>
+      <td>${escapeHtml(s.grade || '-')}</td>
+      <td>${s.practice_count ?? 0}</td>
+      <td>${s.total_duration_min ?? 0}</td>
+      <td>${s.registered_at || '-'}</td>
+    </tr>
+  `).join('');
 }
 
 /**
