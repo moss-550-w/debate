@@ -37,15 +37,15 @@ router.post('/create', authMiddleware, async (req, res) => {
     if (!topic_ids || !Array.isArray(topic_ids) || topic_ids.length === 0) {
       return res.status(400).json({ code: 400, message: '缺少必填参数: topic_ids', data: null });
     }
-    if (!judge_ids || !Array.isArray(judge_ids) || judge_ids.length === 0) {
-      return res.status(400).json({ code: 400, message: '缺少必填参数: judge_ids', data: null });
-    }
+    // judge_ids 可选：未指定时默认创建者为评委
+    const judgeList = (Array.isArray(judge_ids) && judge_ids.length > 0)
+      ? judge_ids
+      : [req.user.userId || req.user.openid];
     if (!max_teams || typeof max_teams !== 'number' || max_teams < 2) {
       return res.status(400).json({ code: 400, message: 'max_teams 至少为 2', data: null });
     }
-    if (!team_size || typeof team_size !== 'number' || team_size < 1) {
-      return res.status(400).json({ code: 400, message: 'team_size 至少为 1', data: null });
-    }
+    // team_size 可选：默认 2
+    const teamSize = (typeof team_size === 'number' && team_size >= 1) ? team_size : 2;
 
     tournamentIdCounter++;
     const tournamentId = `tournament_${tournamentIdCounter}`;
@@ -55,13 +55,13 @@ router.post('/create', authMiddleware, async (req, res) => {
       name,
       format,
       topic_ids,
-      judge_ids,
+      judge_ids: judgeList,
       max_teams,
-      team_size,
+      team_size: teamSize,
       registration_deadline: registration_deadline || null,
       rules: rules || '',
       created_by: req.user.userId || req.user.openid,
-      status: 'open',
+      status: 'registering',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
