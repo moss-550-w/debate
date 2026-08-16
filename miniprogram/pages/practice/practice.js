@@ -79,6 +79,7 @@ Page({
     try {
       const res = await request('/generate', {
         method: 'POST',
+        timeout: 75000,
         data: {
           topic_id: this.data.selectedTopicId,
           topic_title: this.data.selectedTopicName,

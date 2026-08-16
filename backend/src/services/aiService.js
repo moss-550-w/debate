@@ -61,7 +61,7 @@ async function callDoubao(topic, position, role) {
   const prompt = buildPrompt(topic, position, role);
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
+  const timeout = setTimeout(() => controller.abort(), 55000);
 
   try {
     const response = await fetch(apiUrl, {
@@ -100,25 +100,32 @@ async function callQwen(topic, position, role) {
   }
 
   const prompt = buildPrompt(topic, position, role);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'qwen-turbo',
-      input: { messages: [{ role: 'user', content: prompt }] },
-      parameters: {
-        result_format: 'json',
-        temperature: 0.7,
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
-    }),
-  });
+      body: JSON.stringify({
+        model: 'qwen-turbo',
+        input: { messages: [{ role: 'user', content: prompt }] },
+        parameters: {
+          result_format: 'json',
+          temperature: 0.7,
+        },
+      }),
+      signal: controller.signal,
+    });
 
-  const data = await response.json();
-  return parseResult(data);
+    const data = await response.json();
+    return parseResult(data);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**

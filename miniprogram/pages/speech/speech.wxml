@@ -7,7 +7,7 @@
 
   <!-- 录音区域 -->
   <view class="record-area">
-    <view class="record-btn {{recording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord">
+    <view class="record-btn {{recording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord" bindtouchcancel="cancelRecord">
       <text class="record-icon">{{recording ? '🔴' : '🎤'}}</text>
       <text class="record-text">{{recording ? '录音中...' : '按住说话'}}</text>
     </view>
@@ -16,7 +16,6 @@
 
   <!-- 评测结果 -->
   <view class="result-card" wx:if="{{showResult}}">
-    <view class="mock-badge" wx:if="{{result._is_mock}}">⚠️ 模拟数据（后端未连接）</view>
     <view class="result-header">
       <text class="result-label">评测结果</text>
       <text class="result-level level-{{scoreColor}}">{{getScoreLevel(result.overall)}}</text>
@@ -39,6 +38,11 @@
         <text class="score-value">{{result.overall}}</text>
         <text class="score-label">总分</text>
       </view>
+    </view>
+
+    <view class="transcript" wx:if="{{result.transcript}}">
+      <text class="transcript-label">识别文本</text>
+      <text class="transcript-text">{{result.transcript}}</text>
     </view>
 
     <!-- 单词级评分 -->

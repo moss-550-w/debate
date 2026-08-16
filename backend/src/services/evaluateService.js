@@ -1,158 +1,164 @@
 const logger = require('../utils/logger');
 
-/**
- * 语音评测服务
- * Token 缓存（有效期约30天），减少重复请求
- */
-
-// Token 缓存（进程级）
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
-/**
- * 获取百度API访问令牌（带缓存）
- * @returns {Promise<string>}
- */
+class SpeechEvaluationError extends Error {
+  constructor(message, statusCode = 503) {
+    super(message);
+    this.name = 'SpeechEvaluationError';
+    this.statusCode = statusCode;
+  }
+}
+
 async function getAccessToken() {
   const apiKey = process.env.BAIDU_API_KEY;
   const secretKey = process.env.BAIDU_SECRET_KEY;
 
   if (!apiKey || !secretKey) {
-    throw new Error('百度API Key未配置，请在 .env 中设置 BAIDU_API_KEY 和 BAIDU_SECRET_KEY');
+    throw new SpeechEvaluationError('语音评测服务未配置，请联系管理员配置百度语音 API 凭证');
   }
 
-  const now = Date.now();
-  if (cachedToken && now < tokenExpiresAt) {
-    logger.debug('使用缓存的百度token');
-    return cachedToken;
-  }
+  if (cachedToken && Date.now() < tokenExpiresAt) return cachedToken;
 
-  logger.info('正在获取新的百度token');
   const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`;
-
   const response = await fetch(url, { method: 'POST' });
   const data = await response.json();
 
-  if (!data.access_token) {
-    throw new Error(`获取百度token失败: ${data.error_description || JSON.stringify(data)}`);
+  if (!response.ok || !data.access_token) {
+    logger.warn('百度语音 Token 获取失败', {
+      status: response.status,
+      error: data.error_description || data.error,
+    });
+    throw new SpeechEvaluationError('语音评测服务认证失败，请检查百度语音 API 配置');
   }
 
   cachedToken = data.access_token;
-  const expiresIn = (data.expires_in || 2592000) - 300;
-  tokenExpiresAt = now + expiresIn * 1000;
-
-  logger.info('百度token获取成功', { expiresIn: Math.round(expiresIn / 3600) + 'h' });
+  tokenExpiresAt = Date.now() + Math.max((data.expires_in || 0) - 300, 60) * 1000;
   return cachedToken;
 }
 
-/**
- * 获取音频的确定性哈希种子（同一音频始终返回相同值）
- */
-function getAudioHash(audioBase64) {
-  let hash = 5381;
-  const sample = audioBase64.slice(0, Math.min(audioBase64.length, 5000));
-  for (let i = 0; i < sample.length; i++) {
-    hash = ((hash << 5) + hash) + sample.charCodeAt(i);
-    hash = hash & hash; // 32-bit
-  }
-  return Math.abs(hash);
+function normalizeWords(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9'\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
 }
 
-/**
- * 调用百度语音评测API
- * @param {string} audioBase64 - Base64编码的音频数据
- * @param {string} refText - 参考文本
- * @returns {Promise<object>} 评测结果
- */
-async function evaluate(audioBase64, refText) {
-  // 尝试调用百度API
-  try {
-    const token = await getAccessToken();
-    const url = `https://aip.baidubce.com/rpc/2.0/aasr/v1/evaluate?access_token=${token}`;
+function alignWords(referenceWords, spokenWords) {
+  const rows = referenceWords.length + 1;
+  const columns = spokenWords.length + 1;
+  const matrix = Array.from({ length: rows }, () => Array(columns).fill(0));
 
-    const body = {
-      audio: audioBase64,
-      audio_format: 'mp3',
-      rate: 16000,
-      ref_text: refText,
-      strict: 0,
-    };
+  for (let row = 0; row < rows; row += 1) matrix[row][0] = row;
+  for (let column = 0; column < columns; column += 1) matrix[0][column] = column;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    const data = await response.json();
-
-    if (data.err_no === 0) {
-      logger.info('百度语音评测成功');
-      return {
-        pronunciation: Math.round(data.pronunciation_score || 0),
-        fluency: Math.round(data.fluency_score || 0),
-        integrity: Math.round(data.integrity_score || 0),
-        overall: Math.round(data.total_score || 0),
-        word_scores: (data.words || []).map(w => ({
-          word: w.word,
-          score: Math.round(w.score),
-        })),
-      };
+  for (let row = 1; row < rows; row += 1) {
+    for (let column = 1; column < columns; column += 1) {
+      const substitutionCost = referenceWords[row - 1] === spokenWords[column - 1] ? 0 : 1;
+      matrix[row][column] = Math.min(
+        matrix[row - 1][column] + 1,
+        matrix[row][column - 1] + 1,
+        matrix[row - 1][column - 1] + substitutionCost
+      );
     }
-
-    // 百度API返回错误码，记录日志并降级
-    logger.warn('百度API返回错误，降级到算法评分', { err_no: data.err_no, err_msg: data.err_msg });
-  } catch (err) {
-    logger.warn('百度API调用失败，降级到算法评分', { error: err.message });
   }
 
-  // 降级：基于音频特征的确定性算法评分
-  // 同一音频始终返回相同分数，不会出现"随机"感
+  const wordScores = [];
+  let row = referenceWords.length;
+  let column = spokenWords.length;
+  let matchedWords = 0;
+
+  while (row > 0) {
+    if (
+      column > 0 &&
+      matrix[row][column] === matrix[row - 1][column - 1] &&
+      referenceWords[row - 1] === spokenWords[column - 1]
+    ) {
+      wordScores.unshift({ word: referenceWords[row - 1], score: 100 });
+      matchedWords += 1;
+      row -= 1;
+      column -= 1;
+    } else if (column > 0 && matrix[row][column] === matrix[row - 1][column - 1] + 1) {
+      wordScores.unshift({ word: referenceWords[row - 1], score: 35 });
+      row -= 1;
+      column -= 1;
+    } else {
+      wordScores.unshift({ word: referenceWords[row - 1], score: 0 });
+      row -= 1;
+    }
+  }
+
+  return { distance: matrix[referenceWords.length][spokenWords.length], matchedWords, wordScores };
+}
+
+async function transcribeEnglish(audioBase64, audioFormat) {
+  const token = await getAccessToken();
   const audioBytes = Buffer.byteLength(audioBase64, 'base64');
-  const hash = getAudioHash(audioBase64);
-  const wordCount = refText.split(/\s+/).length;
+  const response = await fetch('https://vop.baidu.com/server_api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      format: audioFormat,
+      rate: 16000,
+      channel: 1,
+      cuid: process.env.BAIDU_CUID || 'debate-training-cloudrun',
+      token,
+      dev_pid: 1737,
+      speech: audioBase64,
+      len: audioBytes,
+    }),
+  });
+  const data = await response.json();
 
-  // 估算音频时长（秒）：MP3 16kbps ≈ 2000 bytes/s
-  const estimatedDuration = audioBytes / 2000;
+  if (!response.ok || data.err_no !== 0 || !Array.isArray(data.result) || !data.result[0]) {
+    logger.warn('百度英文语音识别失败', {
+      status: response.status,
+      errNo: data.err_no,
+      errMsg: data.err_msg,
+    });
+    throw new SpeechEvaluationError('未识别到清晰的英文语音，请检查录音权限、网络后重试', 422);
+  }
 
-  // 基础分数：音频覆盖度（10秒以上的音频可获得较高基础分）
-  const coverageRatio = Math.min(estimatedDuration / (wordCount * 0.4), 1.5);
+  return data.result.join(' ').trim();
+}
 
-  // 用哈希种子生成确定性分数偏移
-  const seedA = (hash % 17) - 8;   // -8 ~ +8
-  const seedB = ((hash >> 5) % 13) - 6; // -6 ~ +6
-  const seedC = ((hash >> 10) % 11) - 5; // -5 ~ +5
+async function evaluate(audioBase64, refText, format = 'wav') {
+  const referenceWords = normalizeWords(refText);
+  if (referenceWords.length === 0) {
+    throw new SpeechEvaluationError('参考文本不能为空', 400);
+  }
 
-  // 发音分：基础75 + 覆盖度加成 + 哈希偏移
-  const pronunciation = Math.min(Math.max(
-    Math.round(70 + coverageRatio * 12 + seedA),
-    40
-  ), 98);
+  const audioFormat = String(format).toLowerCase();
+  if (!['wav', 'pcm', 'amr', 'm4a'].includes(audioFormat)) {
+    throw new SpeechEvaluationError('不支持的录音格式，请使用 WAV 格式重新录制', 400);
+  }
 
-  // 流利度：基础65 + 音频时长加成
-  const fluency = Math.min(Math.max(
-    Math.round(65 + Math.min(estimatedDuration, 15) * 1.5 + seedB),
-    40
-  ), 98);
+  const transcript = await transcribeEnglish(audioBase64, audioFormat);
+  const spokenWords = normalizeWords(transcript);
+  if (spokenWords.length === 0) {
+    throw new SpeechEvaluationError('未识别到清晰的英文语音，请重新录制', 422);
+  }
 
-  // 完整度：基于音频覆盖度
-  const integrity = Math.min(Math.max(
-    Math.round(60 + coverageRatio * 25 + seedC),
-    40
-  ), 98);
+  const { distance, matchedWords, wordScores } = alignWords(referenceWords, spokenWords);
+  const accuracy = matchedWords / referenceWords.length;
+  const estimatedDuration = Buffer.byteLength(audioBase64, 'base64') / 8000;
+  const wordsPerSecond = spokenWords.length / Math.max(estimatedDuration, 1);
+  const paceScore = Math.max(0, 100 - Math.abs(wordsPerSecond - 2.2) * 28);
+  const precision = matchedWords / Math.max(spokenWords.length, 1);
 
-  // 总分
-  const overall = Math.round((pronunciation + fluency + integrity) / 3);
+  const pronunciation = Math.round(Math.min(100, Math.max(0, (accuracy * 75 + precision * 25) * 100)));
+  const fluency = Math.round(Math.min(100, Math.max(0, paceScore * 0.7 + accuracy * 30)));
+  const integrity = Math.round(Math.min(100, Math.max(0, accuracy * 100)));
+  const overall = Math.round(pronunciation * 0.4 + fluency * 0.25 + integrity * 0.35);
 
-  // 生成单词级评分（基于哈希种子，每个单词不同）
-  const words = refText.split(/\s+/);
-  const word_scores = words.map((word, i) => {
-    const wordHash = (hash + i * 7) % 25;
-    const wordScore = Math.min(Math.max(
-      Math.round(65 + wordHash + (coverageRatio * 10)),
-      30
-    ), 100);
-    return { word, score: wordScore };
+  logger.info('英文跟读评测完成', {
+    referenceWordCount: referenceWords.length,
+    spokenWordCount: spokenWords.length,
+    matchedWords,
+    distance,
+    overall,
   });
 
   return {
@@ -160,11 +166,9 @@ async function evaluate(audioBase64, refText) {
     fluency,
     integrity,
     overall,
-    word_scores,
-    _is_mock: true,
+    word_scores: wordScores,
+    transcript,
   };
 }
 
-module.exports = {
-  evaluate,
-};
+module.exports = { evaluate, SpeechEvaluationError };

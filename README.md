@@ -1,22 +1,6 @@
 # 英语辩论能力训练平台 (Debate Training Platform)
 
 > 为小学生提供 AI 辅助的英语立论与跟读训练，通过前后测对比验证能力提升。
->
-> 4 人团队 · 6 周交付 · 月费用 < 100 元
-
----
-
-## 目录
-
-- [项目概述](#项目概述)
-- [技术栈](#技术栈)
-- [项目结构](#项目结构)
-- [快速开始](#快速开始)
-- [API 文档](#api-文档)
-- [数据库设计](#数据库设计)
-- [Sprint 计划](#sprint-计划)
-- [部署指南](#部署指南)
-- [风险与应对](#风险与应对)
 
 ---
 
@@ -28,7 +12,8 @@
 
 - **立论生成**：AI 根据辩题自动生成结构化论点（适合小学生英语水平）
 - **跟读评测**：录音后由语音评测 API 打分（发音、流利度、完整度）
-- **成长看板**：ECharts 雷达图展示五维能力（发音/流利度/逻辑/词汇/反应）的前后测对比
+- **AI 对辩**：语音输入辩题，AI 自动生成反驳论点
+- **成长看板**：ECharts 雷达图展示五维能力的前后测对比
 - **辩题库**：81 条 BP（British Parliamentary）正式辩论赛题，覆盖教育、科技、社会、环境四大类
 
 ### 交付范围
@@ -36,13 +21,7 @@
 | 端 | 用户 | 核心功能 |
 |------|------|----------|
 | 微信小程序 | 小学生 | 登录 → 选题 → 立论生成 → 录音评测 → 查看成长 |
-| PC Web 端 | 教师/管理员 | 登录 → 辩题管理 → 数据看板 → CSV 导出 |
-
-### 关键约束
-
-- 未成年人保护合规（监护人手机加密、隐私协议、数据最小化）
-- 低成本（月费用 < 100 元）
-- 快速迭代（6 周 MVP）
+| PC Web 端 | 教师/管理员 | 手机号+验证码登录 → 辩题管理 → 数据看板 → CSV 导出 |
 
 ---
 
@@ -52,12 +31,11 @@
 |------|------|------|
 | PC 前端 | 原生 HTML + CSS + JavaScript | 零构建，直接打开，ECharts v5 看板 |
 | 小程序 | 微信原生开发 | 使用 `wx.getRecorderManager` 录音 |
-| 后端主服务 | Node.js v18 + Express | 常驻内存，解决冷启动，方便调试 AI |
-| 后端辅助 | 微信云函数 | 仅处理登录 Token、基础查询 |
-| 数据库 | 微信云开发 NoSQL（5 集合） | 与微信无缝集成 |
-| AI 模型 | 豆包（主）+ 通义千问（备） | 免费额度充足，支持 JSON Mode |
-| 语音评测 | 百度智能云 | 支持 Base64 直传，维度精细 |
-| 部署 | 轻量服务器（2 核 2G） | 约 10 元/月（学生优惠） |
+| 后端 | Node.js v18 + Express | 路由 `/api/*`，同时托管 PC Web 静态资源 |
+| 数据库 | 微信云开发 NoSQL | 云托管内 `wx-server-sdk` 免密钥直连 |
+| 部署 | 微信云托管（Docker） | `node:18-slim` 镜像，0~1 实例弹性伸缩 |
+| AI 模型 | 豆包（主）+ 通义千问（备） | 双模型降级，JSON Mode |
+| 语音评测 | 百度智能云 | Base64 直传，四维评分（发音/流利度/完整度/总分） |
 
 ---
 
@@ -65,59 +43,66 @@
 
 ```
 debate/
-├── README.md                     # 本文件
-├── doc/
-│   ├── design.md                 # 技术方案（V2.0 务实迭代版）
-│   ├── agent.md                  # AI 开发指引
-│   └── plan.md                   # 执行计划（Sprint 拆解）
+├── Dockerfile                    # 云托管构建文件
+├── cloudbaserc.json              # 云托管部署配置
+├── deploy-cloudbase.bat          # CLI 部署脚本（备用）
 ├── pc-web/                       # PC 端管理后台
-│   ├── index.html                # 主页面（登录 + 管理后台）
-│   ├── css/
-│   │   ├── style.css             # 专业蓝主题
-│   │   └── theme-kids.css        # 儿童黄主题（大字体适配）
-│   ├── js/
-│   │   ├── config.js             # 环境配置
-│   │   ├── utils.js              # API 请求封装 + 工具函数
-│   │   ├── auth.js               # 登录/登出/菜单切换/主题切换
-│   │   ├── debate.js             # 辩题管理 + 立论生成 + CSV 导出
-│   │   └── growth.js             # 雷达图 + 统计看板 + 练习记录
-│   └── assets/                   # 静态资源
+│   ├── index.html
+│   ├── css/style.css             # 专业蓝主题
+│   └── js/
+│       ├── config.js             # API 地址配置
+│       ├── auth.js               # 登录（手机号+验证码）
+│       ├── debate.js             # 辩题管理 + 立论生成
+│       ├── growth.js             # 雷达图 + 统计看板
+│       ├── tournament.js         # 辩论赛管理
+│       ├── comments.js           # 人工点评
+│       └── utils.js              # 工具函数
 ├── miniprogram/                  # 微信小程序
 │   ├── pages/
-│   │   ├── index/                # 首页（三大入口卡片）
-│   │   ├── topic/                # 辩题列表与详情
-│   │   ├── practice/             # 立论练习（AI 生成）
-│   │   ├── speech/               # 跟读评测（录音 + 评分）
-│   │   └── profile/              # 个人成长（雷达图）
-│   ├── components/               # 复用组件
+│   │   ├── index/                # 首页
+│   │   ├── topic/                # 辩题列表
+│   │   ├── practice/             # 立论练习
+│   │   ├── speech/               # 跟读评测
+│   │   ├── sparring/             # AI 对辩
+│   │   ├── portfolio/            # 练习记录
+│   │   ├── tournament/           # 辩论赛
+│   │   └── profile/              # 个人成长
 │   ├── utils/
 │   │   ├── request.js            # wx.request 封装
-│   │   └── cloud.js              # 云函数调用封装
-│   ├── app.js / app.json
-│   └── project.config.json
+│   │   └── cloud.js              # 云函数调用
+│   └── app.js
 ├── backend/                      # Node.js + Express 后端
 │   ├── src/
-│   │   ├── app.js                # 入口
+│   │   ├── app.js                # 入口（含 PC Web 静态托管）
 │   │   ├── routes/
+│   │   │   ├── auth.js           # 认证（发送验证码/登录/Token校验）
 │   │   │   ├── generate.js       # 立论生成
 │   │   │   ├── evaluate.js       # 语音评测
 │   │   │   ├── debate.js         # 模拟对辩
-│   │   │   ├── growth.js         # 成长数据聚合
-│   │   │   └── topics.js         # 辩题列表查询
+│   │   │   ├── growth.js         # 成长数据
+│   │   │   ├── topics.js         # 辩题管理
+│   │   │   ├── portfolio.js      # 练习记录
+│   │   │   ├── tournament.js     # 辩论赛
+│   │   │   ├── comments.js       # 点评
+│   │   │   ├── assignments.js    # 作业
+│   │   │   ├── speechToText.js   # 语音转文字
+│   │   │   └── export.js         # CSV 导出
 │   │   ├── services/
-│   │   │   ├── aiService.js      # 大模型调用（双模型降级 + json-repair）
+│   │   │   ├── authStore.js      # 认证存储适配层（云库/本地JSON）
+│   │   │   ├── aiService.js      # 大模型调用（双模型降级）
 │   │   │   ├── evaluateService.js # 百度语音评测
 │   │   │   └── security.js       # 内容安全检测
 │   │   ├── middleware/
 │   │   │   ├── auth.js           # Token 校验
-│   │   │   └── rateLimit.js      # 限流（每日 20 次）
+│   │   │   └── rateLimit.js      # 限流
 │   │   └── utils/
-│   │       ├── logger.js         # 日志
-│   │       └── db.js             # 云数据库操作封装
+│   │       ├── db.js             # 云数据库操作封装
+│   │       └── logger.js         # 日志
+│   ├── scripts/
+│   │   └── export-jsonl.js       # 导出云库导入文件
 │   ├── .env.example              # 环境变量模板
-│   ├── topics-seed.json          # 81 条辩题种子数据
-│   ├── seed-topics.js            # 种子数据导入脚本
-│   ├── test-flow.js              # 48 用例集成测试
+│   ├── seed-topics.js            # 辩题种子数据导入
+│   ├── test-flow.js              # 集成测试（48 用例）
 │   └── package.json
 └── cloudfunctions/               # 微信云函数
     ├── userLogin/                # 登录
@@ -133,7 +118,7 @@ debate/
 
 - Node.js v18+
 - 微信开发者工具（小程序开发）
-- 火山引擎 Ark 账号（豆包 API）
+- 豆包 API Key（火山引擎 Ark）
 - 百度智能云账号（语音评测 API）
 
 ### 1. 后端启动
@@ -150,17 +135,19 @@ cp .env.example .env
 
 # 启动服务
 npm start
-# 或使用 PM2（生产环境）
-pm2 start src/app.js --name debate-api
 ```
 
-服务启动后访问 `http://localhost:3000/api/health` 验证。
+服务启动后：
+- API 地址：`http://localhost:3000/api`
+- PC Web 管理后台：`http://localhost:3000/`（由 Express 静态托管，无需单独打开 HTML）
 
 ### 2. PC 前端
 
-直接用浏览器打开 `pc-web/index.html`，不需要构建工具。
+直接访问 `http://localhost:3000/`，使用手机号+验证码登录。
 
-登录：手机号 `13800138000`，验证码 `123456`（MVP 阶段）。
+- 验证码由服务端随机生成，通过接口 `dev_code` 字段返回（未接入短信渠道时）
+- 验证码 5 分钟有效，60 秒重发间隔，每日每号 10 次上限
+- 首次登录自动注册，Token 7 天有效
 
 ### 3. 小程序
 
@@ -171,9 +158,40 @@ pm2 start src/app.js --name debate-api
 ```bash
 cd backend
 node seed-topics.js
-# 生成 topics-seed.json
-# 在微信开发者工具 → 云开发 → 数据库 → topics 集合 → 导入
+# 在云开发控制台 → 数据库 → topics 集合 → 导入生成的 topics-seed.json
 ```
+
+---
+
+## 认证体系
+
+### 流程
+
+```
+手机号 → 获取验证码 → 填入验证码 → 登录/注册 → 获得 Token
+                                              ↓
+                                    后续请求携带 Token（Authorization: Bearer）
+```
+
+### 安全机制
+
+| 机制 | 说明 |
+|------|------|
+| 验证码哈希 | 服务端仅存储 `SHA256(code + phone)`，明文不落库 |
+| 一次性使用 | 验证通过后立即删除，防止重放 |
+| 尝试次数限制 | 单个验证码最多 5 次错误尝试，超限作废 |
+| 发送频率限制 | 60 秒重发间隔，每日每号 10 次上限 |
+| Token 过期 | 7 天有效期，过期自动清除 |
+
+### 存储适配
+
+`authStore.js` 实现双模式存储，接口统一：
+
+| 环境 | 存储方式 | 判定条件 |
+|------|----------|----------|
+| 云托管（生产） | 云数据库 `users` / `auth_tokens` / `auth_codes` | `TENCENTCLOUD_RUNENV` 注入 + db 连通 |
+| 本地开发 | `auth-store.json` | 云库不可用时自动回退 |
+| 强制本地 | 环境变量 `AUTH_STORAGE=local` | 回滚用 |
 
 ---
 
@@ -183,111 +201,91 @@ node seed-topics.js
 
 **统一响应格式**:
 ```json
-{
-  "code": 200,
-  "message": "ok",
-  "data": {}
-}
+{ "code": 200, "message": "ok", "data": {} }
 ```
 
-**错误码**: 400（参数错误）、401（未授权）、403（无权限）、429（限流）、500（服务器错误）
+### 认证接口
+
+| 方法 | 路径 | 说明 | 鉴权 |
+|------|------|------|------|
+| POST | `/auth/send-code` | 发送验证码 `{phone}` | 否 |
+| POST | `/auth/login` | 验证码登录 `{phone, code}` | 否 |
+| GET | `/auth/verify` | 校验 Token 有效性 | Bearer Token |
 
 ### 核心接口
 
 | 方法 | 路径 | 说明 | 鉴权 |
 |------|------|------|------|
 | GET | `/health` | 健康检查 | 否 |
-| GET | `/topics` | 辩题列表（支持 category/difficulty/keyword/page/size） | 否 |
+| GET | `/topics` | 辩题列表（`?category=&difficulty=&keyword=&page=&size=`） | 否 |
 | GET | `/topics/:id` | 辩题详情 | 否 |
 | POST | `/generate` | 生成立论框架 | 是 |
 | POST | `/evaluate` | 语音评测 | 是 |
-| POST | `/debate` | 模拟对辩（预设话术） | 是 |
+| POST | `/debate` | 模拟对辩 | 是 |
+| POST | `/speech-to-text` | 语音转文字 | 是 |
 | GET | `/growth/:userId` | 成长数据聚合 | 是 |
-
-### 生成立论
-
-```bash
-curl -X POST http://localhost:3000/api/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <openid>" \
-  -d '{
-    "topic_id": "topic_edu_001",
-    "topic_title": "Should AI be used in education?",
-    "position": "pro",
-    "user_role": "pupil"
-  }'
-```
-
-### 语音评测
-
-```bash
-curl -X POST http://localhost:3000/api/evaluate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <openid>" \
-  -d '{
-    "audio_base64": "<base64_encoded_audio>",
-    "ref_text": "Good morning, judges and friends..."
-  }'
-```
+| GET | `/portfolio` | 练习记录列表 | 是 |
+| POST | `/portfolio` | 新增练习记录 | 是 |
+| GET | `/tournament` | 辩论赛列表 | 是 |
+| GET | `/comments` | 点评列表 | 是 |
+| GET | `/export` | CSV 数据导出 | 是 |
 
 ---
 
 ## 数据库设计
 
-5 张集合，全部使用 `snake_case` 字段名：
+### 核心集合
 
-| 集合 | 用途 | 核心字段 |
-|------|------|----------|
-| `users` | 用户信息 | `openid`, `role`, `ability_baseline`, `ability_latest`, `guardian_phone` |
-| `topics` | 辩题库 | `title`, `category`, `difficulty`, `vocab_list`, `background`, `status` |
-| `practice_records` | 练习记录 | `user_id`, `topic_id`, `type`, `score`, `text_content`, `duration` |
-| `assessments` | 前后测 | `user_id`, `type`(baseline/milestone), `score` |
-| `comments` | 人工点评 | `pupil_id`, `college_id`, `content`, `status` |
+| 集合 | 用途 | 说明 |
+|------|------|------|
+| `users` | 用户信息 | PC 用户 `source='pc'` 以 phone 关联；小程序用户以 openid 关联 |
+| `topics` | 辩题库 | 81 条 BP 辩题，含 category/difficulty/vocab_list |
+| `practice_records` | 练习记录 | 关联 user_id + topic_id，含评分和文本内容 |
+| `assessments` | 前后测 | baseline / milestone 类型 |
+| `comments` | 人工点评 | 教师对学生练习的点评 |
 
----
+### 认证集合（云托管环境）
 
-## Sprint 计划
-
-| Sprint | 周期 | 交付物 | 状态 |
-|--------|------|--------|------|
-| Sprint 1 | 第 1-2 周 | 环境搭建、数据库建表、后端基础服务、前端骨架 | ✅ 已完成 |
-| Sprint 2 | 第 3-4 周 | 立论生成、语音评测、模拟对辩、核心闭环 | ✅ 已完成 |
-| Sprint 3 | 第 5-6 周 | 数据看板、CSV 导出、双主题切换、全流程测试 | ✅ 已完成 |
-
-详见 [doc/plan.md](doc/plan.md)。
+| 集合 | 用途 | 权限 |
+|------|------|------|
+| `auth_codes` | 验证码（哈希存储，5 分钟过期） | 所有用户不可读写 |
+| `auth_tokens` | 登录 Token（7 天过期） | 所有用户不可读写 |
 
 ---
 
 ## 部署指南
 
-### 后端（轻量服务器）
+### 微信云托管（推荐）
 
-```bash
-# 安装 Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt-get install -y nodejs
+通过云开发控制台 Web 界面部署：
 
-# 部署
-git clone <repo> /opt/debate
-cd /opt/debate/backend
-npm install --production
-cp .env.example .env
-# 编辑 .env 填入真实值
-
-# PM2 管理
-npm install -g pm2
-pm2 start src/app.js --name debate-api
-pm2 save
-pm2 startup
+1. 打包源码（不含 node_modules）：
+```powershell
+cd D:\CODE\Debate
+New-Item -ItemType Directory -Path deploy-tmp -Force
+Copy-Item Dockerfile, .dockerignore deploy-tmp\
+New-Item -ItemType Directory -Path deploy-tmp\backend -Force
+Copy-Item backend\package.json, backend\package-lock.json deploy-tmp\backend\
+Copy-Item backend\src deploy-tmp\backend\src -Recurse
+Compress-Archive -Path deploy-tmp\* -DestinationPath debate-api-deploy.zip -Force
+Remove-Item -Recurse -Force deploy-tmp
 ```
 
-### PC 前端（云开发静态托管）
+2. 云开发控制台 → 云托管 → debate-api 服务 → 新建版本 → 上传 `debate-api-deploy.zip`
+3. 端口配置 `3000`，CPU 0.5核 / 内存 1GB
+4. 部署成功后，在「服务配置 → 环境变量」注入：
+   - `DOUBAO_API_KEY`、`BAIDU_API_KEY`、`BAIDU_SECRET_KEY`
+   - `AUTH_DEV_CODE=1`（未接入短信时保持验证码回显）
+5. 将默认域名更新到 `pc-web/js/config.js` 的 `API_BASE_URL`
 
-将 `pc-web/` 目录上传至微信云开发静态托管，绑定自定义域名（需备案）。
+### 本地开发
 
-### 云函数
-
-在微信开发者工具中右键云函数目录 → 上传并部署（云端安装依赖）。
+```bash
+cd backend
+npm install
+cp .env.example .env   # 填入 API Key
+npm start              # http://localhost:3000
+```
 
 ---
 
@@ -295,12 +293,11 @@ pm2 startup
 
 | 风险 | 应对策略 |
 |------|----------|
-| 大模型返回非 JSON | `json-repair` 自动修复 + 预设模板兜底 |
-| 大模型 API 不可用 | 双模型降级（豆包 → 通义千问 → 本地规则引擎） |
-| 语音评测 API 限流 | 同一参考文本 1 小时内缓存，不重复评测 |
-| 小程序审核驳回 | 删除"社交排名"等敏感词，以工具类目提交 |
-| 服务器宕机 | 云函数作为备用评测通道（保底方案） |
-| 数据库查询慢 | `skip/limit` 分页 + 前端"加载中"占位 |
+| 大模型返回非 JSON | `jsonrepair` 自动修复 + 预设模板兜底 |
+| 大模型 API 不可用 | 双模型降级（豆包 → 通义千问 → 本地规则） |
+| 语音评测 API 限流 | 同一参考文本 1 小时内缓存 |
+| 云托管实例回收 | 用户/Token 数据存云数据库，不依赖本地文件 |
+| 数据库查询慢 | `skip/limit` 分页 + 前端加载占位 |
 
 ---
 

@@ -40,5 +40,10 @@
     ]
   },
   "style": "v2",
+  "permission": {
+    "scope.record": {
+      "desc": "用于录制英语跟读音频并提交评测"
+    }
+  },
   "sitemapLocation": "sitemap.json"
 }

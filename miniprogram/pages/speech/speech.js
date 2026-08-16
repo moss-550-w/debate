@@ -13,7 +13,6 @@ Page({
       overall: 0,
     },
     wordScores: [],
-    recorderManager: null,
     tempAudioPath: '',
     scoreColor: '',
   },
@@ -27,30 +26,73 @@ Page({
       });
     }
 
-    // 初始化录音管理器
-    this.data.recorderManager = wx.getRecorderManager();
-    this.data.recorderManager.onStop((res) => {
+    this._recordTouchActive = false;
+    this._shouldSubmitRecording = false;
+    this.recorderManager = wx.getRecorderManager();
+    this.recorderManager.onStart(() => {
+      this.setData({ recording: true, showResult: false });
+      if (!this._recordTouchActive) this.recorderManager.stop();
+    });
+    this.recorderManager.onStop((res) => {
+      const shouldSubmit = this._shouldSubmitRecording;
+      this._shouldSubmitRecording = false;
+      this.setData({ recording: false });
+      if (!shouldSubmit || !res.tempFilePath) return;
       this.setData({ tempAudioPath: res.tempFilePath });
       this.submitEvaluate(res.tempFilePath);
     });
+    this.recorderManager.onError((err) => {
+      console.error('录音失败:', err);
+      this._shouldSubmitRecording = false;
+      this.setData({ recording: false });
+      wx.showToast({ title: '录音失败，请检查麦克风权限', icon: 'none' });
+    });
   },
 
-  startRecord() {
+  async startRecord() {
+    if (this.data.recording || this.data.evaluating) return;
+    this._recordTouchActive = true;
+    const authorized = await this.ensureRecordAuthorization();
+    if (!authorized || !this._recordTouchActive) return;
+
     const options = {
       duration: 30000,
       sampleRate: 16000,
       numberOfChannels: 1,
-      encodeBitRate: 64000,
-      format: 'mp3',
+      format: 'wav',
     };
 
-    this.data.recorderManager.start(options);
-    this.setData({ recording: true, showResult: false });
+    this._shouldSubmitRecording = true;
+    this.recorderManager.start(options);
   },
 
   stopRecord() {
-    this.data.recorderManager.stop();
-    this.setData({ recording: false });
+    this._recordTouchActive = false;
+    if (this.data.recording) this.recorderManager.stop();
+  },
+
+  cancelRecord() {
+    this.stopRecord();
+  },
+
+  async ensureRecordAuthorization() {
+    try {
+      const settings = await wx.getSetting();
+      if (settings.authSetting['scope.record']) return true;
+      await wx.authorize({ scope: 'scope.record' });
+      return true;
+    } catch (err) {
+      console.warn('未获得录音权限:', err);
+      wx.showModal({
+        title: '需要麦克风权限',
+        content: '跟读评测需要使用麦克风录制英语音频，请在设置中允许录音权限。',
+        confirmText: '去设置',
+        success: (result) => {
+          if (result.confirm) wx.openSetting();
+        },
+      });
+      return false;
+    }
   },
 
   async submitEvaluate(audioPath) {
@@ -66,6 +108,7 @@ Page({
         data: {
           audio_base64: base64,
           ref_text: this.data.refText,
+          format: 'wav',
         },
       });
 
@@ -82,22 +125,10 @@ Page({
       }
     } catch (err) {
       console.error('语音评测失败:', err);
-      wx.showToast({ title: '评测服务暂时不可用，使用模拟数据', icon: 'none' });
-      // 模拟数据兜底（带标识）
-      const mock = {
-        pronunciation: Math.floor(Math.random() * 30) + 70,
-        fluency: Math.floor(Math.random() * 30) + 70,
-        integrity: Math.floor(Math.random() * 20) + 80,
-        overall: 0,
-        word_scores: [],
-        _is_mock: true,
-      };
-      mock.overall = Math.round((mock.pronunciation + mock.fluency + mock.integrity) / 3);
-      this.setData({
-        result: mock,
-        wordScores: [],
-        showResult: true,
-        scoreColor: this.getScoreColor(mock.overall),
+      wx.showModal({
+        title: '评测未完成',
+        content: err.message || '评测服务暂时不可用，请稍后重试。',
+        showCancel: false,
       });
     } finally {
       this.setData({ evaluating: false });
@@ -134,5 +165,15 @@ Page({
 
   goBack() {
     wx.navigateBack();
+  },
+
+  onHide() {
+    this._recordTouchActive = false;
+    this._shouldSubmitRecording = false;
+    if (this.data.recording) this.recorderManager.stop();
+  },
+
+  onUnload() {
+    this.onHide();
   },
 });

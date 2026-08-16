@@ -20,7 +20,7 @@ function request(path, options = {}) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
-      timeout: 30000,
+      timeout: options.timeout || 30000,
       success(res) {
         if (res.data.code === 401) {
           // Token 过期，重新登录

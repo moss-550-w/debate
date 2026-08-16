@@ -1,13 +1,15 @@
+const API_MODE = 'lan';
+const API_BASE_URLS = {
+  local: 'http://127.0.0.1:3000/api',
+  lan: 'http://192.168.3.99:3000/api',
+  cloud: 'https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api',
+};
+
 App({
   globalData: {
     userInfo: null,
     openid: '',
-    // ============================================================
-    // 微信云托管服务地址（debate-api）
-    // 部署后请把下面的占位符替换为「云托管控制台 → 服务 → 默认域名 / 公网域名」，形如：
-    //   https://debate-api-x-1258016615.ap-shanghai.service.tcloudbase.com/api
-    // 本地开发调试时用 localhost，部署到云托管后替换为真实域名
-    apiBaseUrl: 'http://localhost:3000/api',
+    apiBaseUrl: API_BASE_URLS[API_MODE],
   },
 
   onLaunch() {
