@@ -1,4 +1,5 @@
 const { request } = require('../../utils/request');
+const chinaTopics = require('../../data/chinaTopics');
 
 const OPPONENT_STYLES = {
   data_monster: { name: '数据狂魔型', icon: '📊', description: '擅长用数据、统计和事实案例攻击你的论点', color: '#10b981' },
@@ -12,13 +13,29 @@ const STYLE_LIST = [
   { id: 'logic_deconstruction', ...OPPONENT_STYLES.logic_deconstruction },
 ];
 
-const TOPIC_LIST = [
-  { id: 't1', title: 'Is recycling important?' },
-  { id: 't2', title: 'Should children have mobile phones at school?' },
-  { id: 't3', title: 'Should homework be banned?' },
-  { id: 't4', title: 'Is social media good for society?' },
-  { id: 't5', title: 'Should zoos be banned?' },
-];
+function normalizeTopic(topic, source) {
+  return {
+    id: topic._id || topic.id,
+    title: topic.title,
+    source,
+  };
+}
+
+function mergeTopics(remoteTopics) {
+  const topicById = new Map();
+
+  remoteTopics.forEach(topic => {
+    const normalized = normalizeTopic(topic, '辩题库');
+    if (normalized.id && normalized.title) topicById.set(normalized.id, normalized);
+  });
+
+  chinaTopics.forEach(topic => {
+    const normalized = normalizeTopic(topic, '思辨中国');
+    if (normalized.id && normalized.title) topicById.set(normalized.id, normalized);
+  });
+
+  return Array.from(topicById.values());
+}
 
 const MOCK_OPENINGS = {
   data_monster: "Let me start with some hard data. According to a 2024 meta-analysis, 67% of cases show significant positive outcomes. The numbers don't lie — here's what the evidence actually says.",
@@ -62,7 +79,8 @@ Page({
     scrollViewHeight: 400,
     debugMsgCount: 0,
     STYLE_LIST: STYLE_LIST,
-    TOPIC_LIST: TOPIC_LIST,
+    TOPIC_LIST: mergeTopics([]),
+    topicsLoading: true,
     _replyIndex: 0,
     // ===== 语音识别状态（可见，避免静默失败）=====
     voiceStep: 'idle',          // idle / auth / recording / uploading / fallback / ok
@@ -78,6 +96,32 @@ Page({
     // 清理可能的录音定时器
     this._recordTimer = null;
     this._recordStartAt = 0;
+    this.loadTopics();
+  },
+
+  async loadTopics() {
+    try {
+      const remoteTopics = [];
+      let page = 1;
+      let total = Infinity;
+
+      while (remoteTopics.length < total) {
+        const res = await request(`/topics?page=${page}&size=100`);
+        if (!res || res.code !== 200 || !res.data) break;
+
+        const pageTopics = res.data.list || [];
+        remoteTopics.push(...pageTopics);
+        total = Number(res.data.total) || 0;
+        if (pageTopics.length === 0) break;
+        page += 1;
+      }
+
+      this.setData({ TOPIC_LIST: mergeTopics(remoteTopics) });
+    } catch (error) {
+      console.error('加载 AI 对练辩题失败:', error);
+    } finally {
+      this.setData({ topicsLoading: false });
+    }
   },
 
   _setVoice(step, text) {

@@ -21,15 +21,11 @@ const VALID_POSITIONS = ['pro', 'con'];
  */
 router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
   try {
-    const { topic_id, topic_title, content_type, title, content, position } = req.body;
+    const { content_type, title, content, position } = req.body;
+    const topic_id = String(req.body.topic_id || '').trim() || 'general';
+    const topic_title = String(req.body.topic_title || '').trim() || '自主思考';
 
-    // 校验必填参数
-    if (!topic_id) {
-      return res.status(400).json({ code: 400, message: '缺少必填参数: topic_id', data: null });
-    }
-    if (!topic_title) {
-      return res.status(400).json({ code: 400, message: '缺少必填参数: topic_title', data: null });
-    }
+    // 辩题关联可选，标题和内容必须提供。
     if (!content_type || !VALID_CONTENT_TYPES.includes(content_type)) {
       return res.status(400).json({
         code: 400,

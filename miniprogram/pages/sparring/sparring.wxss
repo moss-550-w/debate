@@ -64,6 +64,13 @@
   width: 100%;
 }
 
+.topic-loading {
+  padding: 24rpx 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 26rpx;
+}
+
 .topic-item {
   background: white;
   border-radius: 16rpx;
@@ -82,6 +89,13 @@
   font-size: 28rpx;
   color: #1f2937;
   display: block;
+}
+
+.topic-source {
+  display: block;
+  margin-top: 8rpx;
+  color: #64748b;
+  font-size: 22rpx;
 }
 
 .start-btn {

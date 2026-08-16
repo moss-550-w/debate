@@ -13,8 +13,10 @@
 
     <text class="section-title">选择辩题</text>
     <view class="topic-list">
+      <view class="topic-loading" wx:if="{{topicsLoading}}">正在加载辩题...</view>
       <view class="topic-item {{selectedTopicId === item.id ? 'active' : ''}}" wx:for="{{TOPIC_LIST}}" wx:key="id" bindtap="selectTopic" data-topic="{{item}}">
         <text class="topic-title">{{item.title}}</text>
+        <text class="topic-source">{{item.source}}</text>
       </view>
     </view>
 

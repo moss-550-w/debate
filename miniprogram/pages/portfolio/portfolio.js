@@ -125,7 +125,14 @@ Page({
 
   async submitRecord() {
     const fd = this.data.formData;
-    if (!fd.title || !fd.content) {
+    const payload = {
+      ...fd,
+      topic_id: (fd.topic_id || '').trim() || 'general',
+      topic_title: (fd.topic_title || '').trim() || '自主思考',
+      title: (fd.title || '').trim(),
+      content: (fd.content || '').trim(),
+    };
+    if (!payload.title || !payload.content) {
       wx.showToast({ title: '请填写标题和内容', icon: 'none' });
       return;
     }
@@ -133,7 +140,7 @@ Page({
     try {
       const res = await request('/portfolio', {
         method: 'POST',
-        data: fd,
+        data: payload,
       });
       this.setData({ submitting: false });
       if (res.code === 200) {
