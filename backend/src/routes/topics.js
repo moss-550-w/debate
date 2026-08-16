@@ -7,29 +7,24 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const db = require('../utils/db');
+const authMiddleware = require('../middleware/auth');
 
 /**
  * 轻量鉴权：只校验 token 存在性（header / query 二选一），
  * 不访问数据库，在 DB 不可用时也能正常工作
  */
-function lightAuth(req, res, next) {
-  let token = null;
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.slice(7).trim();
+function adminOnly(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ code: 403, message: '仅管理员可管理辩题', data: null });
   }
-  if (!token) token = req.query.token;
-
-  if (!token) {
-    return res.status(401).json({ code: 401, message: '未授权，请先登录', data: null });
-  }
-  req.user = { openid: token, role: 'admin' };
-  next();
+  return next();
 }
 
 const seedPath = path.join(__dirname, '../../topics-seed.json');
 let topics = [];
 let nextSeq = 100; // 新增辩题的自增序号
+let cloudTopicsPromise = null;
 
 // 读取 seed 数据
 try {
@@ -45,6 +40,41 @@ try {
   }
 } catch (err) {
   console.error('读取辩题种子数据失败:', err.message);
+}
+
+async function ensureTopicsReady() {
+  if (cloudTopicsPromise) return cloudTopicsPromise;
+  cloudTopicsPromise = (async () => {
+    if (!(await db.isAvailable())) return;
+    const cloudTopics = await db.query('topics', {}, { limit: 100 });
+    if (cloudTopics.length > 0) {
+      topics = cloudTopics;
+    } else {
+      for (const topic of topics) {
+        await db.set('topics', topic._id, topic);
+      }
+    }
+    topics.forEach(topic => {
+      const match = topic._id && topic._id.match(/topic_.*_(\d+)$/);
+      if (match) nextSeq = Math.max(nextSeq, parseInt(match[1], 10) + 1);
+    });
+  })().catch(err => {
+    cloudTopicsPromise = null;
+    throw err;
+  });
+  return cloudTopicsPromise;
+}
+
+async function persistTopic(topic) {
+  if (await db.isAvailable()) return db.set('topics', topic._id, topic);
+  saveTopics();
+  return true;
+}
+
+async function removePersistedTopic(id) {
+  if (await db.isAvailable()) return db.remove('topics', id);
+  saveTopics();
+  return true;
 }
 
 /**
@@ -63,8 +93,9 @@ function saveTopics() {
  * 查询辩题列表（管理员模式返回全部含下架，普通模式仅返回上架）
  * 查询参数: ?category=&difficulty=&page=1&size=10&keyword=&admin=1
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
+    await ensureTopicsReady();
     let { category, difficulty, page, size, keyword, admin } = req.query;
     page = parseInt(page) || 1;
     size = Math.min(parseInt(size) || 50, 100);
@@ -110,7 +141,8 @@ router.get('/', (req, res) => {
  * GET /api/topics/:id
  * 获取单个辩题详情
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
+  await ensureTopicsReady();
   const topic = topics.find(t => t._id === req.params.id);
   if (!topic) {
     return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
@@ -122,8 +154,9 @@ router.get('/:id', (req, res) => {
  * POST /api/topics
  * 创建新辩题（需鉴权）
  */
-router.post('/', lightAuth, (req, res) => {
+router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
+    await ensureTopicsReady();
     const { title, category, difficulty, background, vocab_list } = req.body;
 
     if (!title || !category || !difficulty) {
@@ -156,7 +189,7 @@ router.post('/', lightAuth, (req, res) => {
     };
 
     topics.push(newTopic);
-    saveTopics();
+    await persistTopic(newTopic);
 
     res.json({ code: 200, message: '辩题创建成功', data: newTopic });
   } catch (err) {
@@ -168,8 +201,9 @@ router.post('/', lightAuth, (req, res) => {
  * PUT /api/topics/:id
  * 更新辩题（需鉴权）
  */
-router.put('/:id', lightAuth, (req, res) => {
+router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
+    await ensureTopicsReady();
     const idx = topics.findIndex(t => t._id === req.params.id);
     if (idx === -1) {
       return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
@@ -197,7 +231,7 @@ router.put('/:id', lightAuth, (req, res) => {
     };
 
     topics[idx] = updated;
-    saveTopics();
+    await persistTopic(updated);
 
     res.json({ code: 200, message: '辩题更新成功', data: updated });
   } catch (err) {
@@ -209,15 +243,16 @@ router.put('/:id', lightAuth, (req, res) => {
  * DELETE /api/topics/:id
  * 删除辩题（需鉴权）
  */
-router.delete('/:id', lightAuth, (req, res) => {
+router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
+    await ensureTopicsReady();
     const idx = topics.findIndex(t => t._id === req.params.id);
     if (idx === -1) {
       return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
     }
 
     const removed = topics.splice(idx, 1)[0];
-    saveTopics();
+    await removePersistedTopic(removed._id);
 
     res.json({ code: 200, message: '辩题已删除', data: { _id: removed._id } });
   } catch (err) {
@@ -230,8 +265,9 @@ router.delete('/:id', lightAuth, (req, res) => {
  * 上下架辩题（需鉴权）
  * body: { status: 1 } 上架 / { status: 0 } 下架
  */
-router.patch('/:id/status', lightAuth, (req, res) => {
+router.patch('/:id/status', authMiddleware, adminOnly, async (req, res) => {
   try {
+    await ensureTopicsReady();
     const idx = topics.findIndex(t => t._id === req.params.id);
     if (idx === -1) {
       return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
@@ -239,7 +275,7 @@ router.patch('/:id/status', lightAuth, (req, res) => {
 
     const newStatus = req.body.status === 0 ? 0 : 1;
     topics[idx].status = newStatus;
-    saveTopics();
+    await persistTopic(topics[idx]);
 
     res.json({
       code: 200,

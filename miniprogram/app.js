@@ -1,4 +1,4 @@
-const API_MODE = 'lan';
+const API_MODE = 'cloud';
 const API_BASE_URLS = {
   local: 'http://127.0.0.1:3000/api',
   lan: 'http://192.168.3.99:3000/api',
@@ -40,5 +40,17 @@ App({
     }
     this.globalData.openid = openid;
     this.globalData.userInfo = userInfo;
+    this.syncMiniProfile();
+  },
+
+  syncMiniProfile() {
+    const token = wx.getStorageSync('token');
+    const userInfo = this.globalData.userInfo || {};
+    wx.request({
+      url: this.globalData.apiBaseUrl + '/auth/mini-profile',
+      method: 'POST',
+      data: { nickname: userInfo.nickname, grade: userInfo.grade },
+      header: { Authorization: `Bearer ${token}` },
+    });
   },
 });

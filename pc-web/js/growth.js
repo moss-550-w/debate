@@ -10,11 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 加载成长看板数据（优先使用班级真实数据，回退到 mock）
+ * 加载由小程序练习记录聚合的班级看板数据
  */
 async function loadGrowthDashboard() {
   try {
-    // 先尝试加载班级真实数据
     const gradesRes = await apiRequest('/export/grades-json');
     if (gradesRes && gradesRes.code === 200 && gradesRes.data) {
       const { students, class_stats } = gradesRes.data;
@@ -23,27 +22,18 @@ async function loadGrowthDashboard() {
       renderDimensionWithClassStats(class_stats);
       return;
     }
-  } catch (e) {
-    console.warn('班级数据加载失败，回退到 mock:', e.message);
-  }
-
-  // 回退到原有的 mock 数据
-  try {
-    const res = await apiRequest('/growth/admin_demo');
-    if (res.code !== 200 || !res.data) {
-      showToast('加载成长数据失败', 'error');
-      return;
-    }
-
-    const data = res.data;
-    renderRadarChart(data.baseline, data.latest);
-    renderDimensionChart(data.baseline, data.latest);
-    renderStats(data);
-    renderHistory(data.history);
+    throw new Error('未返回班级数据');
   } catch (err) {
     console.error('加载成长数据失败:', err);
     showToast('加载成长数据失败，请稍后重试', 'error');
   }
+}
+
+function getClassDimensions(stats) {
+  return (stats.dimensions || []).map(dimension => ({
+    ...dimension,
+    value: Number(stats[`avg_${dimension.key}`]) || 0,
+  }));
 }
 
 /**
@@ -55,25 +45,18 @@ function updateDashboardWithClassData(students, stats) {
   document.getElementById('statDuration').textContent = stats.total_duration_min;
   document.getElementById('statAvgScore').textContent = stats.avg_overall;
 
-  const dims = [
-    { key: '发音', value: stats.avg_pronunciation },
-    { key: '流利度', value: stats.avg_fluency },
-    { key: '逻辑', value: stats.avg_logic },
-    { key: '词汇', value: stats.avg_vocabulary },
-    { key: '反应', value: stats.avg_reaction },
-  ];
+  const dims = getClassDimensions(stats);
   dims.sort((a, b) => b.value - a.value);
   document.getElementById('statStrongest').textContent = dims[0].key;
   document.getElementById('statWeakest').textContent = dims[dims.length - 1].key;
 
   const maxPractices = Math.max(...students.map(s => s.practice_count), 1);
-  const completionRate = Math.round(
-    (students.reduce((sum, s) => sum + s.practice_count, 0) / (students.length * maxPractices)) * 100
-  );
+  const completionRate = Math.round((students.length
+    ? students.reduce((sum, s) => sum + s.practice_count, 0) / (students.length * maxPractices)
+    : 0) * 100);
   document.getElementById('statCompletionRate').textContent = completionRate + '%';
 
-  const baselineAvg = dims.reduce((s, d) => s + d.value, 0) / dims.length;
-  document.getElementById('statImprovement').textContent = '+' + stats.avg_overall.toFixed(1);
+  document.getElementById('statImprovement').textContent = stats.avg_overall.toFixed(1);
 
   // 渲染用户列表表格
   renderUserTable(students);
@@ -113,16 +96,11 @@ function renderRadarWithClassStats(stats) {
   if (!dom) return;
   const chart = echarts.init(dom);
 
+  const dimensions = getClassDimensions(stats);
   const option = {
     legend: { data: ['班级平均水平'], bottom: 0 },
     radar: {
-      indicator: [
-        { name: '发音', max: 100 },
-        { name: '流利度', max: 100 },
-        { name: '逻辑', max: 100 },
-        { name: '词汇', max: 100 },
-        { name: '反应', max: 100 },
-      ],
+      indicator: dimensions.map(dimension => ({ name: dimension.label, max: 100 })),
       shape: 'polygon',
       splitNumber: 5,
       axisName: { color: '#333', fontSize: 13 },
@@ -130,7 +108,7 @@ function renderRadarWithClassStats(stats) {
     series: [{
       type: 'radar',
       data: [{
-        value: [stats.avg_pronunciation, stats.avg_fluency, stats.avg_logic, stats.avg_vocabulary, stats.avg_reaction],
+        value: dimensions.map(dimension => dimension.value),
         name: '班级平均水平',
         lineStyle: { color: '#3b82f6', width: 2 },
         areaStyle: { color: 'rgba(59, 130, 246, 0.15)' },
@@ -151,17 +129,16 @@ function renderDimensionWithClassStats(stats) {
     if (!dom) return;
     const chart = echarts.init(dom);
 
-    const dimensions = ['发音', '流利度', '逻辑', '词汇', '反应'];
-    const values = [stats.avg_pronunciation, stats.avg_fluency, stats.avg_logic, stats.avg_vocabulary, stats.avg_reaction];
+    const dimensions = getClassDimensions(stats);
 
     const option = {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       grid: { left: '3%', right: '4%', bottom: '10%', top: '3%', containLabel: true },
-      xAxis: { type: 'category', data: dimensions, axisLabel: { color: '#6b7280', fontSize: 13 } },
+      xAxis: { type: 'category', data: dimensions.map(dimension => dimension.label), axisLabel: { color: '#6b7280', fontSize: 13 } },
       yAxis: { type: 'value', min: 0, max: 100, axisLabel: { color: '#9ca3af' }, splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } } },
       series: [{
         type: 'bar',
-        data: values,
+        data: dimensions.map(dimension => dimension.value),
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#3b82f6' },

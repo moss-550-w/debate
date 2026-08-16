@@ -6,6 +6,7 @@ logs/
 
 # 认证数据（用户与Token存储，勿提交）
 auth-store.json
+runtime-store.json
 
 # Node 依赖
 node_modules/

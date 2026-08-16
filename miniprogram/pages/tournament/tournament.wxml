@@ -16,7 +16,7 @@
       <view class="t-info">
         <text class="t-info-item">👥 {{item.team_count || 0}}/{{item.max_teams}} 队</text>
         <text class="t-info-item">📋 {{item.topicCount}} 道辩题</text>
-        <text class="t-status status-{{item.status}}">{{item.status === 'open' ? '报名中' : '已结束'}}</text>
+        <text class="t-status status-{{item.status}}">{{item.status === 'registering' ? '报名中' : '已结束'}}</text>
       </view>
     </view>
   </view>

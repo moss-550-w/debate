@@ -68,12 +68,12 @@ Page({
           maxTeams: d.max_teams || 0,
           teamSize: d.team_size || 0,
           status: d.status || 'closed',
-          statusLabel: d.status === 'open' ? '报名中' : '已结束',
+          statusLabel: d.status === 'registering' ? '报名中' : '已结束',
           hasRules: !!(d.rules),
           rules: d.rules || '',
           teams: teams,
           teamsCount: teams.length,
-          isOpen: d.status === 'open',
+          isOpen: d.status === 'registering',
         };
         this.setData({
           selectedTournament: st,

@@ -19,6 +19,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const authStore = require('../services/authStore');
+const authMiddleware = require('../middleware/auth');
 
 // ===== 常量 =====
 const CODE_TTL_MS = 5 * 60 * 1000;            // 验证码有效期 5 分钟
@@ -244,6 +245,25 @@ router.get('/verify', async (req, res) => {
   } catch (err) {
     logger.error('Token校验失败', { error: err.message });
     res.status(500).json({ code: 500, message: '校验失败，请稍后重试', data: null });
+  }
+});
+
+router.post('/mini-profile', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'pupil' || !req.user.userId) {
+      return res.status(400).json({ code: 400, message: '仅支持小程序学生用户同步', data: null });
+    }
+    const { nickname, grade } = req.body;
+    await authStore.updateUser(req.user.userId, {
+      nickname: String(nickname || '小辩手').slice(0, 32),
+      grade: String(grade || 'G5').slice(0, 16),
+      source: 'miniprogram',
+      last_login_at: new Date().toISOString(),
+    });
+    return res.json({ code: 200, message: 'ok', data: { user_id: req.user.userId } });
+  } catch (err) {
+    logger.error('同步小程序用户失败', { error: err.message });
+    return res.status(500).json({ code: 500, message: '同步用户失败', data: null });
   }
 });
 

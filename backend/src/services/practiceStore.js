@@ -15,7 +15,7 @@ async function record(data) {
 }
 
 async function list() {
-  return store.list(COLLECTION, {}, { orderBy: 'created_at', limit: 1000 });
+  return store.list(COLLECTION, {}, { orderBy: 'created_at', order: 'desc', limit: 1000 });
 }
 
 module.exports = { record, list };
