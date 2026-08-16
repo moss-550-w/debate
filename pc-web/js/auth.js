@@ -53,10 +53,6 @@ async function handleLogin(e) {
   // 登录成功后加载数据
   if (typeof loadTopics === 'function') loadTopics();
   if (typeof loadGrowthDashboard === 'function') loadGrowthDashboard();
-  if (typeof loadPortfolio === 'function') loadPortfolio();
-  if (typeof loadPortfolioTopics === 'function') loadPortfolioTopics();
-  if (typeof loadSparringTopics === 'function') loadSparringTopics();
-  if (typeof loadSparringHistory === 'function') loadSparringHistory();
   if (typeof loadTournamentList === 'function') loadTournamentList();
   if (typeof loadCommentsList === 'function') loadCommentsList();
 }

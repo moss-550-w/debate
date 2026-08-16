@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('token')) {
     loadTopics();
   }
-  document.getElementById('generateBtn').addEventListener('click', handleGenerate);
 
   // CSV导出
   document.getElementById('exportCsvBtn').addEventListener('click', exportTopicsCsv);
@@ -62,7 +61,6 @@ async function loadTopics() {
 
     if (topicsRes && topicsRes.code === 200) {
       allTopics = topicsRes.data.list;
-      renderTopicSelect(allTopics);
       renderTopicTable(allTopics);
     } else {
       throw new Error('获取辩题失败');
@@ -84,21 +82,6 @@ async function loadTopics() {
     console.error('加载辩题失败:', err);
     renderTopicTable([]);
   }
-}
-
-/**
- * 渲染辩题下拉选择框
- */
-function renderTopicSelect(topics) {
-  const select = document.getElementById('practiceTopic');
-  if (!select) return;
-  select.innerHTML = '<option value="">-- 请选择辩题 --</option>';
-  topics.filter(t => t.status === 1).forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t._id;
-    opt.textContent = `${t.title} [${DIFFICULTY_LABELS[t.difficulty] || t.difficulty}]`;
-    select.appendChild(opt);
-  });
 }
 
 /**
@@ -378,85 +361,6 @@ async function exportGradesCsv() {
     showToast('成绩CSV已下载', 'success');
   } catch (err) {
     showToast('导出失败，请稍后重试', 'error');
-  }
-}
-
-// ==================== 生成立论 ====================
-
-/**
- * 生成立论
- */
-async function handleGenerate() {
-  const topicId = document.getElementById('practiceTopic').value;
-  const position = document.querySelector('input[name="position"]:checked').value;
-
-  if (!topicId) {
-    showToast('请先选择辩题', 'error');
-    return;
-  }
-
-  const btn = document.getElementById('generateBtn');
-  btn.disabled = true;
-  btn.textContent = '生成中（约30秒）...';
-
-  try {
-    const res = await apiRequest('/generate', {
-      method: 'POST',
-      body: JSON.stringify({
-        topic_id: topicId,
-        topic_title: allTopics.find(t => t._id === topicId)?.title || '',
-        position,
-        user_role: 'pupil',
-      }),
-    });
-
-    if (res && res.code === 200) {
-      const data = res.data;
-      const resultDiv = document.getElementById('argumentResult');
-      const contentDiv = document.getElementById('argumentContent');
-
-      contentDiv.innerHTML = `
-        <div style="margin-bottom:16px;">
-          <h4 style="color:#2563eb;margin-bottom:8px;">论点列表</h4>
-          ${(data.points || []).map((p, i) => `
-            <div style="background:#f8fafc;padding:12px;border-radius:8px;margin-bottom:8px;">
-              <strong>${i + 1}. ${escapeHtml(p.title)}</strong>
-              <p style="margin-top:4px;">${escapeHtml(p.sentence)}</p>
-              <p style="font-size:13px;color:#6b7280;">${escapeHtml(p.translation)}</p>
-            </div>
-          `).join('')}
-        </div>
-        <div style="margin-bottom:16px;">
-          <h4 style="color:#2563eb;margin-bottom:8px;">总结</h4>
-          <p>${escapeHtml(data.conclusion || '')}</p>
-        </div>
-        <div>
-          <h4 style="color:#2563eb;margin-bottom:8px;">完整逐字稿</h4>
-          <div style="background:#f8fafc;padding:16px;border-radius:8px;font-size:15px;line-height:1.8;">
-            ${escapeHtml(data.full_text || '')}
-          </div>
-        </div>
-      `;
-
-      resultDiv.style.display = '';
-      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-      const transcriptArea = document.getElementById('speechTranscriptArea');
-      const transcriptText = document.getElementById('speechTranscriptText');
-      if (data.full_text) {
-        transcriptArea.style.display = '';
-        transcriptText.textContent = data.full_text;
-      } else {
-        transcriptArea.style.display = 'none';
-      }
-
-      showToast('立论生成成功', 'success');
-    }
-  } catch (err) {
-    showToast('生成立论失败，请稍后重试', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '生成立论';
   }
 }
 
