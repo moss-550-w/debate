@@ -91,6 +91,8 @@ debate/
 │   │   │   ├── authStore.js      # 认证存储适配层（云库/本地JSON）
 │   │   │   ├── aiService.js      # 大模型调用（双模型降级）
 │   │   │   ├── evaluateService.js # 百度语音评测
+│   │   │   ├── persistentStore.js # 通用持久化存储
+│   │   │   ├── practiceStore.js   # 练习记录存储
 │   │   │   └── security.js       # 内容安全检测
 │   │   ├── middleware/
 │   │   │   ├── auth.js           # Token 校验
@@ -101,9 +103,15 @@ debate/
 │   ├── scripts/
 │   │   └── export-jsonl.js       # 导出云库导入文件
 │   ├── .env.example              # 环境变量模板
+│   ├── gen-icons.js              # 图标生成工具
 │   ├── seed-topics.js            # 辩题种子数据导入
+│   ├── topics-seed.json          # 81 条辩题种子数据
 │   ├── test-flow.js              # 集成测试（48 用例）
 │   └── package.json
+├── doc/                          # 设计文档
+│   ├── design.md                 # 技术方案
+│   ├── agent.md                  # AI 开发指引
+│   └── plan.md                   # Sprint 执行计划
 └── cloudfunctions/               # 微信云函数
     ├── userLogin/                # 登录
     ├── getTopicList/             # 辩题分页

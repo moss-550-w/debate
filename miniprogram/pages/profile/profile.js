@@ -3,16 +3,14 @@ const { request } = require('../../utils/request');
 const INDICATORS = [
   { name: '发音', key: 'pronunciation', max: 100 },
   { name: '流利度', key: 'fluency', max: 100 },
-  { name: '逻辑性', key: 'logic', max: 100 },
-  { name: '词汇量', key: 'vocabulary', max: 100 },
-  { name: '反应力', key: 'reaction', max: 100 },
+  { name: '完整度', key: 'integrity', max: 100 },
 ];
 
 Page({
   data: {
     userInfo: {},
-    baseline: { pronunciation: 55, fluency: 50, logic: 45, vocabulary: 60, reaction: 40 },
-    latest: { pronunciation: 78, fluency: 72, logic: 68, vocabulary: 80, reaction: 70 },
+    baseline: { pronunciation: 0, fluency: 0, integrity: 0, overall: 0 },
+    latest: { pronunciation: 0, fluency: 0, integrity: 0, overall: 0 },
     stats: {
       totalCount: 0,
       totalDuration: 0,
@@ -41,9 +39,6 @@ Page({
       const res = await request(`/growth/${openid}`);
       if (res.code === 200) {
         const data = res.data;
-        const avgScore = Math.round(
-          (data.latest.pronunciation + data.latest.fluency + data.latest.logic) / 3
-        );
         this.setData({
           baseline: data.baseline,
           latest: data.latest,
@@ -51,8 +46,8 @@ Page({
           stats: {
             totalCount: data.stats.totalCount,
             totalDuration: data.stats.totalDuration,
-            avgScore: avgScore,
-            daysActive: Math.min((data.history || []).length, 30),
+            avgScore: data.stats.avgScore,
+            daysActive: data.stats.daysActive,
           },
         });
         // 延迟绘制，等 canvas 节点渲染完成
@@ -60,22 +55,15 @@ Page({
       }
     } catch (err) {
       console.error('加载成长数据失败:', err);
-      // 使用本地默认数据
-      const userInfo = wx.getStorageSync('userInfo') || {};
-      const defaultBaseline = userInfo.ability_baseline || { pronunciation: 55, fluency: 50, logic: 45, vocabulary: 60, reaction: 40 };
-      const defaultLatest = userInfo.ability_latest || { pronunciation: 78, fluency: 72, logic: 68, vocabulary: 80, reaction: 70 };
       this.setData({
-        userInfo,
-        baseline: defaultBaseline,
-        latest: defaultLatest,
-        history: [
-          { _id: '1', type: 'argument', score: { overall: 75 }, created_at: new Date().toISOString() },
-        ],
+        baseline: { pronunciation: 0, fluency: 0, integrity: 0, overall: 0 },
+        latest: { pronunciation: 0, fluency: 0, integrity: 0, overall: 0 },
+        history: [],
         stats: {
-          totalCount: userInfo.total_count || 15,
-          totalDuration: userInfo.total_duration || 1800,
-          avgScore: Math.round((defaultLatest.pronunciation + defaultLatest.fluency + defaultLatest.logic) / 3),
-          daysActive: 7,
+          totalCount: 0,
+          totalDuration: 0,
+          avgScore: 0,
+          daysActive: 0,
         },
       });
       setTimeout(() => this.drawRadar(), 100);

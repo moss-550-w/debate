@@ -17,11 +17,11 @@
     <view class="radar-legend">
       <view class="legend-item">
         <view class="legend-dot baseline"></view>
-        <text>前测 (Baseline)</text>
+        <text>首次评测</text>
       </view>
       <view class="legend-item">
         <view class="legend-dot latest"></view>
-        <text>最新 (Latest)</text>
+        <text>最近评测</text>
       </view>
     </view>
   </view>

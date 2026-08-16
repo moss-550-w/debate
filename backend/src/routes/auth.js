@@ -250,17 +250,31 @@ router.get('/verify', async (req, res) => {
 
 router.post('/mini-profile', authMiddleware, async (req, res) => {
   try {
-    if (req.user.role !== 'pupil' || !req.user.userId) {
-      return res.status(400).json({ code: 400, message: '仅支持小程序学生用户同步', data: null });
+    let userId = req.user.userId;
+    if (!userId && req.user.openid && req.user.openid.startsWith('mp_user_')) {
+      userId = req.user.openid;
+      await authStore.createUser({
+        _id: userId,
+        openid: req.user.openid,
+        role: 'pupil',
+        nickname: '小辩手',
+        grade: 'G5',
+        source: 'miniprogram',
+        created_at: new Date().toISOString(),
+        last_login_at: new Date().toISOString(),
+      });
+    }
+    if (!userId) {
+      return res.status(400).json({ code: 400, message: '用户资料不存在', data: null });
     }
     const { nickname, grade } = req.body;
-    await authStore.updateUser(req.user.userId, {
+    await authStore.updateUser(userId, {
       nickname: String(nickname || '小辩手').slice(0, 32),
       grade: String(grade || 'G5').slice(0, 16),
       source: 'miniprogram',
       last_login_at: new Date().toISOString(),
     });
-    return res.json({ code: 200, message: 'ok', data: { user_id: req.user.userId } });
+    return res.json({ code: 200, message: 'ok', data: { user_id: userId } });
   } catch (err) {
     logger.error('同步小程序用户失败', { error: err.message });
     return res.status(500).json({ code: 500, message: '同步用户失败', data: null });
