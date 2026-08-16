@@ -1,5 +1,5 @@
 /**
- * 成长数据与看板逻辑（Sprint 3 — ECharts 雷达图）
+ * 成长数据与看板逻辑（Sprint 3 — ECharts 雷达图 + 班级数据概览）
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -7,9 +7,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 加载成长看板数据
+ * 加载成长看板数据（优先使用班级真实数据，回退到 mock）
  */
 async function loadGrowthDashboard() {
+  try {
+    // 先尝试加载班级真实数据
+    const gradesRes = await apiRequest('/export/grades-json');
+    if (gradesRes && gradesRes.code === 200 && gradesRes.data) {
+      const { students, class_stats } = gradesRes.data;
+      updateDashboardWithClassData(students, class_stats);
+      renderRadarWithClassStats(class_stats);
+      renderDimensionWithClassStats(class_stats);
+      return;
+    }
+  } catch (e) {
+    console.warn('班级数据加载失败，回退到 mock:', e.message);
+  }
+
+  // 回退到原有的 mock 数据
   try {
     const res = await apiRequest('/growth/admin_demo');
     if (res.code !== 200 || !res.data) {
@@ -18,21 +33,118 @@ async function loadGrowthDashboard() {
     }
 
     const data = res.data;
-
-    // 1. 渲染雷达图
     renderRadarChart(data.baseline, data.latest);
-
-    // 2. 渲染各维度强弱项柱状图
     renderDimensionChart(data.baseline, data.latest);
-
-    // 3. 渲染统计数据
     renderStats(data);
-
-    // 4. 渲染练习记录列表
     renderHistory(data.history);
   } catch (err) {
     console.error('加载成长数据失败:', err);
     showToast('加载成长数据失败，请稍后重试', 'error');
+  }
+}
+
+/**
+ * 用班级数据更新看板卡片
+ */
+function updateDashboardWithClassData(students, stats) {
+  document.getElementById('statUsers').textContent = stats.total_students;
+  document.getElementById('statPractices').textContent = stats.total_practices;
+  document.getElementById('statDuration').textContent = stats.total_duration_min;
+  document.getElementById('statAvgScore').textContent = stats.avg_overall;
+
+  const dims = [
+    { key: '发音', value: stats.avg_pronunciation },
+    { key: '流利度', value: stats.avg_fluency },
+    { key: '逻辑', value: stats.avg_logic },
+    { key: '词汇', value: stats.avg_vocabulary },
+    { key: '反应', value: stats.avg_reaction },
+  ];
+  dims.sort((a, b) => b.value - a.value);
+  document.getElementById('statStrongest').textContent = dims[0].key;
+  document.getElementById('statWeakest').textContent = dims[dims.length - 1].key;
+
+  const maxPractices = Math.max(...students.map(s => s.practice_count), 1);
+  const completionRate = Math.round(
+    (students.reduce((sum, s) => sum + s.practice_count, 0) / (students.length * maxPractices)) * 100
+  );
+  document.getElementById('statCompletionRate').textContent = completionRate + '%';
+
+  const baselineAvg = dims.reduce((s, d) => s + d.value, 0) / dims.length;
+  document.getElementById('statImprovement').textContent = '+' + stats.avg_overall.toFixed(1);
+}
+
+/**
+ * 用班级统计数据渲染雷达图
+ */
+function renderRadarWithClassStats(stats) {
+  const dom = document.getElementById('radarChart');
+  if (!dom) return;
+  const chart = echarts.init(dom);
+
+  const option = {
+    legend: { data: ['班级平均水平'], bottom: 0 },
+    radar: {
+      indicator: [
+        { name: '发音', max: 100 },
+        { name: '流利度', max: 100 },
+        { name: '逻辑', max: 100 },
+        { name: '词汇', max: 100 },
+        { name: '反应', max: 100 },
+      ],
+      shape: 'polygon',
+      splitNumber: 5,
+      axisName: { color: '#333', fontSize: 13 },
+    },
+    series: [{
+      type: 'radar',
+      data: [{
+        value: [stats.avg_pronunciation, stats.avg_fluency, stats.avg_logic, stats.avg_vocabulary, stats.avg_reaction],
+        name: '班级平均水平',
+        lineStyle: { color: '#3b82f6', width: 2 },
+        areaStyle: { color: 'rgba(59, 130, 246, 0.15)' },
+        itemStyle: { color: '#3b82f6' },
+      }],
+    }],
+  };
+  chart.setOption(option);
+  window.addEventListener('resize', () => chart.resize());
+}
+
+/**
+ * 用班级统计数据渲染维度柱状图
+ */
+function renderDimensionWithClassStats(stats) {
+  try {
+    const dom = document.getElementById('dimensionChart');
+    if (!dom) return;
+    const chart = echarts.init(dom);
+
+    const dimensions = ['发音', '流利度', '逻辑', '词汇', '反应'];
+    const values = [stats.avg_pronunciation, stats.avg_fluency, stats.avg_logic, stats.avg_vocabulary, stats.avg_reaction];
+
+    const option = {
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '3%', containLabel: true },
+      xAxis: { type: 'category', data: dimensions, axisLabel: { color: '#6b7280', fontSize: 13 } },
+      yAxis: { type: 'value', min: 0, max: 100, axisLabel: { color: '#9ca3af' }, splitLine: { lineStyle: { color: '#e5e7eb', type: 'dashed' } } },
+      series: [{
+        type: 'bar',
+        data: values,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#3b82f6' },
+            { offset: 1, color: '#93c5fd' },
+          ]),
+          borderRadius: [4, 4, 0, 0],
+        },
+        barWidth: '40%',
+        label: { show: true, position: 'top', color: '#3b82f6', fontSize: 12, formatter: (p) => Math.round(p.value) },
+      }],
+    };
+    chart.setOption(option);
+    window.addEventListener('resize', () => chart.resize());
+  } catch (err) {
+    console.error('渲染维度柱状图失败:', err);
   }
 }
 

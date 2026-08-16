@@ -2,7 +2,13 @@ App({
   globalData: {
     userInfo: null,
     openid: '',
-    apiBaseUrl: 'http://localhost:3000/api',
+    // ============================================================
+    // 微信云托管服务地址（debate-api）
+    // 部署后请把下面的占位符替换为「云托管控制台 → 服务 → 默认域名 / 公网域名」，形如：
+    //   https://debate-api-x-1258016615.ap-shanghai.service.tcloudbase.com/api
+    // 本地开发调试时可切回： http://localhost:3000/api
+    // ============================================================
+    apiBaseUrl: 'https://debate-api-xxxxxxxxxxxxxxxx.ap-shanghai.service.tcloudbase.com/api',
   },
 
   onLaunch() {

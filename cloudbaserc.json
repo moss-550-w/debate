@@ -1,0 +1,34 @@
+{
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "envId": "cloud1-d8g0k0m526d61652a",
+  "version": "2.0",
+  "containerPosts": [
+    {
+      "port": 3000
+    }
+  ],
+  "framework": {
+    "name": "custom-container",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-container",
+        "inputs": {
+          "serviceName": "debate-api",
+          "servicePath": "/",
+          "uploadType": "package",
+          "containerPort": 3000,
+          "cpu": 0.5,
+          "mem": 1.0,
+          "minNum": 0,
+          "maxNum": 1,
+          "policyType": "cpu",
+          "policyThreshold": 60,
+          "envParams": {},
+          "customLogs": "stdout",
+          "initialDelaySeconds": 5,
+          "dockerfilePath": "Dockerfile"
+        }
+      }
+    }
+  }
+}

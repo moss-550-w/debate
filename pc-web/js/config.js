@@ -2,11 +2,16 @@
  * 环境配置
  */
 const CONFIG = {
-  // API 基础地址（轻量服务器地址）
-  API_BASE_URL: 'http://localhost:3000/api',
+  // ============================================================
+  // 微信云托管 debate-api 公网域名（部署后替换下面占位符）
+  // 云托管控制台 → 服务 → debate-api → 访问信息 / 默认域名  形如：
+  //   https://debate-api-xxxxxxxxxxxxxxxx.ap-shanghai.service.tcloudbase.com/api
+  // 本地调试可切回： http://localhost:3000/api
+  // ============================================================
+  API_BASE_URL: 'https://debate-api-xxxxxxxxxxxxxxxx.ap-shanghai.service.tcloudbase.com/api',
 
   // 云环境ID（微信云开发）
-  CLOUD_ENV: 'your-cloud-env-id',
+  CLOUD_ENV: 'cloud1-d8g0k0m526d61652a',
 
   // 管理员账号（MVP写死）
   ADMIN_PHONE: '13800138000',
