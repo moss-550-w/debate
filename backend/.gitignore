@@ -4,6 +4,9 @@
 # 日志文件
 logs/
 
+# 认证数据（用户与Token存储，勿提交）
+auth-store.json
+
 # Node 依赖
 node_modules/
 

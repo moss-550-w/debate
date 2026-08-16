@@ -5,6 +5,7 @@ const logger = require('./utils/logger');
 const db = require('./utils/db');
 
 // 路由
+const authRouter = require('./routes/auth');
 const generateRouter = require('./routes/generate');
 const evaluateRouter = require('./routes/evaluate');
 const debateRouter = require('./routes/debate');
@@ -55,6 +56,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ===== 路由注册 =====
+app.use('/api/auth', authRouter);
 app.use('/api/generate', generateRouter);
 app.use('/api/evaluate', evaluateRouter);
 app.use('/api/debate', debateRouter);

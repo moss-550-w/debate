@@ -13,8 +13,4 @@ const CONFIG = {
 
   // 云环境ID（微信云开发）
   CLOUD_ENV: 'cloud1-d8g0k0m526d61652a',
-
-  // 管理员账号（MVP写死）
-  ADMIN_PHONE: '13800138000',
-  ADMIN_CODE: '123456',
 };

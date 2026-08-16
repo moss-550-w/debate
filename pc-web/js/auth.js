@@ -2,11 +2,23 @@
  * 登录/登出逻辑
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 检查是否已登录
+document.addEventListener('DOMContentLoaded', async () => {
+  // 检查是否已登录（Token 需经服务端校验真实有效）
   const token = localStorage.getItem('token');
   if (token) {
-    showAdminPage();
+    const res = await apiRequest('/auth/verify', { method: 'GET' });
+    if (res && res.code === 200) {
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      showAdminPage();
+      loadAdminData();
+    } else if (res) {
+      // 401 时 apiRequest 已清除本地凭据；网络失败(code 500)保留登录态下次再验
+      if (res.code === 500) {
+        showAdminPage();
+      } else {
+        showToast('登录已过期，请重新登录', 'info');
+      }
+    }
   }
 
   // 登录表单提交
@@ -23,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 处理登录
+ * 处理登录（服务端校验验证码，首次登录自动注册）
  */
 async function handleLogin(e) {
   e.preventDefault();
@@ -36,21 +48,32 @@ async function handleLogin(e) {
     return;
   }
 
-  // MVP阶段：验证码写死检查
-  if (code !== CONFIG.ADMIN_CODE) {
-    showToast('验证码错误（MVP阶段验证码：123456）', 'error');
-    return;
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+
+  const res = await apiRequest('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code }),
+  });
+
+  btn.disabled = false;
+
+  if (res && res.code === 200 && res.data) {
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('user', JSON.stringify(res.data.user));
+
+    showToast(res.data.is_new_user ? '注册成功' : '登录成功', 'success');
+    showAdminPage();
+    loadAdminData();
+  } else {
+    showToast((res && res.message) || '登录失败，请稍后重试', 'error');
   }
+}
 
-  // 模拟登录成功
-  const token = `admin_${phone}_${Date.now()}`;
-  localStorage.setItem('token', token);
-  localStorage.setItem('user', JSON.stringify({ phone, role: 'admin' }));
-
-  showToast('登录成功', 'success');
-  showAdminPage();
-
-  // 登录成功后加载数据
+/**
+ * 登录成功后加载数据
+ */
+function loadAdminData() {
   if (typeof loadTopics === 'function') loadTopics();
   if (typeof loadGrowthDashboard === 'function') loadGrowthDashboard();
   if (typeof loadTournamentList === 'function') loadTournamentList();
@@ -69,29 +92,54 @@ function handleLogout() {
 }
 
 /**
- * 发送验证码
+ * 发送验证码（服务端生成真实随机验证码）
  */
-function handleSendCode() {
+async function handleSendCode() {
   const phone = document.getElementById('phone').value.trim();
-  if (!phone || phone.length !== 11) {
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
     showToast('请输入正确的手机号', 'error');
     return;
   }
 
   const btn = document.getElementById('sendCodeBtn');
   btn.disabled = true;
-  btn.textContent = '60s';
+  btn.textContent = '发送中...';
 
-  showToast('验证码已发送（MVP阶段：123456）', 'info');
+  const res = await apiRequest('/auth/send-code', {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  });
 
-  let countdown = 60;
+  if (res && res.code === 200) {
+    startCodeCountdown(btn, 60);
+    if (res.data && res.data.dev_code) {
+      // 短信渠道未接入：验证码由服务端生成，直接回填输入框
+      document.getElementById('code').value = res.data.dev_code;
+      showToast(`验证码：${res.data.dev_code}（已自动填入）`, 'info');
+    } else {
+      showToast('验证码已发送，请查收短信', 'success');
+    }
+  } else {
+    btn.disabled = false;
+    btn.textContent = '获取验证码';
+    showToast((res && res.message) || '验证码发送失败', 'error');
+  }
+}
+
+/**
+ * 验证码按钮倒计时
+ */
+function startCodeCountdown(btn, seconds) {
+  let countdown = seconds;
+  btn.textContent = `${countdown}s`;
   const timer = setInterval(() => {
     countdown--;
-    btn.textContent = `${countdown}s`;
     if (countdown <= 0) {
       clearInterval(timer);
       btn.disabled = false;
       btn.textContent = '获取验证码';
+    } else {
+      btn.textContent = `${countdown}s`;
     }
   }, 1000);
 }

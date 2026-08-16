@@ -4,21 +4,60 @@ let db = null;
 
 /**
  * 初始化云数据库连接
- * 注意：wx-server-sdk 仅在云函数环境可用。
- * 在轻量服务器上运行时，需要先通过云函数代理数据库操作，
- * 或使用云开发 HTTP API。
+ * - 云托管容器内（TENCENTCLOUD_RUNENV 已注入）：使用 DYNAMIC_CURRENT_ENV，
+ *   由平台免密钥注入凭据，直连当前环境的云开发数据库
+ * - 本地/其他环境：使用显式 env；wx-server-sdk 未安装或无凭据时 db=null，
+ *   由上层（如 authStore）回退到本地存储
  * @param {string} env - 云环境ID
  */
 function init(env) {
   try {
     const cloud = require('wx-server-sdk');
-    cloud.init({ env });
-    db = cloud.database();
-    logger.info('数据库初始化完成', { env });
+    if (process.env.TENCENTCLOUD_RUNENV && cloud.DYNAMIC_CURRENT_ENV) {
+      cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+      db = cloud.database();
+      logger.info('数据库初始化完成', { env: 'DYNAMIC_CURRENT_ENV(云托管)' });
+    } else {
+      cloud.init({ env });
+      db = cloud.database();
+      logger.info('数据库初始化完成', { env });
+    }
   } catch (err) {
-    logger.warn('wx-server-sdk 不可用，数据库操作将通过云函数代理', { error: err.message });
+    logger.warn('wx-server-sdk 不可用，数据库操作将不可用', { error: err.message });
     db = null;
   }
+}
+
+/**
+ * 探测云数据库是否真实可用（init 成功不代表能连通）
+ * 结果缓存；5 秒超时防止本地无凭据时阻塞启动
+ * 注意：仅集合不存在视为"可用"（连接正常），其余错误视为不可用
+ * @returns {Promise<boolean>}
+ */
+let availableCache = null;
+async function isAvailable() {
+  if (availableCache !== null) return availableCache;
+  if (!db) {
+    availableCache = false;
+    return availableCache;
+  }
+  try {
+    await Promise.race([
+      db.collection('users').limit(1).get(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('数据库探测超时')), 5000)),
+    ]);
+    availableCache = true;
+  } catch (err) {
+    const msg = (err && (err.errMsg || err.message)) || String(err);
+    if (/not\s*exist|不存在/i.test(msg)) {
+      // 连接正常，仅探测集合尚未创建
+      availableCache = true;
+    } else {
+      logger.warn('云数据库不可用', { error: msg });
+      availableCache = false;
+    }
+  }
+  return availableCache;
 }
 
 /**
@@ -114,12 +153,48 @@ async function update(collectionName, id, data) {
   }
 }
 
+/**
+ * 按 _id 新增或整体覆盖记录（upsert）
+ * @param {string} collectionName
+ * @param {string} id - 文档 _id，不存在则创建
+ * @param {object} data
+ */
+async function set(collectionName, id, data) {
+  try {
+    await collection(collectionName).doc(id).set({
+      data: { ...data, updated_at: getDB().serverDate() },
+    });
+    return true;
+  } catch (err) {
+    logger.error(`数据库写入失败 [${collectionName}]`, { id, error: err.message });
+    throw err;
+  }
+}
+
+/**
+ * 删除记录
+ * @param {string} collectionName
+ * @param {string} id
+ */
+async function remove(collectionName, id) {
+  try {
+    await collection(collectionName).doc(id).remove();
+    return true;
+  } catch (err) {
+    logger.error(`数据库删除失败 [${collectionName}]`, { id, error: err.message });
+    throw err;
+  }
+}
+
 module.exports = {
   init,
+  isAvailable,
   getDB,
   collection,
   getById,
   query,
   add,
   update,
+  set,
+  remove,
 };
