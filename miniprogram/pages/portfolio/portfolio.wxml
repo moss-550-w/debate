@@ -198,8 +198,11 @@
     <scroll-view class="form-modal feedback-modal" scroll-y enhanced show-scrollbar="{{false}}">
       <view class="form-header feedback-header">
         <text class="form-title">AI 专业评委反馈</text>
-        <view class="close-circle" bindtap="closeFeedback">
-          <text class="close-x">✕</text>
+        <view class="feedback-actions">
+          <button class="feedback-export-btn" bindtap="exportRecord">导出分享</button>
+          <view class="close-circle" bindtap="closeFeedback">
+            <text class="close-x">✕</text>
+          </view>
         </view>
       </view>
       <view class="feedback-body" wx:if="{{currentRecord}}">
@@ -251,6 +254,25 @@
         <view class="fb-section no-data" wx:else>
           <text class="empty-icon">🤖</text>
           <text class="fb-section-text">AI 正在分析你的思考，请稍后点击右上角「…」刷新。</text>
+        </view>
+
+        <view class="comment-section">
+          <text class="comment-section-title">评论交流（{{comments.length}}）</text>
+          <view class="comment-loading" wx:if="{{commentsLoading}}">评论加载中...</view>
+          <view class="comment-empty" wx:elif="{{comments.length === 0}}">暂时没有评论，写下你的建议吧。</view>
+          <view class="comment-list" wx:else>
+            <view class="comment-item" wx:for="{{comments}}" wx:key="_id">
+              <view class="comment-meta">
+                <text class="comment-author">{{item.nickname || '小辩手'}}</text>
+                <text class="comment-date">{{item.displayDate}}</text>
+              </view>
+              <text class="comment-content">{{item.content}}</text>
+            </view>
+          </view>
+          <view class="comment-compose">
+            <textarea class="comment-input" value="{{commentContent}}" bindinput="commentInputChange" maxlength="300" placeholder="写下友善、具体的评论..." />
+            <button class="comment-submit" bindtap="submitComment" disabled="{{commentSubmitting}}">{{commentSubmitting ? '发布中' : '发布'}}</button>
+          </view>
         </view>
       </view>
     </scroll-view>

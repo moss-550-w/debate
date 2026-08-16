@@ -32,6 +32,10 @@ Page({
     showForm: false,
     showFeedback: false,
     currentRecord: null,
+    comments: [],
+    commentsLoading: false,
+    commentContent: '',
+    commentSubmitting: false,
     filterType: '',
     loading: true,
     submitting: false,
@@ -186,11 +190,109 @@ Page({
     const record = e.currentTarget.dataset.record;
     if (!record) return;
     const expanded = this._expandFeedback(record);
-    this.setData({ showFeedback: true, currentRecord: expanded });
+    this.setData({
+      showFeedback: true,
+      currentRecord: expanded,
+      comments: [],
+      commentContent: '',
+    });
+    this.loadComments(record._id);
   },
 
   closeFeedback() {
-    this.setData({ showFeedback: false, currentRecord: null });
+    this.setData({
+      showFeedback: false,
+      currentRecord: null,
+      comments: [],
+      commentContent: '',
+    });
+  },
+
+  async loadComments(recordId) {
+    if (!recordId) return;
+    this.setData({ commentsLoading: true });
+    try {
+      const res = await request(`/comments/${recordId}`);
+      if (res.code === 200 && res.data) {
+        const comments = (res.data.comments || []).map(comment => ({
+          ...comment,
+          displayDate: (comment.created_at || '').replace('T', ' ').slice(0, 16),
+        }));
+        this.setData({ comments });
+      }
+    } catch (error) {
+      console.error('加载作品评论失败:', error);
+    } finally {
+      this.setData({ commentsLoading: false });
+    }
+  },
+
+  commentInputChange(e) {
+    this.setData({ commentContent: e.detail.value });
+  },
+
+  async submitComment() {
+    const record = this.data.currentRecord;
+    const content = (this.data.commentContent || '').trim();
+    if (!record || !content || this.data.commentSubmitting) return;
+
+    this.setData({ commentSubmitting: true });
+    try {
+      const res = await request('/comments', {
+        method: 'POST',
+        data: {
+          record_id: record._id,
+          content,
+          comment_type: 'peer',
+        },
+      });
+      if (res.code === 200 && res.data) {
+        const comment = {
+          ...res.data,
+          displayDate: (res.data.created_at || '').replace('T', ' ').slice(0, 16),
+        };
+        this.setData({
+          comments: [...this.data.comments, comment],
+          commentContent: '',
+        });
+        wx.showToast({ title: '评论已发布', icon: 'success' });
+      } else {
+        wx.showToast({ title: res.message || '评论发布失败', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('提交作品评论失败:', error);
+      wx.showToast({ title: '评论发布失败', icon: 'none' });
+    } finally {
+      this.setData({ commentSubmitting: false });
+    }
+  },
+
+  exportRecord() {
+    const record = this.data.currentRecord;
+    if (!record) return;
+    const feedback = record.ai_feedback || {};
+    const suggestions = Array.isArray(feedback.suggestions)
+      ? feedback.suggestions.join('\n- ')
+      : feedback.suggestion || '';
+    const exportText = [
+      '英语辩论作品集',
+      `标题：${record.title}`,
+      `辩题：${record.topic_title || '自主思考'}`,
+      `立场：${record.positionLabel || ''}`,
+      `类型：${record.contentTypeLabel || ''}`,
+      `评分：${record.recordScore != null ? `${record.recordScore}/100` : '待评价'}`,
+      '',
+      '我的思考：',
+      record.content || '',
+      feedback.judge_comment ? `\nAI 评语：\n${feedback.judge_comment}` : '',
+      suggestions ? `\n改进建议：\n- ${suggestions}` : '',
+    ].filter(Boolean).join('\n');
+
+    wx.setClipboardData({
+      data: exportText,
+      success: () => wx.showToast({ title: '已复制，可直接分享', icon: 'success' }),
+      fail: () => wx.showToast({ title: '导出失败，请重试', icon: 'none' }),
+    });
   },
 
   preventDefault() {

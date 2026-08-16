@@ -3,9 +3,9 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const aiService = require('../services/aiService');
 const logger = require('../utils/logger');
+const persistentStore = require('../services/persistentStore');
 
 // 内存存储
-const comments = new Map(); // key: portfolioRecordId -> array of comments
 const assignments = new Map(); // key: assignmentId -> assignment object
 const submissions = new Map(); // key: assignmentId -> array of submission
 
@@ -45,7 +45,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     commentIdCounter++;
     const comment = {
-      _id: `comment_${commentIdCounter}`,
+      _id: `comment_${Date.now()}_${commentIdCounter}`,
       record_id,
       content,
       comment_type,
@@ -55,11 +55,7 @@ router.post('/', authMiddleware, async (req, res) => {
       created_at: new Date().toISOString(),
     };
 
-    // 存入评论列表
-    if (!comments.has(record_id)) {
-      comments.set(record_id, []);
-    }
-    comments.get(record_id).push(comment);
+    await persistentStore.set('comments', comment._id, comment);
 
     logger.info('评论提交成功', { record_id, comment_type, commentId: comment._id });
 
@@ -125,7 +121,11 @@ router.get('/:recordId', async (req, res) => {
   try {
     const { recordId } = req.params;
 
-    const commentList = comments.get(recordId) || [];
+    const commentList = await persistentStore.list(
+      'comments',
+      { record_id: recordId },
+      { limit: 100 },
+    );
 
     // 按时间排序
     commentList.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -310,15 +310,19 @@ router.get('/assignment/:id/submissions', authMiddleware, async (req, res) => {
     submissionList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     // 检查每条提交是否有导师点评
-    const result = submissionList.map(s => {
-      const recordComments = comments.get(s.record_id) || [];
+    const result = await Promise.all(submissionList.map(async s => {
+      const recordComments = await persistentStore.list(
+        'comments',
+        { record_id: s.record_id },
+        { limit: 1 },
+      );
       const hasTeacherReview = recordComments.some(c => c.comment_type === 'teacher');
       return {
         ...s,
         has_teacher_review: hasTeacherReview,
         review_status: hasTeacherReview ? '已点评' : '待点评',
       };
-    });
+    }));
 
     logger.info('获取议题提交列表成功', { assignmentId: id, total: result.length });
 
