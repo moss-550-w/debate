@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>英语辩论能力训练平台 - 管理端</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/theme-kids.css" id="theme-style" disabled>
 </head>
 <body>
   <!-- 登录页 -->
@@ -78,7 +77,6 @@
         <div class="sidebar-footer">
           <span id="currentUser"></span>
           <div style="display:flex;gap:4px;align-items:center;">
-            <button id="themeToggleBtn" class="btn-theme-toggle" title="切换主题">🎨</button>
             <button id="logoutBtn" class="btn-logout">退出</button>
           </div>
         </div>
@@ -333,6 +331,10 @@
             <div class="form-group">
               <label>每队人数</label>
               <input type="number" id="tournamentTeamSize" class="form-select" style="width:100px;" value="2" min="1" max="4">
+            </div>
+            <div class="form-group">
+              <label>报名截止日期</label>
+              <input type="date" id="tournamentDeadline" class="form-select" style="width:200px;">
             </div>
             <button id="saveTournamentBtn" class="btn-primary">保存</button>
             <button id="cancelTournamentBtn" class="btn-secondary" style="margin-left:8px;">取消</button>

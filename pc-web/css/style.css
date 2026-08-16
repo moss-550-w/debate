@@ -227,20 +227,6 @@ body {
 
 .btn-logout:hover { border-color: rgba(255,255,255,0.6); }
 
-.btn-theme-toggle {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
-  color: var(--sidebar-text);
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  transition: all 0.2s;
-}
-
-.btn-theme-toggle:hover { border-color: rgba(255,255,255,0.6); }
-
 /* ===== 主内容区 ===== */
 .main-content {
   flex: 1;

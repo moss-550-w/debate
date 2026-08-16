@@ -20,14 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', handleNavClick);
   });
-
-  // 主题切换
-  document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
-  // 恢复上次主题
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'kids') {
-    document.getElementById('theme-style').disabled = false;
-  }
 });
 
 /**
@@ -57,6 +49,16 @@ async function handleLogin(e) {
 
   showToast('登录成功', 'success');
   showAdminPage();
+
+  // 登录成功后加载数据
+  if (typeof loadTopics === 'function') loadTopics();
+  if (typeof loadGrowthDashboard === 'function') loadGrowthDashboard();
+  if (typeof loadPortfolio === 'function') loadPortfolio();
+  if (typeof loadPortfolioTopics === 'function') loadPortfolioTopics();
+  if (typeof loadSparringTopics === 'function') loadSparringTopics();
+  if (typeof loadSparringHistory === 'function') loadSparringHistory();
+  if (typeof loadTournamentList === 'function') loadTournamentList();
+  if (typeof loadCommentsList === 'function') loadCommentsList();
 }
 
 /**
@@ -125,16 +127,4 @@ function handleNavClick(e) {
     section.style.display = 'none';
   });
   document.getElementById(`${target}Page`).style.display = '';
-}
-
-/**
- * 切换主题（专业蓝 ↔ 儿童黄）
- */
-function toggleTheme() {
-  const themeStyle = document.getElementById('theme-style');
-  const isKids = themeStyle.disabled;
-  themeStyle.disabled = isKids; // 切换：disabled→false 启用儿童黄， true 禁用儿童黄
-
-  localStorage.setItem('theme', isKids ? 'kids' : 'blue');
-  showToast(isKids ? '已切换为儿童黄主题' : '已切换为专业蓝主题', 'info');
 }

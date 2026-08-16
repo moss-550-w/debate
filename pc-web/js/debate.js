@@ -28,7 +28,10 @@ let allTopics = [];
 let editingTopicId = null; // 当前正在编辑的辩题ID
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadTopics();
+  // 仅在已登录时加载数据
+  if (localStorage.getItem('token')) {
+    loadTopics();
+  }
   document.getElementById('generateBtn').addEventListener('click', handleGenerate);
 
   // CSV导出

@@ -8,7 +8,7 @@ let sparringSessionId = null;
 let sparringMessages = [];
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadTopics();
+  loadSparringTopics();
   loadSparringHistory();
 
   document.querySelectorAll('.style-card').forEach(card => {
@@ -20,9 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 加载辩题到下拉框
+ * 加载辩题到对练下拉框
  */
-async function loadTopics() {
+async function loadSparringTopics() {
   try {
     const res = await apiRequest('/topics');
     if (res && res.code === 200) {
@@ -59,7 +59,7 @@ function handleStyleCardClick() {
 async function handleStartSparring() {
   const topic = document.getElementById('sparringTopic').value;
   const styleCard = document.querySelector('.style-card.active');
-  const position = document.querySelector('input[name="sparringPosition"]:checked');
+  const position = document.querySelector('input[name="sparringPos"]:checked');
 
   if (!topic) {
     showToast('请选择辩题', 'error');
@@ -215,7 +215,8 @@ async function loadSparringHistory() {
   try {
     const res = await apiRequest('/debate/sessions/admin_demo');
     if (res && res.code === 200) {
-      renderSparringHistory(res.data?.list || res.data || []);
+      const list = res.data?.list || res.data || [];
+      renderSparringHistory(Array.isArray(list) ? list : []);
     }
   } catch (err) {
     console.error('加载对练历史失败:', err);

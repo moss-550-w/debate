@@ -27,10 +27,13 @@ async function apiRequest(path, options = {}) {
     const data = await response.json();
 
     if (data.code === 401) {
-      // Token 过期，跳转登录
+      // Token 过期/无效，清除并显示登录页（不 reload，避免死循环）
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.reload();
+      const loginPage = document.getElementById('loginPage');
+      const adminPage = document.getElementById('adminPage');
+      if (loginPage) loginPage.style.display = '';
+      if (adminPage) adminPage.style.display = 'none';
       return null;
     }
 

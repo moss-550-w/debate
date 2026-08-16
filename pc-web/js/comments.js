@@ -45,7 +45,7 @@ async function loadAssignmentTopics() {
 async function handleCreateAssignment() {
   const title = document.getElementById('assignmentTitle').value.trim();
   const topic = document.getElementById('assignmentTopic').value;
-  const requirement = document.getElementById('assignmentRequirement').value.trim();
+  const requirement = document.getElementById('assignmentRequirements').value.trim();
   const deadline = document.getElementById('assignmentDeadline').value;
 
   if (!title || !topic || !requirement || !deadline) {
@@ -88,7 +88,8 @@ async function loadAssignments() {
   try {
     const res = await apiRequest('/comments/assignments');
     if (res && res.code === 200) {
-      renderAssignmentList(res.data?.list || res.data || []);
+      const list = res.data?.list || res.data || [];
+      renderAssignmentList(Array.isArray(list) ? list : []);
     } else {
       document.getElementById('assignmentList').innerHTML = '<div class="empty-row">暂无议题数据</div>';
     }

@@ -44,7 +44,7 @@ async function handleCreateTournament() {
       showToast('赛事创建成功', 'success');
       document.getElementById('tournamentForm').style.display = 'none';
       document.getElementById('tournamentName').value = '';
-      document.getElementById('tournamentMaxTeams').value = '';
+      document.getElementById('tournamentMaxTeams').value = '8';
       document.getElementById('tournamentDeadline').value = '';
       loadTournamentList();
     } else {
@@ -65,7 +65,8 @@ async function loadTournamentList() {
   try {
     const res = await apiRequest('/tournament/list');
     if (res && res.code === 200) {
-      renderTournamentList(res.data?.list || res.data || []);
+      const list = res.data?.list || res.data || [];
+      renderTournamentList(Array.isArray(list) ? list : []);
     } else {
       document.getElementById('tournamentList').innerHTML = '<div class="empty-row">暂无赛事数据</div>';
     }

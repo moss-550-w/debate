@@ -3,7 +3,10 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadGrowthDashboard();
+  // 仅在已登录时加载看板数据
+  if (localStorage.getItem('token')) {
+    loadGrowthDashboard();
+  }
 });
 
 /**

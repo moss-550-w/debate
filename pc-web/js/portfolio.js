@@ -5,7 +5,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadTopics();
+  loadPortfolioTopics();
   loadPortfolio();
 
   document.getElementById('portfolioSubmitBtn').addEventListener('click', handlePortfolioSubmit);
@@ -13,9 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * 加载辩题到下拉框
+ * 加载辩题到作品集下拉框
  */
-async function loadTopics() {
+async function loadPortfolioTopics() {
   try {
     const res = await apiRequest('/topics');
     if (res && res.code === 200) {
