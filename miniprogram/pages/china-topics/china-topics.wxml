@@ -1,0 +1,18 @@
+<view class="page-china-topics">
+  <view class="page-header">
+    <text class="page-kicker">辩论：思辨中国</text>
+    <text class="page-title">中国议题辩论库</text>
+    <text class="page-description">从文化、教育与社会发展议题展开思辨</text>
+  </view>
+
+  <view class="topic-list">
+    <view class="topic-card" wx:for="{{topics}}" wx:key="_id" bindtap="goPractice" data-id="{{item._id}}" data-title="{{item.title}}">
+      <view class="topic-meta">
+        <text class="topic-number">{{index + 1}}</text>
+        <text class="topic-level level-{{item.difficulty}}">{{item.difficulty === 'medium' ? '进阶' : '挑战'}}</text>
+      </view>
+      <text class="topic-title">{{item.title}}</text>
+      <text class="topic-translation">{{item.translation}}</text>
+    </view>
+  </view>
+</view>

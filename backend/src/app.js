@@ -92,7 +92,7 @@ app.use((err, req, res, next) => {
 async function start() {
   // 初始化数据库
   try {
-    if (process.env.CLOUD_ENV) {
+    if (process.env.CLOUD_ENV || process.env.TENCENTCLOUD_RUNENV) {
       db.init(process.env.CLOUD_ENV);
     } else {
       logger.warn('CLOUD_ENV 未设置，数据库功能暂不可用');

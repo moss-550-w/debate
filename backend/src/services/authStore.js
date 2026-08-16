@@ -110,6 +110,13 @@ async function updateUser(id, fields) {
   return true;
 }
 
+async function listUsers() {
+  if ((await getMode()) === 'cloud') {
+    return db.query(COL.USERS, {}, { orderBy: 'created_at', limit: 1000 });
+  }
+  return [...local.users];
+}
+
 // ===== 验证码（_id = phone，重发整体覆盖） =====
 async function saveCode(phone, record) {
   if ((await getMode()) === 'cloud') {
@@ -206,6 +213,7 @@ module.exports = {
   findUserById,
   createUser,
   updateUser,
+  listUsers,
   saveCode,
   getCode,
   deleteCode,

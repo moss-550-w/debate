@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const db = require('../utils/db');
+const authStore = require('../services/authStore');
 
 /**
  * Token 校验中间件
@@ -26,8 +27,20 @@ async function authMiddleware(req, res, next) {
     });
   }
 
-  // MVP 阶段：直接将 openid 作为 Token 使用
-  // 生产环境应使用 JWT 或云开发自定义登录
+  const session = await authStore.getToken(token);
+  if (session && session.expires_at > Date.now()) {
+    const user = await authStore.findUserById(session.user_id);
+    if (user) {
+      req.user = {
+        openid: user.openid || user._id,
+        role: user.role,
+        userId: user._id,
+        nickname: user.nickname,
+      };
+      return next();
+    }
+  }
+
   const openid = token;
 
   // 从数据库查询用户信息，获取 role 等字段
@@ -42,10 +55,20 @@ async function authMiddleware(req, res, next) {
         userId: user._id,
         nickname: user.nickname,
       };
+    } else if (openid.startsWith('mp_user_')) {
+      const userId = await authStore.createUser({
+        openid,
+        role: 'pupil',
+        nickname: '小辩手',
+        grade: 'G5',
+        source: 'miniprogram',
+        created_at: new Date().toISOString(),
+        last_login_at: new Date().toISOString(),
+      });
+      req.user = { openid, role: 'pupil', userId, nickname: '小辩手' };
+      logger.info('小程序用户已登记', { openid, userId });
     } else {
-      // 用户不存在，但 MVP 阶段仍允许通过（游客模式），仅注入 openid
-      req.user = { openid, role: 'pupil' };
-      logger.warn('未找到用户记录，使用默认角色', { openid });
+      return res.status(401).json({ code: 401, message: '未授权，Token 无效', data: null });
     }
   } catch (err) {
     logger.error('查询用户信息失败，使用默认角色', { openid, error: err.message });

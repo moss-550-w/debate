@@ -1,7 +1,7 @@
 <view class="page-practice">
   <!-- 步骤1：选择辩题和立场 -->
   <view class="section" wx:if="{{step === 1}}">
-    <text class="section-title">选择辩题</text>
+    <text class="section-title">{{isChinaTopic ? '思辨中国辩题' : '选择辩题'}}</text>
     <picker mode="selector" range="{{topicNames}}" bindchange="onTopicChange">
       <view class="picker-box">{{selectedTopicName || '请选择辩题'}} ▼</view>
     </picker>

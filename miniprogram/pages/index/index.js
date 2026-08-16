@@ -89,9 +89,7 @@ Page({
   },
 
   goChinaPractice() {
-    wx.navigateTo({
-      url: '/pages/practice/practice?topicId=china_daily_001&topicTitle=Should%20traditional%20culture%20be%20adapted%20for%20modern%20life%3F',
-    });
+    wx.navigateTo({ url: '/pages/china-topics/china-topics' });
   },
 
   goProfile() {

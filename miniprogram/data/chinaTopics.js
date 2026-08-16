@@ -1,0 +1,17 @@
+module.exports = [
+  { _id: 'china_001', title: 'This House would prioritise intangible cultural heritage preservation over economic development in rural China.', translation: '本院主张，在中国农村，非物质文化遗产保护应优先于经济发展。', difficulty: 'hard' },
+  { _id: 'china_002', title: 'This House regrets the commercialisation of traditional Chinese festivals.', translation: '本院对传统中国节日的商业化表示遗憾。', difficulty: 'medium' },
+  { _id: 'china_003', title: 'This House would abolish Gaokao in favour of holistic admissions.', translation: '本院主张废除高考，改用综合素质录取。', difficulty: 'hard' },
+  { _id: 'china_004', title: 'This House believes that traditional Chinese medicine should be fully integrated into mainstream healthcare.', translation: '本院认为，中医药应全面纳入主流医疗体系。', difficulty: 'hard' },
+  { _id: 'china_005', title: 'This House believes that China should actively export its cultural values through global media platforms.', translation: '本院认为，中国应通过全球媒体平台积极输出其文化价值观。', difficulty: 'hard' },
+  { _id: 'china_006', title: 'This House believes that filial piety as traditionally understood is obsolete in modern Chinese society.', translation: '本院认为，传统理解下的“孝道”在现代中国社会已过时。', difficulty: 'hard' },
+  { _id: 'china_007', title: 'This House would incorporate Chinese aesthetics into the design of all future urban public infrastructure.', translation: '本院主张，在未来城市公共基础设施设计中全面融入中式美学。', difficulty: 'medium' },
+  { _id: 'china_008', title: 'This House prefers cultural "going global" through commercial products over government-led initiatives.', translation: '本院更倾向于通过商业产品而非政府主导项目来实现文化“走出去”。', difficulty: 'hard' },
+  { _id: 'china_009', title: 'This House believes that Chinese cuisine should prioritise authenticity over adaptation when expanding overseas.', translation: '本院认为，中国餐饮在海外扩张时应优先保持正宗性而非本土化改良。', difficulty: 'medium' },
+  { _id: 'china_010', title: 'This House would encourage young Chinese creators to reinterpret classical myths and legends in modern settings.', translation: '本院主张鼓励中国年轻创作者以现代背景重新演绎古典神话与传说。', difficulty: 'medium' },
+  { _id: 'china_011', title: 'This House would make calligraphy and traditional painting compulsory subjects in primary education.', translation: '本院主张将书法和国画设为小学必修课程。', difficulty: 'medium' },
+  { _id: 'china_012', title: 'This House would make financial literacy and practical life skills compulsory in Chinese secondary education.', translation: '本院主张将财商教育和实用生活技能设为中国中学必修内容。', difficulty: 'medium' },
+  { _id: 'china_013', title: 'This House believes that China\'s "double reduction" policy should be extended to cover university entrance preparation.', translation: '本院认为，中国的“双减”政策应延伸覆盖高考备考阶段。', difficulty: 'hard' },
+  { _id: 'china_014', title: 'This House prefers vocational training pathways over academic university tracks for the majority of secondary school graduates.', translation: '本院认为，对大多数中学毕业生而言，职业教育路径优于学术型大学路径。', difficulty: 'hard' },
+  { _id: 'china_015', title: 'This House would incentivise young professionals to relocate to rural areas through tax breaks and startup grants.', translation: '本院主张通过税收减免和创业补贴激励年轻专业人士迁往农村地区。', difficulty: 'hard' },
+];

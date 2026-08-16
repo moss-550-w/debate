@@ -1,4 +1,5 @@
 const { request } = require('../../utils/request');
+const chinaTopics = require('../../data/chinaTopics');
 
 Page({
   data: {
@@ -7,6 +8,8 @@ Page({
     topicNames: [],
     selectedTopicId: '',
     selectedTopicName: '',
+    topicScope: 'default',
+    isChinaTopic: false,
     position: 'pro',
     positionLabel: '正方',
     result: null,
@@ -14,6 +17,9 @@ Page({
   },
 
   onLoad(options) {
+    if (options.scope === 'china') {
+      this.setData({ topicScope: 'china', isChinaTopic: true });
+    }
     if (options.topicId) {
       this.setData({ selectedTopicId: options.topicId });
     }
@@ -24,23 +30,15 @@ Page({
   },
 
   async loadTopics() {
+    if (this.data.topicScope === 'china') {
+      this.setTopicList(chinaTopics);
+      return;
+    }
+
     try {
       const res = await request('/topics?size=100');
       if (res.code === 200) {
-        const topics = res.data.list || [];
-        this.setData({
-          topics,
-          topicNames: topics.map(t => t.title),
-        });
-        // 如果从辩题列表进入且没有传标题，自动选中
-        if (this.data.selectedTopicId && !this.data.selectedTopicName) {
-          const idx = topics.findIndex(t => t._id === this.data.selectedTopicId);
-          if (idx >= 0) {
-            this.setData({
-              selectedTopicName: topics[idx].title,
-            });
-          }
-        }
+        this.setTopicList(res.data.list || []);
       } else {
         throw new Error(res.message);
       }
@@ -48,6 +46,15 @@ Page({
       console.error('加载辩题失败:', err);
       wx.showToast({ title: '加载辩题失败', icon: 'none' });
     }
+  },
+
+  setTopicList(topics) {
+    const selectedTopic = topics.find(topic => topic._id === this.data.selectedTopicId);
+    this.setData({
+      topics,
+      topicNames: topics.map(topic => topic.title),
+      ...(selectedTopic && !this.data.selectedTopicName ? { selectedTopicName: selectedTopic.title } : {}),
+    });
   },
 
   onTopicChange(e) {

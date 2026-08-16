@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/topic/topic",
+    "pages/china-topics/china-topics",
     "pages/practice/practice",
     "pages/speech/speech",
     "pages/profile/profile",

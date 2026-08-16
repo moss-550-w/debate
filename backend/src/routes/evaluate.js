@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const rateLimitMiddleware = require('../middleware/rateLimit');
 const evaluateService = require('../services/evaluateService');
+const practiceStore = require('../services/practiceStore');
 const logger = require('../utils/logger');
 
 /**
@@ -34,6 +35,20 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
 
     try {
       const score = await evaluateService.evaluate(audio_base64, ref_text, format);
+      const durationSec = Math.max(1, Math.round(Buffer.byteLength(audio_base64, 'base64') / 32000));
+      try {
+        await practiceStore.record({
+          user_id: req.user.userId || req.user.openid,
+          type: 'speech',
+          duration_sec: durationSec,
+          pronunciation: score.pronunciation,
+          fluency: score.fluency,
+          integrity: score.integrity,
+          overall: score.overall,
+        });
+      } catch (recordError) {
+        logger.warn('练习记录写入失败', { error: recordError.message });
+      }
       logger.info('语音评测成功', { audioSize, overall: score.overall });
       return res.json({
         code: 200,

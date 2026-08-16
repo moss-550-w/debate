@@ -1,0 +1,93 @@
+.page-china-topics {
+  min-height: 100vh;
+  padding: 28rpx 24rpx 48rpx;
+  background: #f4f6f8;
+  box-sizing: border-box;
+}
+
+.page-header {
+  padding: 16rpx 8rpx 32rpx;
+}
+
+.page-kicker,
+.page-title,
+.page-description,
+.topic-title,
+.topic-translation {
+  display: block;
+}
+
+.page-kicker {
+  color: #b45309;
+  font-size: 24rpx;
+}
+
+.page-title {
+  margin-top: 10rpx;
+  color: #1f2937;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.page-description {
+  margin-top: 12rpx;
+  color: #6b7280;
+  font-size: 26rpx;
+}
+
+.topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.topic-card {
+  padding: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 8rpx;
+  box-sizing: border-box;
+}
+
+.topic-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.topic-number {
+  color: #9a3412;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.topic-level {
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+  font-size: 22rpx;
+}
+
+.level-medium {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.level-hard {
+  color: #9f1239;
+  background: #ffe4e6;
+}
+
+.topic-title {
+  color: #111827;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.topic-translation {
+  margin-top: 12rpx;
+  color: #6b7280;
+  font-size: 24rpx;
+  line-height: 1.55;
+}
