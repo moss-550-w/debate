@@ -148,7 +148,7 @@ async function viewSubmissions(assignmentId) {
         html += '<p style="color:#6b7280;">暂无提交</p>';
       } else {
         html += submissions.map(s => {
-          const reviewStatus = s.reviewed ? '<span style="color:#22c55e;font-weight:600;">已点评</span>' : '<span style="color:#f59e0b;font-weight:600;">待点评</span>';
+          const reviewStatus = s.reviewed ? '<span style="color:#1e40af;font-weight:600;">已点评</span>' : '<span style="color:#64748b;font-weight:600;">待点评</span>';
           return `
             <div style="background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:8px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -156,7 +156,7 @@ async function viewSubmissions(assignmentId) {
                 ${reviewStatus}
               </div>
               <div style="font-size:13px;color:#6b7280;margin-bottom:4px;">${(s.content || '').slice(0, 60)}${s.content && s.content.length > 60 ? '...' : ''}</div>
-              <div style="font-size:13px;color:#f59e0b;">AI评分：${s.ai_score || '待评分'}</div>
+              <div style="font-size:13px;color:#2563eb;font-weight:600;">AI评分：${s.ai_score || '待评分'}</div>
             </div>
           `;
         }).join('');

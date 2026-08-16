@@ -11,18 +11,16 @@ const CATEGORY_LABELS = {
   environment: '环境',
 };
 
-// 难度中文映射
+// 难度统一为深浅蓝色系（专业感）
 const DIFFICULTY_LABELS = {
   easy: '简单',
   medium: '中等',
   hard: '困难',
 };
-
-// 难度颜色
 const DIFFICULTY_COLORS = {
-  easy: '#10b981',
-  medium: '#f59e0b',
-  hard: '#ef4444',
+  easy: '#60a5fa',     // 浅蓝（简单）
+  medium: '#2563eb',   // 标准蓝（中等）
+  hard: '#1e3a8a',     // 深蓝（困难）
 };
 
 // 缓存辩题数据
@@ -130,8 +128,8 @@ function renderTopicTable(topics) {
         <td style="white-space:nowrap;">
           <button class="btn-primary btn-sm" onclick="editTopic('${t._id}')">编辑</button>
           <button class="btn-secondary btn-sm" onclick="publishAssignment('${t._id}', '${escapeAttr(t.title)}')">布置</button>
-          <button class="btn-secondary btn-sm" style="color:${isActive ? '#f59e0b' : '#10b981'};" onclick="toggleTopicStatus('${t._id}', ${isActive ? 0 : 1})">${isActive ? '下架' : '上架'}</button>
-          <button class="btn-secondary btn-sm" style="color:#ef4444;" onclick="deleteTopic('${t._id}', '${escapeAttr(t.title)}')">删除</button>
+          <button class="btn-secondary btn-sm" style="color:${isActive ? '#64748b' : '#1d4ed8'};" onclick="toggleTopicStatus('${t._id}', ${isActive ? 0 : 1})">${isActive ? '下架' : '上架'}</button>
+          <button class="btn-secondary btn-sm" style="color:#64748b;" onclick="deleteTopic('${t._id}', '${escapeAttr(t.title)}')">删除</button>
         </td>
       </tr>
     `;

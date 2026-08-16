@@ -100,9 +100,9 @@ function renderTournamentList(list) {
   };
 
   const statusColors = {
-    registering: '#f59e0b',
-    ongoing: '#22c55e',
-    finished: '#6b7280',
+    registering: '#3b82f6',
+    ongoing: '#1e40af',
+    finished: '#64748b',
   };
 
   container.innerHTML = list.map(item => `

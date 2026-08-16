@@ -60,8 +60,8 @@ async function handlePortfolioSubmit() {
 
     if (res && res.code === 200) {
       document.getElementById('portfolioFeedback').innerHTML = `
-        <div style="background:#f0fdf4;padding:16px;border-radius:8px;border:1px solid #bbf7d0;">
-          <h4 style="color:#16a34a;margin-bottom:8px;">AI 反馈</h4>
+        <div style="background:#eff6ff;padding:16px;border-radius:8px;border:1px solid #bfdbfe;">
+          <h4 style="color:#1d4ed8;margin-bottom:8px;">AI 反馈</h4>
           <p>${res.data?.feedback || res.message || '提交成功'}</p>
         </div>
       `;
@@ -116,7 +116,7 @@ function renderPortfolioList(list) {
         </div>
         <p style="color:#374151;margin-bottom:8px;line-height:1.5;">${(item.content || '').slice(0, 100)}${item.content && item.content.length > 100 ? '...' : ''}</p>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
-          <span style="color:#f59e0b;font-weight:600;">评分：${item.score || '待评分'}</span>
+          <span style="color:#2563eb;font-weight:600;">评分：${item.score || '待评分'}</span>
           <span style="color:#6b7280;">${item.ai_feedback ? (item.ai_feedback.slice(0, 30) + (item.ai_feedback.length > 30 ? '...' : '')) : '暂无反馈'}</span>
         </div>
       </div>
@@ -140,23 +140,23 @@ async function handlePortfolioAnalysis() {
       container.innerHTML = `
         <div style="background:#f8fafc;padding:20px;border-radius:12px;border:1px solid #e2e8f0;">
           <div style="margin-bottom:16px;">
-            <h4 style="color:#2563eb;margin-bottom:8px;">风格标签</h4>
+            <h4 style="color:#1e40af;margin-bottom:8px;">风格标签</h4>
             <div>${(data.tags || []).map(t => `<span style="display:inline-block;background:#dbeafe;color:#1d4ed8;padding:4px 12px;border-radius:16px;font-size:13px;margin-right:6px;margin-bottom:6px;">${t}</span>`).join('')}</div>
           </div>
           <div style="margin-bottom:16px;">
-            <h4 style="color:#16a34a;margin-bottom:8px;">优势</h4>
+            <h4 style="color:#1d4ed8;margin-bottom:8px;">优势</h4>
             <ul style="margin:0;padding-left:20px;">
               ${(data.strengths || []).map(s => `<li style="color:#374151;margin-bottom:4px;">${s}</li>`).join('')}
             </ul>
           </div>
           <div style="margin-bottom:16px;">
-            <h4 style="color:#dc2626;margin-bottom:8px;">待改进</h4>
+            <h4 style="color:#2563eb;margin-bottom:8px;">待改进</h4>
             <ul style="margin:0;padding-left:20px;">
               ${(data.weaknesses || []).map(w => `<li style="color:#374151;margin-bottom:4px;">${w}</li>`).join('')}
             </ul>
           </div>
           <div>
-            <h4 style="color:#7c3aed;margin-bottom:8px;">推荐任务</h4>
+            <h4 style="color:#3b82f6;margin-bottom:8px;">推荐任务</h4>
             <ul style="margin:0;padding-left:20px;">
               ${(data.recommendations || []).map(r => `<li style="color:#374151;margin-bottom:4px;">${r}</li>`).join('')}
             </ul>

@@ -8,7 +8,8 @@ const CONFIG = {
   //   https://debate-api-xxxxxxxxxxxxxxxx.ap-shanghai.service.tcloudbase.com/api
   // 本地调试可切回： http://localhost:3000/api
   // ============================================================
-  API_BASE_URL: 'https://debate-api-xxxxxxxxxxxxxxxx.ap-shanghai.service.tcloudbase.com/api',
+  // 本地开发用 localhost，部署到云托管后替换为真实域名
+  API_BASE_URL: 'http://localhost:3000/api',
 
   // 云环境ID（微信云开发）
   CLOUD_ENV: 'cloud1-d8g0k0m526d61652a',

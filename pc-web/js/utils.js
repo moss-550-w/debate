@@ -64,7 +64,7 @@ function showToast(message, type = 'info') {
     position: fixed; top: 20px; right: 20px; padding: 12px 24px;
     border-radius: 8px; color: white; font-size: 14px; z-index: 9999;
     animation: fadeIn 0.3s ease;
-    background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    background: ${type === 'success' ? '#1e40af' : type === 'error' ? '#475569' : '#2563eb'};
   `;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
