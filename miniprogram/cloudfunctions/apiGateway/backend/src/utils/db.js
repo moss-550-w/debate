@@ -169,6 +169,7 @@ async function update(collectionName, id, data) {
 async function set(collectionName, id, data) {
   try {
     const setData = { ...data };
+    delete setData._id;
     if (!('updated_at' in setData)) {
       setData.updated_at = getDB().serverDate();
     }

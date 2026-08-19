@@ -17,7 +17,8 @@ function request(path, options = {}) {
       let settled = false;
 
       if (app.globalData.apiMode === 'cloud-function') {
-        const [apiPath, queryString] = path.split('?');
+        const [rawPath, queryString] = path.split('?');
+        const apiPath = rawPath.startsWith('/api/') ? rawPath : `/api${rawPath.startsWith('/') ? rawPath : `/${rawPath}`}`;
         const query = {};
         (queryString || '').split('&').filter(Boolean).forEach(pair => {
           const [key, value = ''] = pair.split('=');

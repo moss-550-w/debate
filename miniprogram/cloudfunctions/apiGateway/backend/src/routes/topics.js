@@ -51,7 +51,13 @@ async function ensureTopicsReady() {
       topics = cloudTopics;
     } else {
       for (const topic of topics) {
-        await db.set('topics', topic._id, topic);
+        try {
+          await db.set('topics', topic._id, topic);
+        } catch (err) {
+          // 集合尚未在 CloudBase 控制台创建时，继续使用内置种子数据提供读取服务。
+          console.warn('topics 集合尚未创建，暂使用本地种子数据:', err.message);
+          break;
+        }
       }
     }
     topics.forEach(topic => {

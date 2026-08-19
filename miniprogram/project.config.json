@@ -1,5 +1,6 @@
 {
   "description": "英语辩论能力训练平台",
+  "cloudfunctionRoot": "cloudfunctions/",
   "packOptions": {
     "ignore": [],
     "include": []
