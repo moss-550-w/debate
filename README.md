@@ -1,6 +1,6 @@
 # 英语辩论能力训练平台 (Debate Training Platform)
 
-> 为小学生提供 AI 辅助的英语立论与跟读训练，通过前后测对比验证能力提升。
+> 为小学生提供 AI 辅助的英语辩论训练，支持立论、AI 对练、语音评测、辩论作品集和成长分析。
 
 ---
 
@@ -12,16 +12,18 @@
 
 - **立论生成**：AI 根据辩题自动生成结构化论点（适合小学生英语水平）
 - **跟读评测**：录音后由语音评测 API 打分（发音、流利度、完整度）
-- **AI 对辩**：语音输入辩题，AI 自动生成反驳论点
-- **成长看板**：ECharts 雷达图展示五维能力的前后测对比
-- **辩题库**：81 条 BP（British Parliamentary）正式辩论赛题，覆盖教育、科技、社会、环境四大类
+- **AI 对辩**：文字输入或录音识别后，与不同风格的 AI 对手进行实时训练
+- **辩论作品集**：记录论点、机制、反驳和问题，并由 AI 评委反馈
+- **成长能力**：围绕论点结构、论据质量、逻辑推理、反驳回应、表达组织进行统计
+- **语言表达**：独立展示发音、流利度、完整度等语音辅助数据
+- **辩题库**：当前内置 86 条辩题，另含独立的“思辨中国”辩题区域
 
 ### 交付范围
 
 | 端 | 用户 | 核心功能 |
 |------|------|----------|
-| 微信小程序 | 小学生 | 登录 → 选题 → 立论生成 → 录音评测 → 查看成长 |
-| PC Web 端 | 教师/管理员 | 手机号+验证码登录 → 辩题管理 → 数据看板 → CSV 导出 |
+| 微信小程序 | 学生 | 选题 → 立论生成 → AI 对练 → 录音评测 → 作品集 → 查看成长 |
+| PC Web 端 | 教师/管理员 | 用户管理 → 辩题管理 → 赛事管理 → 辩论能力看板 → CSV 导出 |
 
 ---
 
@@ -31,11 +33,12 @@
 |------|------|------|
 | PC 前端 | 原生 HTML + CSS + JavaScript | 零构建，直接打开，ECharts v5 看板 |
 | 小程序 | 微信原生开发 | 使用 `wx.getRecorderManager` 录音 |
-| 后端 | Node.js v18 + Express | 路由 `/api/*`，同时托管 PC Web 静态资源 |
+| PC 后端 | Node.js v18 + Express | 云托管 `debate-api`，路由 `/api/*`，同时托管 PC Web 静态资源 |
+| 小程序后端 | CloudBase 云函数 | `apiGateway` 使用 `wx.cloud.callFunction` 调用相同 API 路由 |
 | 数据库 | 微信云开发 NoSQL | 云托管内 `wx-server-sdk` 免密钥直连 |
 | 部署 | 微信云托管（Docker） | `node:18-slim` 镜像，0~1 实例弹性伸缩 |
 | AI 模型 | 豆包（主）+ 通义千问（备） | 双模型降级，JSON Mode |
-| 语音评测 | 百度智能云 | Base64 直传，四维评分（发音/流利度/完整度/总分） |
+| 语音评测 | 百度智能云 | 音频先上传云存储，再由云函数下载并转发，避免请求体超限 |
 
 ---
 
@@ -68,8 +71,12 @@ debate/
 │   │   ├── tournament/           # 辩论赛
 │   │   └── profile/              # 个人成长
 │   ├── utils/
-│   │   ├── request.js            # wx.request 封装
-│   │   └── cloud.js              # 云函数调用
+│   │   └── request.js            # wx.cloud.callFunction / wx.request 封装
+│   ├── cloudfunctions/
+│   │   └── apiGateway/           # Express API 云函数网关
+│   │       ├── index.js          # 请求转发、音频云存储处理
+│   │       ├── package.json
+│   │       └── backend/           # 与云托管后端保持同步的 API 实现
 │   └── app.js
 ├── backend/                      # Node.js + Express 后端
 │   ├── src/
@@ -92,7 +99,9 @@ debate/
 │   │   │   ├── aiService.js      # 大模型调用（双模型降级）
 │   │   │   ├── evaluateService.js # 百度语音评测
 │   │   │   ├── persistentStore.js # 通用持久化存储
-│   │   │   ├── practiceStore.js   # 练习记录存储
+│   │   │   ├── practiceStore.js   # 语音练习记录存储
+│   │   │   ├── portfolioStore.js  # 辩论作品集存储
+│   │   │   ├── debateStore.js     # AI 对练记录存储
 │   │   │   └── security.js       # 内容安全检测
 │   │   ├── middleware/
 │   │   │   ├── auth.js           # Token 校验
@@ -105,17 +114,14 @@ debate/
 │   ├── .env.example              # 环境变量模板
 │   ├── gen-icons.js              # 图标生成工具
 │   ├── seed-topics.js            # 辩题种子数据导入
-│   ├── topics-seed.json          # 81 条辩题种子数据
-│   ├── test-flow.js              # 集成测试（48 用例）
+│   ├── topics-seed.json          # 辩题种子数据
+│   ├── test-flow.js              # 后端集成测试
 │   └── package.json
 ├── doc/                          # 设计文档
 │   ├── design.md                 # 技术方案
 │   ├── agent.md                  # AI 开发指引
 │   └── plan.md                   # Sprint 执行计划
-└── cloudfunctions/               # 微信云函数
-    ├── userLogin/                # 登录
-    ├── getTopicList/             # 辩题分页
-    └── uploadFile/               # 云存储上传凭证
+└── cloudfunctions/               # 旧版云函数目录，仅保留兼容功能
 ```
 
 ---
@@ -161,6 +167,15 @@ npm start
 
 在微信开发者工具中打开 `miniprogram/` 目录，配置 `appid` 和云环境 ID 后编译运行。
 
+当前小程序默认使用云函数模式：
+
+- 云环境：`cloud1-d8g0k0m526d61652a`
+- 云函数：`apiGateway`
+- 请求方式：`wx.cloud.callFunction`
+- 音频流程：`wx.cloud.uploadFile` → 云函数下载临时文件 → 语音服务评测 → 删除临时文件
+
+小程序前端代码修改后，需要重新编译并上传体验版；仅部署云函数不会更新页面代码。
+
 ### 4. 导入辩题数据
 
 ```bash
@@ -168,6 +183,8 @@ cd backend
 node seed-topics.js
 # 在云开发控制台 → 数据库 → topics 集合 → 导入生成的 topics-seed.json
 ```
+
+如果云数据库尚未创建 `topics` 集合，小程序接口会临时回退到内置种子数据；此时可以读取辩题，但 PC 端新增、编辑、删除辩题无法持久化。生产环境应在云开发控制台创建并配置该集合。
 
 ---
 
@@ -201,11 +218,30 @@ node seed-topics.js
 | 本地开发 | `auth-store.json` | 云库不可用时自动回退 |
 | 强制本地 | 环境变量 `AUTH_STORAGE=local` | 回滚用 |
 
+### 双端同步架构
+
+```text
+微信小程序
+   │ wx.cloud.callFunction
+   ▼
+apiGateway 云函数 ─────┐
+                       ├─ CloudBase NoSQL
+PC 管理端 → debate-api ─┘
+```
+
+两端共享同一环境 `cloud1-d8g0k0m526d61652a`。PC 管理端看板读取小程序产生的用户、语音练习、作品集和 AI 对练数据；小程序赛事和辩题列表也读取 PC 管理端维护的共享数据。
+
+AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后才会进入双方看板。未创建对应集合时，相关数据无法持久化。
+
 ---
 
 ## API 文档
 
-**Base URL**: `http://localhost:3000/api`
+**本地 Base URL**: `http://localhost:3000/api`
+
+**当前云托管 Base URL**: `https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api`
+
+小程序默认不直接访问公网域名，而是调用 CloudBase 云函数 `apiGateway`。PC 管理端通过 `pc-web/js/config.js` 中的云托管 Base URL 访问后端。
 
 **统一响应格式**:
 ```json
@@ -238,6 +274,20 @@ node seed-topics.js
 | GET | `/comments` | 点评列表 | 是 |
 | GET | `/export` | CSV 数据导出 | 是 |
 
+### 辩论能力统计
+
+`/growth/:userId` 和 PC 管理端 `/export/grades-json` 使用同一套辩论能力口径：
+
+| 字段 | 含义 |
+|------|------|
+| `argument_structure` | 论点结构 |
+| `evidence_quality` | 论据质量 |
+| `logic` | 逻辑推理 |
+| `rebuttal` | 反驳回应 |
+| `expression` | 表达组织 |
+
+发音、流利度、完整度属于独立的语言表达辅助数据，不参与小程序和 PC 主辩论能力雷达图。
+
 ---
 
 ## 数据库设计
@@ -247,8 +297,12 @@ node seed-topics.js
 | 集合 | 用途 | 说明 |
 |------|------|------|
 | `users` | 用户信息 | PC 用户 `source='pc'` 以 phone 关联；小程序用户以 openid 关联 |
-| `topics` | 辩题库 | 81 条 BP 辩题，含 category/difficulty/vocab_list |
-| `practice_records` | 练习记录 | 关联 user_id + topic_id，含评分和文本内容 |
+| `topics` | 辩题库 | 当前内置 86 条辩题，含 category/difficulty/vocab_list |
+| `practice_records` | 语音练习记录 | 关联 user_id，含发音/流利度/完整度/总分 |
+| `portfolio_records` | 辩论作品集 | 关联 user_id，含 AI 评委反馈和五项辩论能力维度 |
+| `debate_turns` | AI 对练记录 | 关联 user_id/session_id，含反驳评分和有效反驳结果 |
+| `tournaments` | 赛事 | PC 创建，小程序读取并报名 |
+| `tournament_teams` | 参赛队伍 | 赛事报名和组队数据 |
 | `assessments` | 前后测 | baseline / milestone 类型 |
 | `comments` | 人工点评 | 教师对学生练习的点评 |
 
@@ -263,28 +317,60 @@ node seed-topics.js
 
 ## 部署指南
 
-### 微信云托管（推荐）
+### 1. 云托管 `debate-api`
 
-通过云开发控制台 Web 界面部署：
+项目根目录已包含 `Dockerfile`、`cloudbaserc.json` 和 `deploy-cloudbase.bat`。CLI 部署：
 
-1. 打包源码（不含 node_modules）：
 ```powershell
 cd D:\CODE\Debate
-New-Item -ItemType Directory -Path deploy-tmp -Force
-Copy-Item Dockerfile, .dockerignore deploy-tmp\
-New-Item -ItemType Directory -Path deploy-tmp\backend -Force
-Copy-Item backend\package.json, backend\package-lock.json deploy-tmp\backend\
-Copy-Item backend\src deploy-tmp\backend\src -Recurse
-Compress-Archive -Path deploy-tmp\* -DestinationPath debate-api-deploy.zip -Force
-Remove-Item -Recurse -Force deploy-tmp
+tcb cloudrun deploy --service-name debate-api --port 3000 --source . --force --wait
 ```
 
-2. 云开发控制台 → 云托管 → debate-api 服务 → 新建版本 → 上传 `debate-api-deploy.zip`
-3. 端口配置 `3000`，CPU 0.5核 / 内存 1GB
-4. 部署成功后，在「服务配置 → 环境变量」注入：
-   - `DOUBAO_API_KEY`、`BAIDU_API_KEY`、`BAIDU_SECRET_KEY`
-   - `AUTH_DEV_CODE=1`（未接入短信时保持验证码回显）
-5. 将默认域名更新到 `pc-web/js/config.js` 的 `API_BASE_URL`
+部署参数：端口 `3000`，CPU `0.5` 核，内存 `1GB`，自动切换到新版本。云托管环境变量必须在 CloudBase 控制台配置，密钥不要写入源码或 README：
+
+- `DOUBAO_API_KEY`
+- `DOUBAO_API_URL`
+- `QWEN_API_URL`、`QWEN_API_KEY`（可选备用模型）
+- `BAIDU_APP_ID`
+- `BAIDU_API_KEY`
+- `BAIDU_SECRET_KEY`
+- `AUTH_DEV_CODE=1`（未接入短信服务时启用开发验证码回显）
+
+部署后验证：
+
+```powershell
+Invoke-RestMethod https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api/health
+```
+
+### 2. 云函数 `apiGateway`
+
+小程序后端部署目录为 `miniprogram/cloudfunctions/apiGateway`，函数名为 `apiGateway`：
+
+```powershell
+cd D:\CODE\Debate
+tcb fn deploy apiGateway --force --dir miniprogram/cloudfunctions/apiGateway --install-dependency true
+```
+
+旧版 CLI 也可使用 `tcb functions:deploy`，但该命令已被 CloudBase 标记为 deprecated。云函数配置为 Node.js 20、512MB、60 秒超时。
+
+验证函数：
+
+```powershell
+tcb fn invoke apiGateway -d '{"method":"GET","path":"/api/health","query":{},"body":{},"headers":{}}' --json
+```
+
+云函数与云托管后端使用同一套 Express API 结构和同一 CloudBase 环境。修改 API 逻辑时，需要同步检查：
+
+- `backend/src/`
+- `miniprogram/cloudfunctions/apiGateway/backend/src/`
+
+### 3. 小程序体验版
+
+在微信开发者工具打开 `miniprogram/`，确认云环境为 `cloud1-d8g0k0m526d61652a`，重新编译并上传体验版。云函数部署不会自动更新小程序前端页面。
+
+### 4. PC 管理端
+
+PC 管理端使用 `pc-web/js/config.js` 中的 `API_BASE_URL`，当前应指向云托管域名。页面直接由 `debate-api` 静态托管，或通过静态网站托管发布 `pc-web/`。
 
 ### 本地开发
 
@@ -306,6 +392,9 @@ npm start              # http://localhost:3000
 | 语音评测 API 限流 | 同一参考文本 1 小时内缓存 |
 | 云托管实例回收 | 用户/Token 数据存云数据库，不依赖本地文件 |
 | 数据库查询慢 | `skip/limit` 分页 + 前端加载占位 |
+| 云函数请求体过大 | 音频使用 `wx.cloud.uploadFile` 上传，仅向云函数传 `fileID` |
+| 两套后端代码漂移 | 修改 API 后同步检查 `backend/src` 与 `miniprogram/cloudfunctions/apiGateway/backend/src` |
+| AI 密钥泄露 | 仅配置在 CloudBase 云托管/云函数环境变量，不写入小程序、PC 前端或 Git |
 
 ---
 
@@ -314,7 +403,7 @@ npm start              # http://localhost:3000
 ```bash
 cd backend
 node test-flow.js
-# 48 个测试用例，覆盖所有接口和边界情况
+# 运行后端集成测试
 ```
 
 ---

@@ -354,6 +354,7 @@ Provide feedback as a professional judge:
 3. specific suggestions for improvement
 4. a score (0-100)
 5. a brief judge comment (2-3 sentences)
+6. scores for debate ability dimensions (0-100): argument_structure, evidence_quality, logic, rebuttal, expression
 
 Respond in JSON format:
 {
@@ -361,7 +362,14 @@ Respond in JSON format:
   "weaknesses": ["..."],
   "suggestions": ["..."],
   "judge_score": 75,
-  "judge_comment": "..."
+  "judge_comment": "...",
+  "dimensions": {
+    "argument_structure": 78,
+    "evidence_quality": 70,
+    "logic": 76,
+    "rebuttal": 62,
+    "expression": 75
+  }
 }`;
 
   // 尝试调用豆包API
@@ -444,6 +452,7 @@ function getTemplatePortfolio(contentType, topic) {
       suggestions: ['建议加入更多数据支撑和案例佐证'],
       judge_score: 72,
       judge_comment: `作为专业评委，你的完整论点构建展现了良好的逻辑框架。在"${topic}"这个辩题上，你的论证结构基本完整，建议在论据的丰富性和层次感上进一步打磨。`,
+      dimensions: { argument_structure: 80, evidence_quality: 72, logic: 76, rebuttal: 55, expression: 72 },
     },
     argument: {
       strengths: ['论点明确', '切入角度好'],
@@ -451,6 +460,7 @@ function getTemplatePortfolio(contentType, topic) {
       suggestions: ['建议补充反面论点的回应'],
       judge_score: 70,
       judge_comment: `你的单一论点清晰有力，在"${topic}"这个角度上有不错的切入点。建议进一步展开论证链条，并预判可能的反驳。`,
+      dimensions: { argument_structure: 74, evidence_quality: 68, logic: 75, rebuttal: 58, expression: 72 },
     },
     mechanism: {
       strengths: ['分析角度独特', '有机制思维'],
@@ -458,6 +468,7 @@ function getTemplatePortfolio(contentType, topic) {
       suggestions: ['建议梳理完整的因果链条'],
       judge_score: 73,
       judge_comment: `你对"${topic}"的机制分析展现了良好的因果思维，能够从深层逻辑出发理解问题。建议进一步完善因果链条的完整性。`,
+      dimensions: { argument_structure: 68, evidence_quality: 70, logic: 86, rebuttal: 56, expression: 70 },
     },
     clash: {
       strengths: ['反驳意识强', '切入点准确'],
@@ -465,6 +476,7 @@ function getTemplatePortfolio(contentType, topic) {
       suggestions: ['建议在反驳后给出建设性替代观点'],
       judge_score: 68,
       judge_comment: `你的反驳思路清晰，能够准确抓住"${topic}"辩题中的关键争议点。建议在指出问题的同时，提供更具建设性的替代方案。`,
+      dimensions: { argument_structure: 62, evidence_quality: 66, logic: 78, rebuttal: 86, expression: 70 },
     },
     question: {
       strengths: ['善于发现关键问题', '思考有深度'],
@@ -472,6 +484,7 @@ function getTemplatePortfolio(contentType, topic) {
       suggestions: ['建议围绕这个问题尝试构建完整论点'],
       judge_score: 65,
       judge_comment: `你在"${topic}"辩题中提出了有价值的思考问题，这是深入辩论的重要起点。建议围绕这些问题尝试构建完整的论证框架。`,
+      dimensions: { argument_structure: 55, evidence_quality: 55, logic: 70, rebuttal: 48, expression: 68 },
     },
   };
 

@@ -12,12 +12,18 @@
     </view>
 
     <text class="section-title">选择辩题</text>
+    <view class="topic-toolbar">
+      <input class="topic-search" value="{{topicKeyword}}" bindinput="topicKeywordChange" placeholder="搜索辩题关键词" confirm-type="search" />
+      <button class="clear-search" wx:if="{{topicKeyword}}" bindtap="clearTopicKeyword">清除</button>
+    </view>
+    <view class="topic-count">共 {{TOPIC_LIST.length}} 道辩题<text wx:if="{{topicKeyword}}">，匹配 {{displayTopics.length}} 道</text></view>
     <view class="topic-list">
       <view class="topic-loading" wx:if="{{topicsLoading}}">正在加载辩题...</view>
-      <view class="topic-item {{selectedTopicId === item.id ? 'active' : ''}}" wx:for="{{TOPIC_LIST}}" wx:key="id" bindtap="selectTopic" data-topic="{{item}}">
+      <view class="topic-item {{selectedTopicId === item.id ? 'active' : ''}}" wx:for="{{displayTopics}}" wx:key="id" bindtap="selectTopic" data-topic="{{item}}">
         <text class="topic-title">{{item.title}}</text>
         <text class="topic-source">{{item.source}}</text>
       </view>
+      <view class="topic-empty" wx:if="{{!topicsLoading && displayTopics.length === 0}}">没有找到匹配的辩题，请换个关键词。</view>
     </view>
 
     <button class="start-btn" bindtap="startBattle">开始对练</button>
@@ -28,9 +34,10 @@
     <view class="battle-header">
       <view class="opponent-info">
         <text class="opponent-icon">{{opponent.icon}}</text>
-        <view class="opponent-detail">
+        <view class="opponent-detail" bindtap="showTopicDetail">
           <text class="opponent-name">{{opponent.name}}</text>
           <text class="battle-topic">{{battleTopic}}</text>
+          <text class="topic-detail-link">查看完整辩题</text>
         </view>
       </view>
       <button class="end-btn" bindtap="endBattle">结束</button>
@@ -107,6 +114,17 @@
       <view class="result-actions">
         <button class="primary-btn" bindtap="restartBattle">再来一次</button>
         <button class="outline-btn" bindtap="goBack">返回</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="topic-modal-mask" wx:if="{{showTopicModal}}" catchtap="closeTopicDetail">
+    <view class="topic-modal" catchtap="stopPropagation">
+      <text class="topic-modal-label">当前辩题</text>
+      <text class="topic-modal-title">{{battleTopic}}</text>
+      <view class="topic-modal-actions">
+        <button class="topic-copy-btn" bindtap="copyBattleTopic">复制辩题</button>
+        <button class="topic-close-btn" bindtap="closeTopicDetail">返回对练</button>
       </view>
     </view>
   </view>

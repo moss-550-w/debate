@@ -64,6 +64,45 @@
   width: 100%;
 }
 
+.topic-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.topic-search {
+  flex: 1;
+  min-width: 0;
+  height: 76rpx;
+  padding: 0 24rpx;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  background: #ffffff;
+  box-sizing: border-box;
+  font-size: 26rpx;
+}
+
+.clear-search {
+  width: 100rpx;
+  height: 76rpx;
+  padding: 0;
+  margin: 0;
+  line-height: 76rpx;
+  background: #ffffff;
+  color: #2563eb;
+  border: 2rpx solid #dbeafe;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+}
+
+.topic-count {
+  margin: 14rpx 2rpx;
+  color: #64748b;
+  font-size: 22rpx;
+}
+
 .topic-loading {
   padding: 24rpx 0;
   text-align: center;
@@ -96,6 +135,13 @@
   margin-top: 8rpx;
   color: #64748b;
   font-size: 22rpx;
+}
+
+.topic-empty {
+  padding: 48rpx 20rpx;
+  color: #64748b;
+  text-align: center;
+  font-size: 25rpx;
 }
 
 .start-btn {
@@ -166,6 +212,13 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.topic-detail-link {
+  display: block;
+  margin-top: 5rpx;
+  color: #2563eb;
+  font-size: 21rpx;
 }
 
 .end-btn {
@@ -499,4 +552,65 @@
   background: #ffffff;
   color: #2563eb;
   border: 2rpx solid #2563eb;
+}
+
+.topic-modal-mask {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  background: rgba(15, 23, 42, .45);
+  box-sizing: border-box;
+}
+
+.topic-modal {
+  width: 100%;
+  padding: 34rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
+  box-sizing: border-box;
+}
+
+.topic-modal-label {
+  display: block;
+  color: #64748b;
+  font-size: 24rpx;
+}
+
+.topic-modal-title {
+  display: block;
+  margin-top: 20rpx;
+  color: #1f2937;
+  font-size: 34rpx;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.topic-modal-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 30rpx;
+}
+
+.topic-copy-btn, .topic-close-btn {
+  flex: 1;
+  height: 76rpx;
+  line-height: 76rpx;
+  padding: 0;
+  margin: 0;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+}
+
+.topic-copy-btn {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.topic-close-btn {
+  color: #2563eb;
+  background: #eff6ff;
 }

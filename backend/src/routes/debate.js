@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const rateLimitMiddleware = require('../middleware/rateLimit');
 const aiService = require('../services/aiService');
+const debateStore = require('../services/debateStore');
 const logger = require('../utils/logger');
 
 const { OPPONENT_STYLES } = aiService;
@@ -126,6 +127,22 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
 
     // 更新 session 其他字段
     session.lastActivity = new Date().toISOString();
+
+    try {
+      await debateStore.recordTurn({
+        user_id: req.user.userId || req.user.openid,
+        session_id: sessionId,
+        topic_id,
+        topic_title: topic_title || session.topic,
+        opponent_style,
+        user_speech,
+        rebuttal_score: aiResult.rebuttal_quality_score,
+        is_rebuttal_effective: !!aiResult.is_rebuttal_effective,
+        response_time_ms: Number(response_time_ms) || 0,
+      });
+    } catch (recordError) {
+      logger.warn('对练记录写入失败', { error: recordError.message });
+    }
 
     logger.info('辩论对练回复成功', {
       session_id: sessionId,

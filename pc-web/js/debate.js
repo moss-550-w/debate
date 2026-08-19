@@ -299,12 +299,12 @@ function renderGradesTable(students) {
       <td>${s.name}</td>
       <td>${s.grade}</td>
       <td>${s.practice_count}</td>
-      <td>${s.avg_pronunciation}</td>
-      <td>${s.avg_fluency}</td>
+      <td>${s.avg_argument_structure}</td>
+      <td>${s.avg_evidence_quality}</td>
       <td>${s.avg_logic}</td>
-      <td>${s.avg_vocabulary}</td>
-      <td>${s.avg_reaction}</td>
-      <td><strong>${s.avg_overall}</strong></td>
+      <td>${s.avg_rebuttal}</td>
+      <td>${s.avg_expression}</td>
+      <td><strong>${s.avg_debate_score}</strong></td>
       <td>${s.total_duration_min}</td>
     </tr>
   `).join('');
@@ -314,15 +314,15 @@ function updateDashboardWithGrades(students, stats) {
   document.getElementById('statUsers').textContent = stats.total_students;
   document.getElementById('statPractices').textContent = stats.total_practices;
   document.getElementById('statDuration').textContent = stats.total_duration_min;
-  document.getElementById('statAvgScore').textContent = stats.avg_overall;
+  document.getElementById('statAvgScore').textContent = stats.avg_debate_score;
 
   // 最强/最弱维度
   const dims = [
-    { key: '发音', value: stats.avg_pronunciation },
-    { key: '流利度', value: stats.avg_fluency },
+    { key: '论点结构', value: stats.avg_argument_structure },
+    { key: '论据质量', value: stats.avg_evidence_quality },
     { key: '逻辑', value: stats.avg_logic },
-    { key: '词汇', value: stats.avg_vocabulary },
-    { key: '反应', value: stats.avg_reaction },
+    { key: '反驳回应', value: stats.avg_rebuttal },
+    { key: '表达组织', value: stats.avg_expression },
   ];
   dims.sort((a, b) => b.value - a.value);
   document.getElementById('statStrongest').textContent = dims[0].key;

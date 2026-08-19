@@ -80,7 +80,10 @@ Page({
     debugMsgCount: 0,
     STYLE_LIST: STYLE_LIST,
     TOPIC_LIST: mergeTopics([]),
+    displayTopics: [],
+    topicKeyword: '',
     topicsLoading: true,
+    showTopicModal: false,
     _replyIndex: 0,
     // ===== 语音识别状态（可见，避免静默失败）=====
     voiceStep: 'idle',          // idle / auth / recording / uploading / fallback / ok
@@ -116,7 +119,8 @@ Page({
         page += 1;
       }
 
-      this.setData({ TOPIC_LIST: mergeTopics(remoteTopics) });
+      const topics = mergeTopics(remoteTopics);
+      this.setData({ TOPIC_LIST: topics, displayTopics: topics });
     } catch (error) {
       console.error('加载 AI 对练辩题失败:', error);
     } finally {
@@ -138,6 +142,37 @@ Page({
   selectTopic(e) {
     const topic = e.currentTarget.dataset.topic;
     this.setData({ selectedTopic: topic, selectedTopicId: topic.id });
+  },
+
+  topicKeywordChange(e) {
+    const topicKeyword = String(e.detail.value || '').trim().toLowerCase();
+    const topics = this.data.TOPIC_LIST || [];
+    const displayTopics = topicKeyword
+      ? topics.filter(topic => String(topic.title || '').toLowerCase().includes(topicKeyword))
+      : topics;
+    this.setData({ topicKeyword, displayTopics });
+  },
+
+  clearTopicKeyword() {
+    this.setData({ topicKeyword: '', displayTopics: this.data.TOPIC_LIST || [] });
+  },
+
+  showTopicDetail() {
+    if (this.data.battleTopic) this.setData({ showTopicModal: true });
+  },
+
+  closeTopicDetail() {
+    this.setData({ showTopicModal: false });
+  },
+
+  stopPropagation() {},
+
+  copyBattleTopic() {
+    if (!this.data.battleTopic) return;
+    wx.setClipboardData({
+      data: this.data.battleTopic,
+      success: () => wx.showToast({ title: '辩题已复制', icon: 'success' }),
+    });
   },
 
   async startBattle() {
@@ -466,6 +501,9 @@ Page({
       sending: false,
       recording: false,
       battleTopic: '',
+      topicKeyword: '',
+      displayTopics: this.data.TOPIC_LIST || [],
+      showTopicModal: false,
       debugMsgCount: 0,
       _replyIndex: 0,
       _startLock: false,

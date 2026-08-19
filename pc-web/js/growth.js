@@ -43,7 +43,7 @@ function updateDashboardWithClassData(students, stats) {
   document.getElementById('statUsers').textContent = stats.total_students;
   document.getElementById('statPractices').textContent = stats.total_practices;
   document.getElementById('statDuration').textContent = stats.total_duration_min;
-  document.getElementById('statAvgScore').textContent = stats.avg_overall;
+  document.getElementById('statAvgScore').textContent = stats.avg_debate_score;
 
   const dims = getClassDimensions(stats);
   dims.sort((a, b) => b.value - a.value);
@@ -56,7 +56,7 @@ function updateDashboardWithClassData(students, stats) {
     : 0) * 100);
   document.getElementById('statCompletionRate').textContent = completionRate + '%';
 
-  document.getElementById('statImprovement').textContent = stats.avg_overall.toFixed(1);
+  document.getElementById('statImprovement').textContent = stats.avg_debate_score;
 
   // 渲染用户列表表格
   renderUserTable(students);
