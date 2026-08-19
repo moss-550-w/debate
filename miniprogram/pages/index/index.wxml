@@ -2,7 +2,7 @@
   <view class="user-banner">
     <view class="user-avatar">{{userInfo.nickname ? userInfo.nickname[0] : '?'}}</view>
     <view class="user-info">
-      <text class="user-name">{{userInfo.nickname || '小辩手'}}</text>
+      <text class="user-name">你好，{{userInfo.nickname || '小辩手'}}</text>
       <text class="user-grade">{{userInfo.grade || '小学'}}</text>
     </view>
   </view>

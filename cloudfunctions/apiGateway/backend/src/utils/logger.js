@@ -25,9 +25,7 @@ function log(level, message, data) {
   const line = `[${timestamp}] [${level}] ${message}${dataStr}`;
 
   console.log(line);
-  if (!process.env.CLOUD_FUNCTION) {
-    fs.appendFileSync(getLogFile(), line + '\n', 'utf-8');
-  }
+  fs.appendFileSync(getLogFile(), line + '\n', 'utf-8');
 }
 
 module.exports = {

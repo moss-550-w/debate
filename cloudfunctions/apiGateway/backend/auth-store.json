@@ -1,0 +1,78 @@
+{
+  "users": [
+    {
+      "_id": "user_13912345678_c97db174",
+      "phone": "13912345678",
+      "role": "admin",
+      "nickname": "",
+      "created_at": "2026-08-16T03:38:16.915Z",
+      "last_login_at": "2026-08-16T03:46:14.830Z",
+      "login_count": 2
+    },
+    {
+      "_id": "user_19564830455_fd91bc5a",
+      "phone": "19564830455",
+      "role": "admin",
+      "nickname": "",
+      "created_at": "2026-08-16T03:39:08.219Z",
+      "last_login_at": "2026-08-16T03:39:08.219Z",
+      "login_count": 1
+    },
+    {
+      "_id": "user_13876543210_2dc9e490",
+      "phone": "13876543210",
+      "role": "admin",
+      "nickname": "",
+      "source": "pc",
+      "created_at": "2026-08-16T03:46:14.871Z",
+      "last_login_at": "2026-08-16T03:46:14.871Z",
+      "login_count": 1
+    },
+    {
+      "openid": "mp_user_local-test",
+      "role": "pupil",
+      "nickname": "小辩手",
+      "grade": "G5",
+      "source": "miniprogram",
+      "created_at": "2026-08-19T11:25:42.426Z",
+      "last_login_at": "2026-08-19T11:25:42.426Z"
+    },
+    {
+      "_id": "mp_user_local-test",
+      "openid": "mp_user_local-test",
+      "role": "pupil",
+      "nickname": "测试用户",
+      "grade": "G5",
+      "source": "miniprogram",
+      "created_at": "2026-08-19T11:25:42.428Z",
+      "last_login_at": "2026-08-19T11:25:42.428Z"
+    }
+  ],
+  "codes": {},
+  "tokens": {
+    "tk_ff01f724cb095a898546bdd5841d106410f2591a7cccc963": {
+      "phone": "13912345678",
+      "user_id": "user_13912345678_c97db174",
+      "created_at": 1786851496915,
+      "expires_at": 1787456296915
+    },
+    "tk_e3f97d5f5932ad21127ffe98de67f57aac3228cffe52e982": {
+      "phone": "19564830455",
+      "user_id": "user_19564830455_fd91bc5a",
+      "created_at": 1786851548219,
+      "expires_at": 1787456348219
+    },
+    "tk_9472cdf5702cc2048d655f6271f6144d0e5aaefe576b9aa8": {
+      "phone": "13912345678",
+      "user_id": "user_13912345678_c97db174",
+      "created_at": 1786851974829,
+      "expires_at": 1787456774829
+    },
+    "tk_774f6b43795c0fea1cd9323a56d76a322e60757d6358f323": {
+      "phone": "13876543210",
+      "user_id": "user_13876543210_2dc9e490",
+      "created_at": 1786851974870,
+      "expires_at": 1787456774870
+    }
+  }
+}

@@ -1,8 +1,9 @@
-const API_MODE = 'cloud';
+const API_MODE = 'cloud-function';
 const API_BASE_URLS = {
   local: 'http://127.0.0.1:3000/api',
   lan: 'http://192.168.3.99:3000/api',
   cloud: 'https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api',
+  'cloud-function': '',
 };
 
 App({
@@ -10,9 +11,15 @@ App({
     userInfo: null,
     openid: '',
     apiBaseUrl: API_BASE_URLS[API_MODE],
+    apiMode: API_MODE,
+    cloudFunctionName: 'apiGateway',
   },
 
   onLaunch() {
+    wx.cloud.init({
+      env: 'cloud1-d8g0k0m526d61652a',
+      traceUser: true,
+    });
     this.autoLogin();
   },
 
@@ -46,11 +53,17 @@ App({
   syncMiniProfile() {
     const token = wx.getStorageSync('token');
     const userInfo = this.globalData.userInfo || {};
-    wx.request({
-      url: this.globalData.apiBaseUrl + '/auth/mini-profile',
-      method: 'POST',
-      data: { nickname: userInfo.nickname, grade: userInfo.grade },
-      header: { Authorization: `Bearer ${token}` },
+    wx.cloud.callFunction({
+      name: this.globalData.cloudFunctionName,
+      data: {
+        method: 'POST',
+        path: '/api/auth/mini-profile',
+        body: { nickname: userInfo.nickname, grade: userInfo.grade },
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      fail: err => {
+        console.error('同步用户资料失败:', err);
+      },
     });
   },
 });
