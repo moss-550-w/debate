@@ -99,18 +99,20 @@ Page({
     this.setData({ evaluating: true });
 
     try {
-      // 将音频文件转为Base64
-      const fs = wx.getFileSystemManager();
-      const base64 = fs.readFileSync(audioPath, 'base64');
-
-      const res = await request('/evaluate', {
+      const requestOptions = {
         method: 'POST',
         data: {
-          audio_base64: base64,
           ref_text: this.data.refText,
           format: 'wav',
         },
-      });
+      };
+      if (getApp().globalData.apiMode === 'cloud-function') {
+        requestOptions.filePath = audioPath;
+      } else {
+        requestOptions.data.audio_base64 = wx.getFileSystemManager().readFileSync(audioPath, 'base64');
+      }
+
+      const res = await request('/evaluate', requestOptions);
 
       if (res.code === 200) {
         const data = res.data;

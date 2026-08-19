@@ -396,31 +396,28 @@ Page({
 
   async _processAudioFile(filePath, durationSec) {
     this._setVoice('uploading', `上传识别中（${durationSec}s 音频）...`);
-    let audioBase64 = '';
-    try {
-      const fs = wx.getFileSystemManager();
-      const buf = fs.readFileSync(filePath, 'base64');
-      audioBase64 = buf || '';
-    } catch (e) {
-      this._setVoice('fail', '读取录音文件失败');
-      return;
-    }
-    if (!audioBase64 || audioBase64.length < 20) {
-      this._setVoice('fail', '音频数据为空，请重新录音');
-      return;
-    }
-
     let recognizedText = '';
     let recognitionMessage = '未识别到清晰英文，请重新录音或手动输入';
     try {
       this._setVoice('uploading', `调用语音识别API...`);
       const timeoutP = new Promise((_, reject) => setTimeout(() => reject(new Error('t')), 20000));
+      const requestOptions = {
+        method: 'POST',
+        data: { format: 'wav', duration_sec: durationSec },
+        timeout: 20000,
+      };
+      if (getApp().globalData.apiMode === 'cloud-function') {
+        requestOptions.filePath = filePath;
+      } else {
+        try {
+          requestOptions.data.audio = wx.getFileSystemManager().readFileSync(filePath, 'base64');
+        } catch (e) {
+          this._setVoice('fail', '读取录音文件失败');
+          return;
+        }
+      }
       const r = await Promise.race([
-        request('/speech-to-text', {
-          method: 'POST',
-          data: { audio: audioBase64, format: 'wav', duration_sec: durationSec },
-          timeout: 20000,
-        }),
+        request('/speech-to-text', requestOptions),
         timeoutP,
       ]).catch(() => null);
       if (r && r.code === 200 && r.data && r.data.text) {

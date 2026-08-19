@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const fetch = globalThis.fetch || require('node-fetch');
 
 /**
  * 大模型调用服务

@@ -24,13 +24,13 @@ function request(path, options = {}) {
           const [key, value = ''] = pair.split('=');
           query[decodeURIComponent(key)] = decodeURIComponent(value);
         });
-        wx.cloud.callFunction({
+        const invoke = body => wx.cloud.callFunction({
           name: app.globalData.cloudFunctionName,
           data: {
             method: options.method || 'GET',
             path: apiPath,
             query,
-            body: options.data || {},
+            body,
             headers: {
               'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -57,6 +57,24 @@ function request(path, options = {}) {
             reject(err);
           },
         });
+        if (options.filePath) {
+          wx.cloud.uploadFile({
+            cloudPath: `temp-audio/${Date.now()}_${Math.random().toString(36).slice(2)}.wav`,
+            filePath: options.filePath,
+            success(uploadRes) {
+              const body = { ...(options.data || {}) };
+              delete body.audio_base64;
+              delete body.audio;
+              invoke({ ...body, audio_file_id: uploadRes.fileID });
+            },
+            fail(err) {
+              console.error('音频上传失败:', err);
+              reject(err);
+            },
+          });
+        } else {
+          invoke(options.data || {});
+        }
         return;
       }
 

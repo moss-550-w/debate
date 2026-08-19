@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const fetch = globalThis.fetch || require('node-fetch');
 
 const SAFE_FALLBACK = '哇，这个问题好难，我们换个角度想想吧！';
 

@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const fetch = globalThis.fetch || require('node-fetch');
 
 let cachedToken = null;
 let tokenExpiresAt = 0;

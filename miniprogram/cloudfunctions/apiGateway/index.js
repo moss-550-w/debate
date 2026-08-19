@@ -47,6 +47,19 @@ function createRequest(event, context) {
   return request;
 }
 
+async function prepareAudio(event) {
+  const fileID = event.audio_file_id || (event.body && event.body.audio_file_id);
+  if (!fileID) return { event, fileID: null };
+
+  const file = await cloud.downloadFile({ fileID });
+  const audioBase64 = file.fileContent.toString('base64');
+  const body = { ...(event.body || {}) };
+  delete body.audio_file_id;
+  body.audio_base64 = audioBase64;
+  body.audio = audioBase64;
+  return { event: { ...event, body }, fileID };
+}
+
 function invokeApp(app, request) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -109,7 +122,16 @@ exports.main = async (event, context) => {
 
   try {
     const app = await getApp();
-    return await invokeApp(app, createRequest(event, context));
+    const prepared = await prepareAudio(event);
+    try {
+      return await invokeApp(app, createRequest(prepared.event, context));
+    } finally {
+      if (prepared.fileID) {
+        await cloud.deleteFile({ fileList: [prepared.fileID] }).catch(err => {
+          console.warn('临时音频删除失败:', err.message);
+        });
+      }
+    }
   } catch (err) {
     console.error('云函数 API 网关异常:', err);
     return { code: 500, message: '服务暂时不可用，请稍后重试', data: null };
