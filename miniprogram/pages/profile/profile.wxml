@@ -1,71 +1,83 @@
 <view class="page-profile">
-  <!-- 用户信息头部 -->
   <view class="user-header">
     <view class="avatar">{{userInfo.nickname ? userInfo.nickname[0] : '?'}}</view>
     <view class="user-meta">
+      <text class="eyebrow">我的能力</text>
       <text class="nickname">{{userInfo.nickname || '小辩手'}}</text>
-      <text class="grade">{{userInfo.grade || '小学'}}</text>
+      <text class="grade">{{userInfo.grade || '小学'}} · 辩论成长记录</text>
+    </view>
+    <view class="overall-score">
+      <text class="overall-number">{{debate.overall}}</text>
+      <text class="overall-label">辩论总分</text>
     </view>
   </view>
 
-  <!-- 雷达图区域 -->
   <view class="radar-section">
-    <text class="section-title">能力对比</text>
+    <view class="section-heading">
+      <view>
+        <text class="section-title">辩论能力</text>
+        <text class="section-subtitle">基于作品集和 AI 对练记录</text>
+      </view>
+      <text class="data-state" wx:if="{{debate.hasData}}">实时更新</text>
+      <text class="data-state muted" wx:else>待积累</text>
+    </view>
     <view class="radar-container">
       <canvas type="2d" id="radarCanvas" class="radar-canvas"></canvas>
     </view>
-    <view class="radar-legend">
-      <view class="legend-item">
-        <view class="legend-dot baseline"></view>
-        <text>首次评测</text>
-      </view>
-      <view class="legend-item">
-        <view class="legend-dot latest"></view>
-        <text>最近评测</text>
+    <view class="dimension-list">
+      <view class="dimension-item" wx:for="{{debate.dimensionLabels}}" wx:key="key">
+        <view class="dimension-topline">
+          <text>{{item.label}}</text>
+          <text>{{debate.dimensions[item.key] || 0}}</text>
+        </view>
+        <view class="dimension-track"><view class="dimension-fill" style="width: {{debate.dimensions[item.key] || 0}}%;"></view></view>
       </view>
     </view>
   </view>
 
-  <!-- 统计概览 -->
   <view class="stats-section">
-    <text class="section-title">练习统计</text>
+    <text class="section-title">辩论统计</text>
     <view class="stats-grid">
-      <view class="stat-item">
-        <text class="stat-value">{{stats.totalCount}}</text>
-        <text class="stat-label">练习次数</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-value">{{Math.round(stats.totalDuration / 60)}}</text>
-        <text class="stat-label">累计分钟</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-value">{{stats.avgScore}}</text>
-        <text class="stat-label">平均分</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-value">{{stats.daysActive}}</text>
-        <text class="stat-label">活跃天数</text>
-      </view>
+      <view class="stat-item"><text class="stat-value">{{debate.stats.practiceCount}}</text><text class="stat-label">练习次数</text></view>
+      <view class="stat-item"><text class="stat-value">{{debate.stats.portfolioCount}}</text><text class="stat-label">作品集记录</text></view>
+      <view class="stat-item"><text class="stat-value">{{debate.stats.sparringSessions}}</text><text class="stat-label">对练场次</text></view>
+      <view class="stat-item"><text class="stat-value">{{debate.stats.effectiveRebuttalRate}}%</text><text class="stat-label">有效反驳率</text></view>
     </view>
   </view>
 
-  <!-- 历史记录 -->
+  <view class="coach-section" wx:if="{{debate.recommendations.length > 0}}">
+    <view class="section-heading">
+      <view><text class="section-title">AI 教练建议</text><text class="section-subtitle">根据当前短板安排下一步训练</text></view>
+    </view>
+    <view class="recommendation-item" wx:for="{{debate.recommendations}}" wx:key="dimension">
+      <view class="recommendation-index">{{index + 1}}</view>
+      <view class="recommendation-copy"><text class="recommendation-title">{{item.title}}</text><text class="recommendation-desc">{{item.description}}</text></view>
+    </view>
+  </view>
+
   <view class="history-section">
-    <text class="section-title">最近练习</text>
-    <view class="history-list">
-      <view class="history-item" wx:for="{{history}}" wx:key="_id">
-        <view class="history-type type-{{item.type}}">
-          {{item.type === 'argument' ? '立论' : '跟读'}}
-        </view>
-        <view class="history-info">
-          <text class="history-score">总分: {{item.score.overall || item.score.pronunciation || 0}}</text>
-          <text class="history-date">{{formatDate(item.created_at)}}</text>
-        </view>
+    <view class="section-heading">
+      <view><text class="section-title">最近辩论记录</text><text class="section-subtitle">只展示会影响辩论能力的训练</text></view>
+    </view>
+    <view class="history-list" wx:if="{{debate.history.length > 0}}">
+      <view class="history-item" wx:for="{{debate.history}}" wx:key="_id">
+        <view class="history-type type-{{item.type}}">{{formatHistoryType(item.type)}}</view>
+        <view class="history-info"><text class="history-title">{{item.title}}</text><text class="history-score">{{item.score}} 分</text></view>
+        <text class="history-date">{{formatDate(item.created_at)}}</text>
       </view>
     </view>
+    <view class="empty-tip" wx:else><text>完成一次作品集提交或 AI 对练后，这里会生成能力记录。</text></view>
+  </view>
 
-    <view class="empty-tip" wx:if="{{history.length === 0}}">
-      <text>还没有练习记录，去首页开始练习吧！</text>
+  <view class="speech-section">
+    <view class="section-heading">
+      <view><text class="section-title">语言表达</text><text class="section-subtitle">跟读与语音评测的辅助数据</text></view>
+      <text class="speech-total">{{speechMinutes}} 分钟</text>
+    </view>
+    <view class="speech-stats">
+      <view><text class="speech-value">{{speech.stats.totalCount}}</text><text class="speech-label">跟读次数</text></view>
+      <view><text class="speech-value">{{speech.stats.avgScore}}</text><text class="speech-label">平均语音分</text></view>
+      <view><text class="speech-value">{{speech.stats.daysActive}}</text><text class="speech-label">活跃天数</text></view>
     </view>
   </view>
 </view>

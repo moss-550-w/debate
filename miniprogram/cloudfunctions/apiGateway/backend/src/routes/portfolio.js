@@ -3,13 +3,8 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth');
 const rateLimitMiddleware = require('../middleware/rateLimit');
 const aiService = require('../services/aiService');
+const portfolioStore = require('../services/portfolioStore');
 const logger = require('../utils/logger');
-
-// 内存存储（模拟数据库）
-const portfolios = new Map(); // key: userId, value: array of records
-
-// 自增 ID 计数器
-let idCounter = 0;
 
 // 内容类型列表
 const VALID_CONTENT_TYPES = ['case', 'argument', 'mechanism', 'clash', 'question'];
@@ -65,9 +60,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
     }
 
     // 创建记录
-    idCounter++;
     const record = {
-      _id: `portfolio_${idCounter}`,
       user_id: userId,
       topic_id,
       topic_title,
@@ -79,18 +72,14 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
       created_at: new Date().toISOString(),
     };
 
-    // 存入内存
-    if (!portfolios.has(userId)) {
-      portfolios.set(userId, []);
-    }
-    portfolios.get(userId).push(record);
+    const savedRecord = await portfolioStore.record(record);
 
-    logger.info('思考记录提交成功', { userId, recordId: record._id, content_type });
+    logger.info('思考记录提交成功', { userId, recordId: savedRecord._id, content_type });
 
     res.json({
       code: 200,
       message: 'ok',
-      data: record,
+      data: savedRecord,
     });
   } catch (err) {
     logger.error('提交思考记录失败', { error: err.message });
@@ -124,7 +113,7 @@ router.get('/:userId', authMiddleware, async (req, res) => {
     }
 
     // 获取用户记录
-    let records = portfolios.get(userId) || [];
+    let records = await portfolioStore.listByUser(userId);
 
     // 内容类型筛选
     if (contentType && VALID_CONTENT_TYPES.includes(contentType)) {
@@ -182,7 +171,7 @@ router.get('/:userId/analysis', authMiddleware, async (req, res) => {
       });
     }
 
-    const records = portfolios.get(userId) || [];
+    const records = await portfolioStore.listByUser(userId);
 
     if (records.length === 0) {
       // 没有记录时返回默认分析
@@ -277,7 +266,7 @@ router.get('/:userId/stats', authMiddleware, async (req, res) => {
       });
     }
 
-    const records = portfolios.get(userId) || [];
+    const records = await portfolioStore.listByUser(userId);
 
     // 按时间倒序排列
     const sortedRecords = [...records].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
