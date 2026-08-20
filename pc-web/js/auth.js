@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 发送验证码
   document.getElementById('sendCodeBtn').addEventListener('click', handleSendCode);
+  document.getElementById('developerKeyLoginToggle').addEventListener('click', toggleDeveloperKeyLogin);
+  document.getElementById('developerKeyForm').addEventListener('submit', handleDeveloperKeyLogin);
 
   // 菜单切换
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -67,6 +69,38 @@ async function handleLogin(e) {
     loadAdminData();
   } else {
     showToast((res && res.message) || '登录失败，请稍后重试', 'error');
+  }
+}
+
+function toggleDeveloperKeyLogin() {
+  const form = document.getElementById('developerKeyForm');
+  const visible = form.style.display !== 'none';
+  form.style.display = visible ? 'none' : '';
+  document.getElementById('developerKeyLoginToggle').textContent = visible ? '开发者密钥登录' : '返回手机号登录';
+}
+
+async function handleDeveloperKeyLogin(e) {
+  e.preventDefault();
+  const key = document.getElementById('developerKey').value.trim();
+  if (!key) {
+    showToast('请输入开发者密钥', 'error');
+    return;
+  }
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  const res = await apiRequest('/auth/developer-login', {
+    method: 'POST',
+    body: JSON.stringify({ key }),
+  });
+  btn.disabled = false;
+  if (res && res.code === 200 && res.data) {
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('user', JSON.stringify(res.data.user));
+    showToast('开发者登录成功', 'success');
+    showAdminPage();
+    loadAdminData();
+  } else {
+    showToast((res && res.message) || '开发者登录失败', 'error');
   }
 }
 

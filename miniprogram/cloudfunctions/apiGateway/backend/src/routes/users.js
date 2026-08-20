@@ -42,6 +42,7 @@ router.get('/', authMiddleware, requireManagement, async (req, res) => {
       portfolioStore.list(),
       debateStore.list(),
     ]);
+    const teachers = new Map(allUsers.filter(user => normalizeRole(user.role) === 'teacher').map(user => [user._id, user.nickname || user.phone || user._id]));
     const users = allUsers.filter(user => canSeeUser(req.user, user)).map(user => {
       const ids = new Set([user._id, user.openid].filter(Boolean));
       const speech = speechRecords.filter(record => ids.has(record.user_id));
@@ -53,6 +54,7 @@ router.get('/', authMiddleware, requireManagement, async (req, res) => {
         portfolio_count: portfolios.length,
         sparring_sessions: new Set(turns.map(record => record.session_id).filter(Boolean)).size,
         total_duration_min: Math.round(speech.reduce((sum, record) => sum + (Number(record.duration_sec) || 0), 0) / 60),
+        teacher_name: teachers.get(user.teacher_id || user.teacherId) || '',
       };
     });
     return res.json({ code: 200, message: 'ok', data: { total: users.length, list: users } });

@@ -30,10 +30,20 @@ const DAILY_SEND_LIMIT = 10;                  // 单手机号每日发送上限
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // Token 有效期 7 天
 const DEV_CODE_RETURN = process.env.AUTH_DEV_CODE !== '0';
+const developerKeyFailures = new Map();
+const DEVELOPER_KEY_WINDOW_MS = 15 * 60 * 1000;
+const DEVELOPER_KEY_MAX_FAILURES = 5;
 
 // ===== 工具函数 =====
 function sha256(text) {
   return crypto.createHash('sha256').update(String(text)).digest('hex');
+}
+
+function matchesConfiguredHash(value, configuredHash) {
+  const actualHash = sha256(value);
+  const expectedHash = String(configuredHash || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(expectedHash)) return false;
+  return crypto.timingSafeEqual(Buffer.from(actualHash, 'hex'), Buffer.from(expectedHash, 'hex'));
 }
 
 function isValidPhone(phone) {
@@ -227,6 +237,82 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     logger.error('登录失败', { error: err.message });
     res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
+  }
+});
+
+/**
+ * POST /api/auth/developer-login
+ * 开发者密钥登录。服务端只读取密钥哈希，不保存或返回明文密钥。
+ */
+router.post('/developer-login', async (req, res) => {
+  try {
+    const clientKey = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    const failure = developerKeyFailures.get(clientKey);
+    if (failure && Date.now() - failure.started_at < DEVELOPER_KEY_WINDOW_MS && failure.count >= DEVELOPER_KEY_MAX_FAILURES) {
+      return res.status(429).json({ code: 429, message: '尝试次数过多，请 15 分钟后重试', data: null });
+    }
+    const key = String(req.body.key || '').trim();
+    const configuredHash = process.env.DEVELOPER_LOGIN_KEY_HASH;
+    if (!key || !matchesConfiguredHash(key, configuredHash)) {
+      const current = failure && Date.now() - failure.started_at < DEVELOPER_KEY_WINDOW_MS
+        ? failure
+        : { started_at: Date.now(), count: 0 };
+      current.count += 1;
+      developerKeyFailures.set(clientKey, current);
+      return res.status(403).json({ code: 403, message: '开发者密钥无效', data: null });
+    }
+    developerKeyFailures.delete(clientKey);
+
+    const now = Date.now();
+    const userId = 'developer_key_admin';
+    let user = await authStore.findUserById(userId);
+    const isNew = !user;
+    const baseUser = {
+      _id: userId,
+      phone: '',
+      nickname: '开发者',
+      role: 'developer',
+      source: 'pc',
+      login_type: 'developer-key',
+      status: 'active',
+      created_at: new Date().toISOString(),
+      last_login_at: new Date().toISOString(),
+      login_count: 0,
+    };
+    if (!user) {
+      user = { ...baseUser, last_login_at: new Date(now).toISOString(), login_count: 1 };
+      await authStore.createUser(user);
+    } else {
+      if (user.status === 'disabled') return res.status(403).json({ code: 403, message: '账号已停用', data: null });
+      user = { ...user, role: 'developer', last_login_at: new Date(now).toISOString(), login_count: (user.login_count || 0) + 1 };
+      await authStore.updateUser(userId, {
+        role: user.role,
+        last_login_at: user.last_login_at,
+        login_count: user.login_count,
+      });
+    }
+
+    const token = 'tk_' + crypto.randomBytes(24).toString('hex');
+    await authStore.saveToken(token, {
+      phone: '',
+      user_id: userId,
+      created_at: now,
+      expires_at: now + TOKEN_TTL_MS,
+    });
+    logger.info('[auth] 开发者密钥登录成功');
+    return res.json({
+      code: 200,
+      message: '登录成功',
+      data: {
+        token,
+        expires_in: TOKEN_TTL_MS / 1000,
+        is_new_user: isNew,
+        user: publicUser(user),
+      },
+    });
+  } catch (err) {
+    logger.error('开发者密钥登录失败', { error: err.message });
+    return res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
   }
 });
 

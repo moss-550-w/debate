@@ -36,6 +36,7 @@
 - 小程序首次进入会在共享 `users` 集合自动创建 `student` 用户，PC 管理端刷新后即可查看。
 - 历史 `admin`、`coach`、`pupil` 角色会在服务端分别兼容为 `developer`、`teacher`、`student`。
 - PC 管理端不再允许任意手机号首次注册。首次授权账号需配置云托管环境变量：`DEVELOPER_PHONES`（开发者手机号）或 `TEACHER_PHONES`（教师手机号），多个手机号以英文逗号分隔。
+- 也可配置 `DEVELOPER_LOGIN_KEY_HASH` 使用 PC 管理端开发者密钥登录；服务端只保存密钥 SHA-256，不保存明文密钥。
 - 开发者可在“用户列表”中将用户设为教师/学生或启停账户；教师仅能查看已分配给自己的学生。学生分配教师可调用 `PATCH /api/users/:id/teacher`，请求体为 `{ "teacher_id": "教师用户ID" }`。
 
 ---
