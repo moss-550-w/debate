@@ -93,9 +93,53 @@ function renderUserTable(students) {
 }
 
 async function loadManagedUsers() {
+  initializeTeacherAuthorization();
   const result = await apiRequest('/users');
   if (result && result.code === 200 && result.data) {
     renderManagedUsers(result.data.list || []);
+  }
+}
+
+function initializeTeacherAuthorization() {
+  const panel = document.getElementById('teacherAuthorizationPanel');
+  const button = document.getElementById('authorizeTeachersBtn');
+  if (!panel || !button) return;
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const isDeveloper = ['developer', 'admin'].includes(currentUser.role);
+  panel.style.display = isDeveloper ? '' : 'none';
+  if (button.dataset.bound === 'true') return;
+  button.dataset.bound = 'true';
+  button.addEventListener('click', authorizeTeachers);
+}
+
+async function authorizeTeachers() {
+  const input = document.getElementById('teacherPhonesInput');
+  const resultNode = document.getElementById('teacherAuthorizationResult');
+  const button = document.getElementById('authorizeTeachersBtn');
+  const phones = input.value.trim();
+  if (!phones) {
+    showToast('请输入至少一个手机号', 'error');
+    return;
+  }
+  button.disabled = true;
+  resultNode.textContent = '授权中...';
+  const result = await apiRequest('/users/authorize-teachers', {
+    method: 'POST',
+    body: JSON.stringify({ phones }),
+  });
+  button.disabled = false;
+  if (result && result.code === 200) {
+    const items = result.data?.results || [];
+    const created = items.filter(item => item.action === 'created').length;
+    const promoted = items.filter(item => item.action === 'promoted').length;
+    const enabled = items.filter(item => item.action === 'enabled').length;
+    resultNode.textContent = `完成：${created}个新建，${promoted}个升为教师，${enabled}个已启用`;
+    showToast('教师授权完成', 'success');
+    input.value = '';
+    await loadManagedUsers();
+  } else {
+    resultNode.textContent = '';
+    showToast(result?.message || '教师授权失败', 'error');
   }
 }
 

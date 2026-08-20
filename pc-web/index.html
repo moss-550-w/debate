@@ -162,7 +162,18 @@
 
         <!-- 用户列表 -->
         <section id="usersPage" class="page-section" style="display:none;">
-          <h2>用户列表</h2>
+          <div class="section-header">
+            <h2>用户列表</h2>
+          </div>
+          <div id="teacherAuthorizationPanel" style="display:none;margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);">
+            <h3 style="margin:0 0 8px;font-size:16px;color:var(--text);">批量授权教师</h3>
+            <p style="margin:0 0 10px;color:#64748b;font-size:13px;">输入手机号，支持逗号、空格或换行分隔。不存在的账号会预创建为教师。</p>
+            <textarea id="teacherPhonesInput" class="form-select" style="width:100%;height:72px;resize:vertical;" placeholder="例如：19564830455\n13800138000"></textarea>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+              <button id="authorizeTeachersBtn" class="btn-primary">授权为教师</button>
+              <span id="teacherAuthorizationResult" style="font-size:13px;color:#64748b;"></span>
+            </div>
+          </div>
           <table class="data-table">
             <thead>
               <tr>
