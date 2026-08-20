@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const aiService = require('../services/aiService');
 const store = require('../services/persistentStore');
 const logger = require('../utils/logger');
+const { requireManagement } = require('../middleware/rbac');
 
 const TOURNAMENTS = 'tournaments';
 const TEAMS = 'tournament_teams';
@@ -18,7 +19,7 @@ async function getTeams(tournamentId) {
   return store.list(TEAMS, { tournament_id: tournamentId }, { orderBy: 'created_at', order: 'desc', limit: 100 });
 }
 
-router.post('/create', authMiddleware, async (req, res) => {
+router.post('/create', authMiddleware, requireManagement, async (req, res) => {
   try {
     const { name, format, topic_ids, judge_ids, max_teams, team_size, registration_deadline, rules } = req.body;
     if (!name || !VALID_FORMATS.includes(format) || !Array.isArray(topic_ids) || topic_ids.length === 0) {

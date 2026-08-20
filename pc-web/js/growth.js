@@ -20,6 +20,7 @@ async function loadGrowthDashboard() {
       updateDashboardWithClassData(students, class_stats);
       renderRadarWithClassStats(class_stats);
       renderDimensionWithClassStats(class_stats);
+      await loadManagedUsers();
       return;
     }
     throw new Error('未返回班级数据');
@@ -70,22 +71,93 @@ function renderUserTable(students) {
   if (!tbody) return;
 
   if (!students || students.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-row">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">暂无数据</td></tr>';
     return;
   }
 
   const roleLabels = { pupil: '学生', teacher: '老师', admin: '管理员' };
 
-  tbody.innerHTML = students.map(s => `
+    tbody.innerHTML = students.map(s => `
     <tr>
       <td>${escapeHtml(s.name || '未命名')}</td>
       <td>${roleLabels[s.role] || '学生'}</td>
       <td>${escapeHtml(s.grade || '-')}</td>
+      <td>-</td>
       <td>${s.practice_count ?? 0}</td>
       <td>${s.total_duration_min ?? 0}</td>
       <td>${s.registered_at || '-'}</td>
+      <td>正常</td>
+      <td>-</td>
     </tr>
   `).join('');
+}
+
+async function loadManagedUsers() {
+  const result = await apiRequest('/users');
+  if (result && result.code === 200 && result.data) {
+    renderManagedUsers(result.data.list || []);
+  }
+}
+
+function renderManagedUsers(users) {
+  const tbody = document.getElementById('userTableBody');
+  if (!tbody) return;
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">暂无可管理用户</td></tr>';
+    return;
+  }
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const canEdit = ['developer', 'admin'].includes(currentUser.role);
+  const roleLabels = { developer: '开发者', admin: '开发者', teacher: '教师', student: '学生', pupil: '学生' };
+  const teachers = users.filter(user => user.role === 'teacher' || user.role === 'admin');
+  tbody.innerHTML = users.map(user => {
+    const role = user.role || 'student';
+    const nextRole = role === 'student' ? 'teacher' : 'student';
+    const roleAction = canEdit && role !== 'developer' ? `<button class="btn-secondary" onclick="changeUserRole('${escapeAttr(user._id)}','${nextRole}')">设为${nextRole === 'teacher' ? '教师' : '学生'}</button>` : '';
+    const statusAction = canEdit && role !== 'developer' ? `<button class="btn-secondary" onclick="toggleUserStatus('${escapeAttr(user._id)}','${user.status === 'disabled' ? 'active' : 'disabled'}')">${user.status === 'disabled' ? '启用' : '停用'}</button>` : '';
+    const teacherControl = canEdit && role === 'student' ? `<select class="form-select" onchange="assignTeacher('${escapeAttr(user._id)}',this.value)"><option value="">未分配</option>${teachers.map(teacher => `<option value="${escapeAttr(teacher._id)}" ${teacher._id === user.teacher_id ? 'selected' : ''}>${escapeHtml(teacher.nickname || teacher.phone || '教师')}</option>`).join('')}</select>` : escapeHtml(user.teacher_name || '-');
+    return `<tr>
+      <td>${escapeHtml(user.nickname || '小辩手')}</td>
+      <td>${roleLabels[role] || '学生'}</td>
+      <td>${escapeHtml(user.grade || '-')}</td>
+      <td>${teacherControl}</td>
+      <td>${user.practice_count ?? 0}</td>
+      <td>${user.total_duration_min ?? 0}</td>
+      <td>${user.created_at ? formatDate(user.created_at) : '-'}</td>
+      <td>${user.status === 'disabled' ? '已停用' : '正常'}</td>
+      <td>${roleAction}${statusAction}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function assignTeacher(userId, teacherId) {
+  const result = await apiRequest(`/users/${userId}/teacher`, { method: 'PATCH', body: JSON.stringify({ teacher_id: teacherId }) });
+  if (result && result.code === 200) {
+    showToast(teacherId ? '教师已分配' : '已解除教师分配', 'success');
+    await loadManagedUsers();
+  } else {
+    showToast(result?.message || '分配教师失败', 'error');
+  }
+}
+
+async function changeUserRole(userId, role) {
+  const result = await apiRequest(`/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
+  if (result && result.code === 200) {
+    showToast('角色已更新', 'success');
+    await loadManagedUsers();
+  } else {
+    showToast(result?.message || '更新角色失败', 'error');
+  }
+}
+
+async function toggleUserStatus(userId, status) {
+  const result = await apiRequest(`/users/${userId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+  if (result && result.code === 200) {
+    showToast(status === 'active' ? '用户已启用' : '用户已停用', 'success');
+    await loadManagedUsers();
+  } else {
+    showToast(result?.message || '更新状态失败', 'error');
+  }
 }
 
 /**

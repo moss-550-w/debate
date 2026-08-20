@@ -5,6 +5,7 @@ const authStore = require('../services/authStore');
 const practiceStore = require('../services/practiceStore');
 const portfolioStore = require('../services/portfolioStore');
 const debateStore = require('../services/debateStore');
+const { normalizeRole, requireManagement } = require('../middleware/rbac');
 
 const DEBATE_DIMENSIONS = [
   { key: 'argument_structure', label: '论点结构', weight: 0.25 },
@@ -15,10 +16,7 @@ const DEBATE_DIMENSIONS = [
 ];
 
 function requireAdmin(req, res, next) {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ code: 403, message: '仅管理员可查看班级数据', data: null });
-  }
-  return next();
+  return requireManagement(req, res, next);
 }
 
 function clampScore(value) {
@@ -113,14 +111,20 @@ function buildStudent(user, speechRecords, portfolios, turns) {
   };
 }
 
-async function buildClassData() {
+async function buildClassData(actor) {
   const [users, speechRecords, portfolios, turns] = await Promise.all([
     authStore.listUsers(),
     practiceStore.list(),
     portfolioStore.list(),
     debateStore.list(),
   ]);
-  const pupils = users.filter(user => user.role === 'pupil' && user.source === 'miniprogram');
+  const actorRole = normalizeRole(actor.role);
+  const actorId = actor.userId || actor.openid;
+  const pupils = users.filter(user => {
+    if (normalizeRole(user.role) !== 'student') return false;
+    if (actorRole === 'developer') return true;
+    return user.teacher_id === actorId || user.teacherId === actorId;
+  });
   const students = pupils.map(user => buildStudent(user, speechRecords, portfolios, turns));
   const classStats = {
     total_students: students.length,
@@ -152,7 +156,7 @@ function csvValue(value) {
 
 router.get('/grades', authMiddleware, requireAdmin, async (req, res) => {
   try {
-    const { students } = await buildClassData();
+    const { students } = await buildClassData(req.user);
     const headers = ['昵称', '年级', '练习次数', '作品集', '对练场次', '有效反驳率', '论点结构', '论据质量', '逻辑推理', '反驳回应', '表达组织', '辩论总分', '发音', '流利度', '完整度', '累计时长(分钟)', '最近练习日期'];
     const rows = students.map(student => [
       student.name, student.grade, student.practice_count, student.portfolio_count, student.sparring_sessions,
@@ -170,7 +174,7 @@ router.get('/grades', authMiddleware, requireAdmin, async (req, res) => {
 
 router.get('/grades-json', authMiddleware, requireAdmin, async (req, res) => {
   try {
-    const { students, classStats } = await buildClassData();
+    const { students, classStats } = await buildClassData(req.user);
     return res.json({ code: 200, message: 'ok', data: { students, class_stats: classStats } });
   } catch (err) {
     return res.status(500).json({ code: 500, message: '获取数据失败', data: null });

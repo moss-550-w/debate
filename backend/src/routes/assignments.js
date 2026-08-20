@@ -5,6 +5,7 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
+const { requireManagement } = require('../middleware/rbac');
 
 // 内存存储
 const assignments = new Map(); // key: assignmentId
@@ -15,7 +16,7 @@ let nextId = 1;
  * POST /api/assignments/publish
  * 教师发布任务
  */
-router.post('/publish', authMiddleware, (req, res) => {
+router.post('/publish', authMiddleware, requireManagement, (req, res) => {
   try {
     const { topic_id, topic_title } = req.body;
 

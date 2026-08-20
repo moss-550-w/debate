@@ -1,6 +1,7 @@
 const logger = require('../utils/logger');
 const db = require('../utils/db');
 const authStore = require('../services/authStore');
+const { normalizeRole } = require('./rbac');
 
 /**
  * Token 校验中间件
@@ -31,9 +32,12 @@ async function authMiddleware(req, res, next) {
   if (session && session.expires_at > Date.now()) {
     const user = await authStore.findUserById(session.user_id);
     if (user) {
+      if (user.status === 'disabled') {
+        return res.status(403).json({ code: 403, message: '账号已停用', data: null });
+      }
       req.user = {
         openid: user.openid || user._id,
-        role: user.role,
+        role: normalizeRole(user.role),
         userId: user._id,
         nickname: user.nickname,
       };
@@ -49,30 +53,33 @@ async function authMiddleware(req, res, next) {
     const users = await db.query('users', { openid }, { limit: 1 });
     if (users.length > 0) {
       const user = users[0];
+      if (user.status === 'disabled') {
+        return res.status(403).json({ code: 403, message: '账号已停用', data: null });
+      }
       req.user = {
         openid: user.openid,
-        role: user.role,
+        role: normalizeRole(user.role),
         userId: user._id,
         nickname: user.nickname,
       };
     } else if (openid.startsWith('mp_user_')) {
       const userId = await authStore.createUser({
         openid,
-        role: 'pupil',
+        role: 'student',
         nickname: '小辩手',
         grade: 'G5',
         source: 'miniprogram',
         created_at: new Date().toISOString(),
         last_login_at: new Date().toISOString(),
       });
-      req.user = { openid, role: 'pupil', userId, nickname: '小辩手' };
+      req.user = { openid, role: 'student', userId, nickname: '小辩手' };
       logger.info('小程序用户已登记', { openid, userId });
     } else {
       return res.status(401).json({ code: 401, message: '未授权，Token 无效', data: null });
     }
   } catch (err) {
-    logger.error('查询用户信息失败，使用默认角色', { openid, error: err.message });
-    req.user = { openid, role: 'pupil' };
+    logger.error('查询用户信息失败', { openid, error: err.message });
+    return res.status(503).json({ code: 503, message: '认证服务暂时不可用', data: null });
   }
 
   logger.info('请求鉴权通过', { openid, role: req.user.role });

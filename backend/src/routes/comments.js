@@ -4,6 +4,7 @@ const authMiddleware = require('../middleware/auth');
 const aiService = require('../services/aiService');
 const logger = require('../utils/logger');
 const persistentStore = require('../services/persistentStore');
+const { requireManagement } = require('../middleware/rbac');
 
 // 内存存储
 const assignments = new Map(); // key: assignmentId -> assignment object
@@ -161,7 +162,7 @@ router.get('/:recordId', async (req, res) => {
  * POST /api/comments/teacher-assignment
  * 导师发布议题
  */
-router.post('/teacher-assignment', authMiddleware, async (req, res) => {
+router.post('/teacher-assignment', authMiddleware, requireManagement, async (req, res) => {
   try {
     const { topic_id, title, description, deadline, requirements } = req.body;
 

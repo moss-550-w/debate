@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const authStore = require('../services/authStore');
 const authMiddleware = require('../middleware/auth');
+const { normalizeRole } = require('../middleware/rbac');
 
 // ===== 常量 =====
 const CODE_TTL_MS = 5 * 60 * 1000;            // 验证码有效期 5 分钟
@@ -40,10 +41,12 @@ function isValidPhone(phone) {
 }
 
 function publicUser(user) {
+  const role = normalizeRole(user.role);
   return {
     _id: user._id,
     phone: user.phone,
-    role: user.role,
+    role,
+    role_label: { developer: '开发者', teacher: '教师', student: '学生' }[role],
     nickname: user.nickname || '',
     last_login_at: user.last_login_at,
   };
@@ -164,24 +167,35 @@ router.post('/login', async (req, res) => {
     // 验证通过，验证码一次性作废
     await authStore.deleteCode(phone);
 
-    // 查找用户，不存在则注册（登录即注册）
+    // PC 登录只允许已有管理账号，避免任意手机号获得后台权限。
     let user = await authStore.findUserByPhone(phone);
     let isNew = false;
     if (!user) {
+      const developerPhones = String(process.env.DEVELOPER_PHONES || '').split(',').map(item => item.trim()).filter(Boolean);
+      const teacherPhones = String(process.env.TEACHER_PHONES || '').split(',').map(item => item.trim()).filter(Boolean);
+      const role = developerPhones.includes(phone) ? 'developer' : teacherPhones.includes(phone) ? 'teacher' : null;
+      if (!role) {
+        return res.status(403).json({ code: 403, message: '该手机号未被授权进入管理端，请联系开发者分配教师权限', data: null });
+      }
       isNew = true;
       user = {
         _id: `user_${phone}_${crypto.randomBytes(4).toString('hex')}`,
         phone,
-        role: 'admin',
+        role,
         nickname: '',
         source: 'pc',
+        status: 'active',
         created_at: new Date().toISOString(),
         last_login_at: new Date().toISOString(),
         login_count: 1,
       };
       await authStore.createUser(user);
-      logger.info(`[auth] 新用户注册: ${phone}`);
+      logger.info(`[auth] 管理员账号初始化: ${phone}, role=${role}`);
     } else {
+      if (user.status === 'disabled') return res.status(403).json({ code: 403, message: '账号已停用', data: null });
+      if (!['developer', 'teacher', 'admin'].includes(user.role)) {
+        return res.status(403).json({ code: 403, message: '该账号没有管理端权限', data: null });
+      }
       user.last_login_at = new Date().toISOString();
       user.login_count = (user.login_count || 0) + 1;
       await authStore.updateUser(user._id, {
@@ -256,7 +270,7 @@ router.post('/mini-profile', authMiddleware, async (req, res) => {
       await authStore.createUser({
         _id: userId,
         openid: req.user.openid,
-        role: 'pupil',
+        role: 'student',
         nickname: '小辩手',
         grade: 'G5',
         source: 'miniprogram',

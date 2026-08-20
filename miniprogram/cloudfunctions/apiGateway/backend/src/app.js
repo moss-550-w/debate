@@ -17,6 +17,7 @@ const commentsRouter = require('./routes/comments');
 const assignmentsRouter = require('./routes/assignments');
 const speechToTextRouter = require('./routes/speechToText');
 const exportRouter = require('./routes/export');
+const usersRouter = require('./routes/users');
 
 function createApp({ includeStatic = true } = {}) {
   const app = express();
@@ -67,6 +68,7 @@ function createApp({ includeStatic = true } = {}) {
   app.use('/api/assignments', assignmentsRouter);
   app.use('/api/speech-to-text', speechToTextRouter);
   app.use('/api/export', exportRouter);
+  app.use('/api/users', usersRouter);
 
   // ===== 404 处理 =====
   app.use((req, res) => {

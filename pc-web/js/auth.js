@@ -152,7 +152,8 @@ function showAdminPage() {
   document.getElementById('adminPage').style.display = '';
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  document.getElementById('currentUser').textContent = user.phone || '管理员';
+  const roleLabels = { developer: '开发者', admin: '开发者', teacher: '教师' };
+  document.getElementById('currentUser').textContent = `${user.phone || '管理员'} · ${roleLabels[user.role] || '管理人员'}`;
 }
 
 /**

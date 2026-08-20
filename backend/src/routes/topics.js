@@ -9,16 +9,17 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../utils/db');
 const authMiddleware = require('../middleware/auth');
+const { requireManagement } = require('../middleware/rbac');
 
 /**
  * 轻量鉴权：只校验 token 存在性（header / query 二选一），
  * 不访问数据库，在 DB 不可用时也能正常工作
  */
-function adminOnly(req, res, next) {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ code: 403, message: '仅管理员可管理辩题', data: null });
-  }
-  return next();
+const adminOnly = requireManagement;
+
+function adminQueryAuth(req, res, next) {
+  if (req.query.admin !== '1') return next();
+  return authMiddleware(req, res, () => adminOnly(req, res, next));
 }
 
 const seedPath = path.join(__dirname, '../../topics-seed.json');
@@ -99,7 +100,7 @@ function saveTopics() {
  * 查询辩题列表（管理员模式返回全部含下架，普通模式仅返回上架）
  * 查询参数: ?category=&difficulty=&page=1&size=10&keyword=&admin=1
  */
-router.get('/', async (req, res) => {
+router.get('/', adminQueryAuth, async (req, res) => {
   try {
     await ensureTopicsReady();
     let { category, difficulty, page, size, keyword, admin } = req.query;
