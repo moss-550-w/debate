@@ -4,16 +4,11 @@ const authMiddleware = require('../middleware/auth');
 const aiService = require('../services/aiService');
 const logger = require('../utils/logger');
 const persistentStore = require('../services/persistentStore');
+const db = require('../utils/db');
 const { requireManagement } = require('../middleware/rbac');
 
-// 内存存储
-const assignments = new Map(); // key: assignmentId -> assignment object
-const submissions = new Map(); // key: assignmentId -> array of submission
-
-// 自增 ID 计数器
-let commentIdCounter = 0;
-let assignmentIdCounter = 0;
-let submissionIdCounter = 0;
+const ASSIGNMENT_COLLECTION = 'teacher_assignments';
+const SUBMISSION_COLLECTION = 'assignment_submissions';
 
 // 有效的评论类型
 const VALID_COMMENT_TYPES = ['peer', 'teacher'];
@@ -44,9 +39,8 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ code: 400, message: '导师点评需要提供 teacher_id', data: null });
     }
 
-    commentIdCounter++;
     const comment = {
-      _id: `comment_${Date.now()}_${commentIdCounter}`,
+      _id: `comment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       record_id,
       content,
       comment_type,
@@ -67,9 +61,12 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     logger.error('提交评论失败', { error: err.message });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '提交评论失败';
     res.status(500).json({
       code: 500,
-      message: '提交评论失败',
+      message,
       data: null,
     });
   }
@@ -82,7 +79,7 @@ router.post('/', authMiddleware, async (req, res) => {
  */
 router.get('/assignments', async (req, res) => {
   try {
-    const allAssignments = Array.from(assignments.values());
+    const allAssignments = await persistentStore.list(ASSIGNMENT_COLLECTION, {}, { orderBy: 'created_at', order: 'desc', limit: 1000 });
 
     // 按创建时间倒序排列
     allAssignments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -106,9 +103,12 @@ router.get('/assignments', async (req, res) => {
     });
   } catch (err) {
     logger.error('获取议题列表失败', { error: err.message });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '获取议题列表失败';
     res.status(500).json({
       code: 500,
-      message: '获取议题列表失败',
+      message,
       data: null,
     });
   }
@@ -177,9 +177,8 @@ router.post('/teacher-assignment', authMiddleware, requireManagement, async (req
       return res.status(400).json({ code: 400, message: '缺少必填参数: description', data: null });
     }
 
-    assignmentIdCounter++;
     const assignment = {
-      _id: `assignment_${assignmentIdCounter}`,
+      _id: `assignment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       topic_id,
       title,
       description,
@@ -191,8 +190,7 @@ router.post('/teacher-assignment', authMiddleware, requireManagement, async (req
       updated_at: new Date().toISOString(),
     };
 
-    assignments.set(assignment._id, assignment);
-    submissions.set(assignment._id, []);
+    await persistentStore.set(ASSIGNMENT_COLLECTION, assignment._id, assignment);
 
     logger.info('导师议题发布成功', { assignmentId: assignment._id, title });
 
@@ -203,9 +201,12 @@ router.post('/teacher-assignment', authMiddleware, requireManagement, async (req
     });
   } catch (err) {
     logger.error('发布议题失败', { error: err.message });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '发布议题失败';
     res.status(500).json({
       code: 500,
-      message: '发布议题失败',
+      message,
       data: null,
     });
   }
@@ -228,7 +229,7 @@ router.post('/submit-assignment', authMiddleware, async (req, res) => {
     }
 
     // 检查作业是否存在
-    const assignment = assignments.get(assignment_id);
+    const assignment = await persistentStore.get(ASSIGNMENT_COLLECTION, assignment_id);
     if (!assignment) {
       return res.status(404).json({ code: 404, message: '议题不存在', data: null });
     }
@@ -257,9 +258,8 @@ router.post('/submit-assignment', authMiddleware, async (req, res) => {
       };
     }
 
-    submissionIdCounter++;
     const submission = {
-      _id: `submission_${submissionIdCounter}`,
+      _id: `submission_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       assignment_id,
       record_id,
       notes: notes || '',
@@ -270,7 +270,7 @@ router.post('/submit-assignment', authMiddleware, async (req, res) => {
       created_at: new Date().toISOString(),
     };
 
-    submissions.get(assignment_id).push(submission);
+    await persistentStore.set(SUBMISSION_COLLECTION, submission._id, submission);
 
     logger.info('作业提交成功', { assignment_id, submissionId: submission._id });
 
@@ -300,12 +300,12 @@ router.get('/assignment/:id/submissions', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const assignment = assignments.get(id);
+    const assignment = await persistentStore.get(ASSIGNMENT_COLLECTION, id);
     if (!assignment) {
       return res.status(404).json({ code: 404, message: '议题不存在', data: null });
     }
 
-    const submissionList = submissions.get(id) || [];
+    const submissionList = await persistentStore.list(SUBMISSION_COLLECTION, { assignment_id: id }, { orderBy: 'created_at', order: 'desc', limit: 1000 });
 
     // 按提交时间倒序排列
     submissionList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

@@ -59,9 +59,15 @@ Page({
     this.loadData();
   },
 
-  async loadData() {
-    this.setData({ loading: true });
-    const userId = wx.getStorageSync('openid');
+    async loadData() {
+      this.setData({ loading: true });
+      const app = getApp();
+      if (app.globalData.userReady) await app.globalData.userReady.catch(() => {});
+      const userId = wx.getStorageSync('userId') || app.globalData.userId;
+      if (!userId) {
+        this.setData({ loading: false });
+        return;
+      }
     try {
       const [listRes, analysisRes] = await Promise.all([
         request(`/portfolio/${userId}?size=50`),

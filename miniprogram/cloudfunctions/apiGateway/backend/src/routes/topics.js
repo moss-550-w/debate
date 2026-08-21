@@ -46,7 +46,12 @@ try {
 async function ensureTopicsReady() {
   if (cloudTopicsPromise) return cloudTopicsPromise;
   cloudTopicsPromise = (async () => {
-    if (!(await db.isAvailable())) return;
+    if (!(await db.isAvailable())) {
+      if (db.isProductionEnvironment()) {
+        throw new Error('辩题存储初始化失败：生产环境无法连接 CloudBase 数据库');
+      }
+      return;
+    }
     const cloudTopics = await db.query('topics', {}, { limit: 100 });
     if (cloudTopics.length > 0) {
       topics = cloudTopics;
@@ -74,12 +79,18 @@ async function ensureTopicsReady() {
 
 async function persistTopic(topic) {
   if (await db.isAvailable()) return db.set('topics', topic._id, topic);
+  if (db.isProductionEnvironment()) {
+    throw new Error('辩题保存失败：生产环境无法连接 CloudBase 数据库');
+  }
   saveTopics();
   return true;
 }
 
 async function removePersistedTopic(id) {
   if (await db.isAvailable()) return db.remove('topics', id);
+  if (db.isProductionEnvironment()) {
+    throw new Error('辩题删除失败：生产环境无法连接 CloudBase 数据库');
+  }
   saveTopics();
   return true;
 }
@@ -140,7 +151,10 @@ router.get('/', adminQueryAuth, async (req, res) => {
       data: { total, page, size, list },
     });
   } catch (err) {
-    res.status(500).json({ code: 500, message: '查询辩题失败', data: null });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '查询辩题失败';
+    res.status(500).json({ code: 500, message, data: null });
   }
 });
 
@@ -200,7 +214,10 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
 
     res.json({ code: 200, message: '辩题创建成功', data: newTopic });
   } catch (err) {
-    res.status(500).json({ code: 500, message: '创建辩题失败', data: null });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '创建辩题失败';
+    res.status(500).json({ code: 500, message, data: null });
   }
 });
 
@@ -242,7 +259,10 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
 
     res.json({ code: 200, message: '辩题更新成功', data: updated });
   } catch (err) {
-    res.status(500).json({ code: 500, message: '更新辩题失败', data: null });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '更新辩题失败';
+    res.status(500).json({ code: 500, message, data: null });
   }
 });
 
@@ -263,7 +283,10 @@ router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
 
     res.json({ code: 200, message: '辩题已删除', data: { _id: removed._id } });
   } catch (err) {
-    res.status(500).json({ code: 500, message: '删除辩题失败', data: null });
+    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
+      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+      : '删除辩题失败';
+    res.status(500).json({ code: 500, message, data: null });
   }
 });
 

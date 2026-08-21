@@ -38,11 +38,13 @@ Page({
   },
 
   async loadGrowthData() {
-    const openid = wx.getStorageSync('openid');
-    if (!openid) return;
+    const app = getApp();
+    if (app.globalData.userReady) await app.globalData.userReady.catch(() => {});
+    const userId = wx.getStorageSync('userId') || app.globalData.userId;
+    if (!userId) return;
 
     try {
-      const res = await request(`/growth/${openid}`);
+      const res = await request(`/growth/${userId}`);
       if (res.code !== 200 || !res.data) throw new Error(res.message || '成长数据不可用');
 
       const debate = { ...EMPTY_DEBATE, ...(res.data.debate || {}) };

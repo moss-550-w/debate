@@ -37,9 +37,10 @@ function createRequest(event, context) {
     return headers;
   }, {});
   request.headers.host = 'cloud-function';
+  if (context.OPENID) request.headers['x-cloud-function-openid'] = context.OPENID;
   // 小程序端当前使用已保存的会话 Token。不能无条件改写成 context.OPENID，
   // 否则 /growth/:userId 中的用户 ID 会与鉴权用户不一致并返回 403。
-  if (!request.headers.authorization && context.OPENID) {
+  if ((!request.headers.authorization || request.headers.authorization === 'Bearer ' || request.headers.authorization.includes('mp_user_')) && context.OPENID) {
     request.headers.authorization = `Bearer ${context.OPENID}`;
   }
   if (payload) {

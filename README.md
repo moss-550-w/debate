@@ -198,7 +198,7 @@ node seed-topics.js
 # 在云开发控制台 → 数据库 → topics 集合 → 导入生成的 topics-seed.json
 ```
 
-如果云数据库尚未创建 `topics` 集合，小程序接口会临时回退到内置种子数据；此时可以读取辩题，但 PC 端新增、编辑、删除辩题无法持久化。生产环境应在云开发控制台创建并配置该集合。
+本地开发时如果云数据库尚未创建 `topics` 集合，小程序接口会临时回退到内置种子数据；生产环境不会回退，PC 端新增、编辑、删除辩题会明确返回 CloudBase 数据库错误。生产环境应在云开发控制台创建并配置该集合。
 
 ---
 
@@ -228,7 +228,7 @@ node seed-topics.js
 
 | 环境 | 存储方式 | 判定条件 |
 |------|----------|----------|
-| 云托管（生产） | 云数据库 `users` / `auth_tokens` / `auth_codes` | `TENCENTCLOUD_RUNENV` 注入 + db 连通 |
+| 云托管（生产） | 云数据库 `users` / `auth_tokens` / `auth_codes` | `TENCENTCLOUD_RUNENV` 注入 + db 连通；数据库不可用时直接失败 |
 | 本地开发 | `auth-store.json` | 云库不可用时自动回退 |
 | 强制本地 | 环境变量 `AUTH_STORAGE=local` | 回滚用 |
 
@@ -250,7 +250,7 @@ PC 管理端 → debate-api ─┘
 - 体验版与正式版均使用 `cloud1-d8g0k0m526d61652a`，不会因版本类型隔离用户和训练数据。
 - 体验成员首次进入小程序时，客户端调用 `POST /api/auth/mini-profile`，云函数将该用户登记为 `student` 并写入共享 `users` 集合。
 - PC 管理端没有实时推送；开发者刷新浏览器或重新进入“数据看板”后，会重新读取用户列表。
-- 当前小程序用户以本机生成的 `mp_user_...` 标识登记，初始昵称通常为“小辩手”，未自动绑定手机号。因此管理员可按昵称或用户 ID 管理该用户，但不能仅凭手机号匹配到其小程序账号。
+- 当前小程序用户由云函数上下文中的真实微信 `OPENID` 识别，服务端自动生成稳定的用户记录 ID；初始昵称通常为“小辩手”，手机号仍需另行绑定。
 - 若用户未出现，应检查体验版小程序控制台是否有“同步用户资料失败”或 `apiGateway` 调用错误。
 
 #### 批量授权教师
@@ -264,7 +264,7 @@ PC 管理端 → debate-api ─┘
 
 该操作调用 `POST /api/users/authorize-teachers`，仅 `developer` 角色可执行，单次最多处理 100 个手机号，且不会降低已有开发者账号权限。
 
-AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后才会进入双方看板。未创建对应集合时，相关数据无法持久化。
+AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后才会进入双方看板；任务、教师议题和作业提交分别写入 `assignments`、`teacher_assignments`、`assignment_submissions` 集合。生产环境数据库不可用时接口会直接报错，不再回退到本地文件或内存。
 
 ---
 
@@ -341,6 +341,9 @@ AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后
 | `tournament_teams` | 参赛队伍 | 赛事报名和组队数据 |
 | `assessments` | 前后测 | baseline / milestone 类型 |
 | `comments` | 人工点评 | 教师对学生练习的点评 |
+| `assignments` | 当前任务 | PC 发布，小程序读取 |
+| `teacher_assignments` | 教师议题 | 教师发布，小程序提交 |
+| `assignment_submissions` | 作业提交 | 关联教师议题与练习记录 |
 
 ### 认证集合（云托管环境）
 
@@ -371,6 +374,8 @@ tcb cloudrun deploy --service-name debate-api --port 3000 --source . --force --w
 - `BAIDU_API_KEY`
 - `BAIDU_SECRET_KEY`
 - `AUTH_DEV_CODE=1`（未接入短信服务时启用开发验证码回显）
+
+云托管服务还必须绑定可访问当前 CloudBase 环境数据库的服务角色，至少具备上述业务集合的读写权限。仅设置 `CLOUD_ENV` 或能访问 `/api/health` 不代表数据库权限已生效；可用 `/api/topics` 或 `/api/assignments/current` 验证，返回 `CloudBase 数据库不可用` 时需在 CloudBase 控制台的云托管服务权限中补充数据库访问角色。
 
 部署后验证：
 

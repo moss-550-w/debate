@@ -17,4 +17,8 @@ async function listByUser(userId) {
   return store.list(COLLECTION, { user_id: userId }, { orderBy: 'created_at', order: 'desc', limit: 500 });
 }
 
-module.exports = { recordTurn, listByUser };
+async function list() {
+  return store.list(COLLECTION, {}, { orderBy: 'created_at', order: 'desc', limit: 5000 });
+}
+
+module.exports = { recordTurn, listByUser, list };

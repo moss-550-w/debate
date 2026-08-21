@@ -10,6 +10,8 @@ App({
   globalData: {
     userInfo: null,
     openid: '',
+    userId: '',
+    userReady: null,
     apiBaseUrl: API_BASE_URLS[API_MODE],
     apiMode: API_MODE,
     cloudFunctionName: 'apiGateway',
@@ -20,17 +22,19 @@ App({
       env: 'cloud1-d8g0k0m526d61652a',
       traceUser: true,
     });
-    this.autoLogin();
+    this.globalData.userReady = this.autoLogin();
   },
 
-  autoLogin() {
-    let openid = wx.getStorageSync('openid');
+  async autoLogin() {
     let userInfo = wx.getStorageSync('userInfo');
-    if (!openid) {
-      openid = 'mp_user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const legacyOpenid = wx.getStorageSync('openid');
+    if (legacyOpenid && legacyOpenid.startsWith('mp_user_')) {
+      wx.removeStorageSync('openid');
+      wx.removeStorageSync('token');
+      wx.removeStorageSync('userId');
+    }
+    if (!userInfo) {
       userInfo = {
-        _id: openid,
-        openid: openid,
         nickname: '小辩手',
         role: 'student',
         grade: 'G5',
@@ -42,29 +46,41 @@ App({
         created_at: new Date().toISOString(),
         agreement_version: 'v1',
       };
-      wx.setStorageSync('openid', openid);
-      wx.setStorageSync('token', openid);
       wx.setStorageSync('userInfo', userInfo);
     }
-    this.globalData.openid = openid;
     this.globalData.userInfo = userInfo;
-    this.syncMiniProfile();
+    return this.syncMiniProfile();
   },
 
   syncMiniProfile() {
-    const token = wx.getStorageSync('token');
     const userInfo = this.globalData.userInfo || {};
-    wx.cloud.callFunction({
+    return new Promise((resolve, reject) => wx.cloud.callFunction({
       name: this.globalData.cloudFunctionName,
       data: {
         method: 'POST',
         path: '/api/auth/mini-profile',
         body: { nickname: userInfo.nickname, grade: userInfo.grade },
-        headers: { Authorization: `Bearer ${token}` },
+      },
+      success: res => {
+        const result = res.result || {};
+        if (result.code !== 200 || !result.data) {
+          reject(new Error(result.message || '同步用户资料失败'));
+          return;
+        }
+        const user = result.data.user || {};
+        const userId = result.data.user_id || user._id || '';
+        this.globalData.userId = userId;
+        this.globalData.openid = result.data.openid || user.openid || '';
+        this.globalData.userInfo = { ...userInfo, ...user, _id: userId };
+        wx.setStorageSync('userId', userId);
+        wx.setStorageSync('openid', this.globalData.openid);
+        wx.setStorageSync('userInfo', this.globalData.userInfo);
+        resolve(this.globalData.userInfo);
       },
       fail: err => {
         console.error('同步用户资料失败:', err);
+        reject(err);
       },
-    });
+    }));
   },
 });

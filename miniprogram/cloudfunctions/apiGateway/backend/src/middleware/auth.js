@@ -28,9 +28,21 @@ async function authMiddleware(req, res, next) {
     });
   }
 
-  const session = await authStore.getToken(token);
+  let session;
+  try {
+    session = await authStore.getToken(token);
+  } catch (err) {
+    logger.error('认证存储不可用', { error: err.message });
+    return res.status(503).json({ code: 503, message: '认证服务暂时不可用，请检查 CloudBase 数据库配置', data: null });
+  }
   if (session && session.expires_at > Date.now()) {
-    const user = await authStore.findUserById(session.user_id);
+    let user;
+    try {
+      user = await authStore.findUserById(session.user_id);
+    } catch (err) {
+      logger.error('用户查询失败', { error: err.message });
+      return res.status(503).json({ code: 503, message: '认证服务暂时不可用，请检查 CloudBase 数据库配置', data: null });
+    }
     if (user) {
       if (user.status === 'disabled') {
         return res.status(403).json({ code: 403, message: '账号已停用', data: null });
@@ -62,15 +74,16 @@ async function authMiddleware(req, res, next) {
         userId: user._id,
         nickname: user.nickname,
       };
-    } else if (openid.startsWith('mp_user_')) {
+    } else if (req.headers['x-cloud-function-openid'] === openid) {
+      const now = new Date().toISOString();
       const userId = await authStore.createUser({
         openid,
         role: 'student',
         nickname: '小辩手',
         grade: 'G5',
         source: 'miniprogram',
-        created_at: new Date().toISOString(),
-        last_login_at: new Date().toISOString(),
+        created_at: now,
+        last_login_at: now,
       });
       req.user = { openid, role: 'student', userId, nickname: '小辩手' };
       logger.info('小程序用户已登记', { openid, userId });

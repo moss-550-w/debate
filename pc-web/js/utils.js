@@ -24,7 +24,16 @@ async function apiRequest(path, options = {}) {
       headers,
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      data = { code: response.status, message: `服务器返回无效响应（HTTP ${response.status}）`, data: null };
+    }
+
+    if (!response.ok && !data.code) {
+      data.code = response.status;
+    }
 
     if (data.code === 401) {
       // Token 过期/无效，清除并显示登录页（不 reload，避免死循环）
@@ -37,10 +46,14 @@ async function apiRequest(path, options = {}) {
       return null;
     }
 
-    return data;
+    return {
+      ...data,
+      code: data.code || response.status,
+      message: data.message || (response.ok ? '请求成功' : `请求失败（HTTP ${response.status}）`),
+    };
   } catch (err) {
     console.error('API请求失败:', err);
-    return { code: 500, message: '网络请求失败', data: null };
+    return { code: 500, message: `网络请求失败：${err.message}`, data: null };
   }
 }
 

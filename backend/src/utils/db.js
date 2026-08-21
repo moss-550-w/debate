@@ -13,12 +13,18 @@ let db = null;
 function init(env) {
   try {
     const cloud = require('wx-server-sdk');
+    const credentials = {};
+    if (process.env.TENCENTCLOUD_SECRETID && process.env.TENCENTCLOUD_SECRETKEY) {
+      credentials.secretId = process.env.TENCENTCLOUD_SECRETID;
+      credentials.secretKey = process.env.TENCENTCLOUD_SECRETKEY;
+    }
     if (process.env.TENCENTCLOUD_RUNENV && cloud.DYNAMIC_CURRENT_ENV) {
-      cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+      // 云托管必须使用动态环境，平台才能注入当前环境的服务身份。
+      cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV, ...credentials });
       db = cloud.database();
       logger.info('数据库初始化完成', { env: 'DYNAMIC_CURRENT_ENV(云托管)' });
     } else {
-      cloud.init({ env });
+      cloud.init({ env, ...credentials });
       db = cloud.database();
       logger.info('数据库初始化完成', { env });
     }
@@ -35,6 +41,21 @@ function init(env) {
  * @returns {Promise<boolean>}
  */
 let availableCache = null;
+const DB_OPERATION_TIMEOUT_MS = 8000;
+
+function withTimeout(promise, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label}超时`)), DB_OPERATION_TIMEOUT_MS)),
+  ]);
+}
+
+function isProductionEnvironment() {
+  return process.env.CLOUD_FUNCTION === '1'
+    || process.env.TENCENTCLOUD_RUNENV === '1'
+    || process.env.NODE_ENV === 'production';
+}
+
 async function isAvailable() {
   if (availableCache !== null) return availableCache;
   if (!db) {
@@ -63,6 +84,11 @@ async function isAvailable() {
   return availableCache;
 }
 
+async function requireAvailable() {
+  if (await isAvailable()) return true;
+  throw new Error('CloudBase 数据库不可用，生产环境已禁止使用本地回退存储');
+}
+
 /**
  * 获取数据库实例
  */
@@ -88,11 +114,13 @@ function collection(name) {
  */
 async function getById(collectionName, id) {
   try {
-    const res = await collection(collectionName).doc(id).get();
+    const res = await withTimeout(collection(collectionName).doc(id).get(), `数据库查询 [${collectionName}]`);
     return res.data;
   } catch (err) {
     logger.error(`数据库查询失败 [${collectionName}]`, { id, error: err.message });
-    return null;
+    const message = String(err && (err.errMsg || err.message) || '');
+    if (/document.*not exist|doc.*not exist|记录不存在|文档不存在/i.test(message)) return null;
+    throw err;
   }
 }
 
@@ -113,11 +141,11 @@ async function query(collectionName, where = {}, options = {}) {
     }
     const limit = options.limit || 20;
     q = q.limit(limit);
-    const res = await q.get();
+    const res = await withTimeout(q.get(), `数据库查询 [${collectionName}]`);
     return res.data;
   } catch (err) {
     logger.error(`数据库查询失败 [${collectionName}]`, { where, error: err.message });
-    return [];
+    throw err;
   }
 }
 
@@ -199,6 +227,8 @@ async function remove(collectionName, id) {
 module.exports = {
   init,
   isAvailable,
+  isProductionEnvironment,
+  requireAvailable,
   getDB,
   collection,
   getById,

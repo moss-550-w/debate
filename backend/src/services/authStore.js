@@ -1,8 +1,8 @@
 /**
- * 认证存储适配层（云数据库优先 / 本地 JSON 回退）
+ * 认证存储适配层（云数据库优先 / 仅本地开发回退）
  *
  * 云托管环境：wx-server-sdk 免密钥直连云开发数据库（users / auth_codes / auth_tokens）
- * 本地开发：wx-server-sdk 不可用时自动回退 auth-store.json，接口与行为完全一致
+ * 本地开发：wx-server-sdk 不可用时可回退 auth-store.json，接口与行为完全一致
  * 强制指定：环境变量 AUTH_STORAGE=local 可锁定本地模式（回滚用）
  *
  * 集合设计：
@@ -49,12 +49,16 @@ function getMode() {
   if (mode) return Promise.resolve(mode);
   if (!modePromise) {
     modePromise = (async () => {
-      if (process.env.AUTH_STORAGE === 'local') {
+      if (process.env.AUTH_STORAGE === 'local' && !db.isProductionEnvironment()) {
         mode = 'local';
         logger.info('认证存储: 本地JSON（AUTH_STORAGE=local 强制指定）');
+      } else if (process.env.AUTH_STORAGE === 'local' && db.isProductionEnvironment()) {
+        throw new Error('生产环境禁止通过 AUTH_STORAGE=local 使用本地认证存储');
       } else if (await db.isAvailable()) {
         mode = 'cloud';
         logger.info('认证存储: 云数据库');
+      } else if (db.isProductionEnvironment()) {
+        throw new Error('认证存储初始化失败：生产环境无法连接 CloudBase 数据库');
       } else {
         mode = 'local';
         logger.warn('认证存储: 本地JSON（云数据库不可用，仅限本地开发使用）');

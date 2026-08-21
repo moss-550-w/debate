@@ -10,6 +10,9 @@ LABEL description="英语辩论能力训练平台后端"
 # 工作目录
 WORKDIR /app
 
+ENV CLOUD_ENV=cloud1-d8g0k0m526d61652a
+ENV NODE_ENV=production
+
 # 先复制依赖清单，确保每次云端构建使用同一依赖树
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
