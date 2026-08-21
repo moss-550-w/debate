@@ -17,6 +17,9 @@ function init(env) {
     if (process.env.TENCENTCLOUD_SECRETID && process.env.TENCENTCLOUD_SECRETKEY) {
       credentials.secretId = process.env.TENCENTCLOUD_SECRETID;
       credentials.secretKey = process.env.TENCENTCLOUD_SECRETKEY;
+      if (process.env.TENCENTCLOUD_SESSIONTOKEN) {
+        credentials.sessionToken = process.env.TENCENTCLOUD_SESSIONTOKEN;
+      }
     }
     if (process.env.TENCENTCLOUD_RUNENV && cloud.DYNAMIC_CURRENT_ENV) {
       // 云托管必须使用动态环境，平台才能注入当前环境的服务身份。
