@@ -26,3 +26,7 @@ cloud-import-*.json
 # 本地认证数据（迁移到云库后仅作备份，不可提交）
 backend/auth-store.json
 backend/auth-store.json.bak
+
+.agents/
+
+软件著作权申请资料/
