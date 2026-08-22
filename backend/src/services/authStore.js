@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('../utils/logger');
 const db = require('../utils/db');
+const userEvents = require('./userEvents');
 
 const COL = {
   USERS: 'users',
@@ -95,23 +96,31 @@ async function findUserById(id) {
  * @returns {Promise<string>} 用户 _id
  */
 async function createUser(user) {
+  let result;
   if ((await getMode()) === 'cloud') {
     // 云数据库 add 支持自定义 _id，保持与本地模式 ID 格式一致
-    return db.add(COL.USERS, user);
+    result = await db.add(COL.USERS, user);
+  } else {
+    local.users.push(user);
+    saveLocal();
+    result = user._id;
   }
-  local.users.push(user);
-  saveLocal();
-  return user._id;
+  userEvents.emit('changed', { type: 'created', userId: user._id });
+  return result;
 }
 
 async function updateUser(id, fields) {
+  let result;
   if ((await getMode()) === 'cloud') {
-    return db.update(COL.USERS, id, fields);
+    result = await db.update(COL.USERS, id, fields);
+  } else {
+    const user = local.users.find(u => u._id === id);
+    if (user) Object.assign(user, fields);
+    saveLocal();
+    result = true;
   }
-  const user = local.users.find(u => u._id === id);
-  if (user) Object.assign(user, fields);
-  saveLocal();
-  return true;
+  userEvents.emit('changed', { type: 'updated', userId: id });
+  return result;
 }
 
 async function listUsers() {

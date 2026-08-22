@@ -100,6 +100,43 @@ async function loadManagedUsers() {
   }
 }
 
+let managedUsersStreamActive = false;
+async function connectManagedUsersStream() {
+  if (managedUsersStreamActive || !localStorage.getItem('token')) return;
+  managedUsersStreamActive = true;
+  try {
+    const response = await fetch(`${CONFIG.API_BASE_URL}/users/stream`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    if (!response.ok || !response.body) throw new Error(`实时连接失败（${response.status}）`);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (localStorage.getItem('token')) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const messages = buffer.split('\n\n');
+      buffer = messages.pop();
+      messages.forEach(message => {
+        const line = message.split('\n').find(item => item.startsWith('data: '));
+        if (!line) return;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === 'users_changed') loadManagedUsers();
+        } catch (err) { console.warn('用户实时消息解析失败', err); }
+      });
+    }
+  } catch (err) {
+    console.warn('用户实时连接中断', err);
+  } finally {
+    managedUsersStreamActive = false;
+    if (localStorage.getItem('token')) setTimeout(connectManagedUsersStream, 5000);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', connectManagedUsersStream);
+
 function initializeTeacherAuthorization() {
   const panel = document.getElementById('teacherAuthorizationPanel');
   const button = document.getElementById('authorizeTeachersBtn');
@@ -147,7 +184,7 @@ function renderManagedUsers(users) {
   const tbody = document.getElementById('userTableBody');
   if (!tbody) return;
   if (!users.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-row">暂无可管理用户</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty-row">暂无可管理用户</td></tr>';
     return;
   }
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -162,12 +199,16 @@ function renderManagedUsers(users) {
     const teacherControl = canEdit && role === 'student' ? `<select class="form-select" onchange="assignTeacher('${escapeAttr(user._id)}',this.value)"><option value="">未分配</option>${teachers.map(teacher => `<option value="${escapeAttr(teacher._id)}" ${teacher._id === user.teacher_id ? 'selected' : ''}>${escapeHtml(teacher.nickname || teacher.phone || '教师')}</option>`).join('')}</select>` : escapeHtml(user.teacher_name || '-');
     return `<tr>
       <td>${escapeHtml(user.nickname || '小辩手')}</td>
+      <td>${escapeHtml(user.phone || '-')}</td>
       <td>${roleLabels[role] || '学生'}</td>
       <td>${escapeHtml(user.grade || '-')}</td>
+      <td>${escapeHtml([user.school, user.class_name].filter(Boolean).join(' / ') || '-')}</td>
       <td>${teacherControl}</td>
       <td>${user.practice_count ?? 0}</td>
       <td>${user.total_duration_min ?? 0}</td>
       <td>${user.created_at ? formatDate(user.created_at) : '-'}</td>
+      <td>${user.last_login_at ? formatDate(user.last_login_at) : '-'}</td>
+      <td>${user.phone_verified ? '已绑定' : '未绑定'}</td>
       <td>${user.status === 'disabled' ? '已停用' : '正常'}</td>
       <td>${roleAction}${statusAction}</td>
     </tr>`;

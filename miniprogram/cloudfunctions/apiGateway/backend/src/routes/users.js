@@ -7,6 +7,7 @@ const practiceStore = require('../services/practiceStore');
 const portfolioStore = require('../services/portfolioStore');
 const debateStore = require('../services/debateStore');
 const { normalizeRole, roleLabel, requireManagement, requireDeveloper } = require('../middleware/rbac');
+const userEvents = require('../services/userEvents');
 
 const EDITABLE_ROLES = new Set(['developer', 'teacher', 'student']);
 
@@ -28,6 +29,15 @@ function publicUser(user) {
     teacher_id: user.teacher_id || '',
     status: user.status || 'active',
     source: user.source || 'miniprogram',
+    avatar_url: user.avatar_url || '',
+    gender: user.gender || '',
+    birth_date: user.birth_date || '',
+    school: user.school || '',
+    class_name: user.class_name || '',
+    bio: user.bio || '',
+    phone_verified: Boolean(user.phone_verified),
+    phone_bound_at: user.phone_bound_at || '',
+    login_count: user.login_count || 0,
     created_at: user.created_at || '',
     last_login_at: user.last_login_at || '',
   };
@@ -67,6 +77,33 @@ router.get('/', authMiddleware, requireManagement, async (req, res) => {
   } catch (err) {
     return res.status(500).json({ code: 500, message: '获取用户列表失败', data: null });
   }
+});
+
+router.get('/stream', authMiddleware, requireManagement, async (req, res) => {
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  const send = payload => res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  let lastSignature = '';
+  const heartbeat = setInterval(async () => {
+    send({ type: 'heartbeat', at: new Date().toISOString() });
+    try {
+      const users = await authStore.listUsers();
+      const signature = users.map(user => `${user._id}:${user.updated_at || user.last_login_at || user.created_at || ''}`).join('|');
+      if (lastSignature && signature !== lastSignature) send({ type: 'users_changed', source: 'database' });
+      lastSignature = signature;
+    } catch (err) {}
+  }, 10000);
+  const onChanged = payload => send({ type: 'users_changed', ...payload });
+  userEvents.on('changed', onChanged);
+  send({ type: 'connected', at: new Date().toISOString() });
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    userEvents.off('changed', onChanged);
+  });
 });
 
 router.post('/authorize-teachers', authMiddleware, requireDeveloper, async (req, res) => {

@@ -1,4 +1,7 @@
 <view class="page-profile">
+  <view class="profile-actions">
+    <button size="mini" bindtap="openProfileEditor">编辑资料</button>
+  </view>
   <view class="user-header">
     <view class="avatar">{{userInfo.nickname ? userInfo.nickname[0] : '?'}}</view>
     <view class="user-meta">
@@ -78,6 +81,27 @@
       <view><text class="speech-value">{{speech.stats.totalCount}}</text><text class="speech-label">跟读次数</text></view>
       <view><text class="speech-value">{{speech.stats.avgScore}}</text><text class="speech-label">平均语音分</text></view>
       <view><text class="speech-value">{{speech.stats.daysActive}}</text><text class="speech-label">活跃天数</text></view>
+    </view>
+  </view>
+
+  <view class="profile-section">
+    <view class="section-heading"><view><text class="section-title">手机号绑定</text><text class="section-subtitle">用于账号找回与安全登录</text></view><text class="data-state" wx:if="{{userInfo.phone_verified}}">已绑定</text></view>
+    <input class="profile-input" type="number" maxlength="11" placeholder="手机号" value="{{bindPhone}}" data-field="bindPhone" bindinput="onBindPhoneInput" />
+    <view class="code-row"><input class="profile-input code-input" type="number" maxlength="6" placeholder="验证码" value="{{bindCode}}" data-field="bindCode" bindinput="onBindPhoneInput" /><button size="mini" disabled="{{bindCountdown > 0}}" bindtap="sendBindCode">{{bindCountdown > 0 ? bindCountdown + '秒后重试' : '获取验证码'}}</button></view>
+    <view class="button-row"><button class="primary-button" bindtap="submitBindPhone">绑定手机号</button><button class="secondary-button" bindtap="miniLoginBySms">短信登录</button></view>
+  </view>
+
+  <view class="editor-mask" wx:if="{{showProfileEditor}}" bindtap="closeProfileEditor">
+    <view class="editor-panel" catchtap="noop">
+      <view class="section-heading"><text class="section-title">完善资料</text><text class="close-link" bindtap="closeProfileEditor">关闭</text></view>
+      <input class="profile-input" placeholder="昵称" value="{{profileForm.nickname}}" data-field="nickname" bindinput="onProfileInput" />
+      <input class="profile-input" placeholder="年级" value="{{profileForm.grade}}" data-field="grade" bindinput="onProfileInput" />
+      <input class="profile-input" placeholder="学校" value="{{profileForm.school}}" data-field="school" bindinput="onProfileInput" />
+      <input class="profile-input" placeholder="班级" value="{{profileForm.class_name}}" data-field="class_name" bindinput="onProfileInput" />
+      <input class="profile-input" placeholder="性别" value="{{profileForm.gender}}" data-field="gender" bindinput="onProfileInput" />
+      <input class="profile-input" placeholder="出生日期" value="{{profileForm.birth_date}}" data-field="birth_date" bindinput="onProfileInput" />
+      <textarea class="profile-input profile-bio" maxlength="300" placeholder="个人简介" value="{{profileForm.bio}}" data-field="bio" bindinput="onProfileInput"></textarea>
+      <button class="primary-button" bindtap="saveProfile">保存资料</button>
     </view>
   </view>
 </view>

@@ -112,6 +112,7 @@ function loadAdminData() {
   if (typeof loadGrowthDashboard === 'function') loadGrowthDashboard();
   if (typeof loadTournamentList === 'function') loadTournamentList();
   if (typeof loadCommentsList === 'function') loadCommentsList();
+  if (typeof connectManagedUsersStream === 'function') connectManagedUsersStream();
 }
 
 /**

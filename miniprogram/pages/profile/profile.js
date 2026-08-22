@@ -26,11 +26,86 @@ Page({
     speechMinutes: 0,
     canvasWidth: 0,
     canvasHeight: 0,
+    profileForm: { nickname: '', grade: '', school: '', class_name: '', gender: '', birth_date: '', bio: '' },
+    showProfileEditor: false,
+    bindPhone: '',
+    bindCode: '',
+    bindCountdown: 0,
   },
 
   onLoad() {
     const userInfo = wx.getStorageSync('userInfo') || {};
-    this.setData({ userInfo });
+    this.setData({ userInfo, profileForm: { ...this.data.profileForm, ...userInfo } });
+  },
+
+  openProfileEditor() {
+    this.setData({ showProfileEditor: true, profileForm: { ...this.data.profileForm, ...this.data.userInfo } });
+  },
+
+  closeProfileEditor() { this.setData({ showProfileEditor: false }); },
+
+  noop() {},
+
+  onProfileInput(e) {
+    const key = e.currentTarget.dataset.field;
+    this.setData({ [`profileForm.${key}`]: e.detail.value });
+  },
+
+  async saveProfile() {
+    const app = getApp();
+    if (app.globalData.userReady) await app.globalData.userReady.catch(() => {});
+    try {
+      const res = await request('/auth/profile', { method: 'PATCH', data: this.data.profileForm });
+      if (res.code !== 200) throw new Error(res.message || '资料更新失败');
+      const userInfo = { ...this.data.userInfo, ...res.data.user };
+      wx.setStorageSync('userInfo', userInfo);
+      app.globalData.userInfo = userInfo;
+      this.setData({ userInfo, showProfileEditor: false });
+      wx.showToast({ title: '资料已保存', icon: 'success' });
+    } catch (err) { wx.showToast({ title: err.message || '保存失败', icon: 'none' }); }
+  },
+
+  onBindPhoneInput(e) { this.setData({ [e.currentTarget.dataset.field]: e.detail.value }); },
+
+  async sendBindCode() {
+    const phone = String(this.data.bindPhone || '').trim();
+    if (!/^1[3-9]\d{9}$/.test(phone)) return wx.showToast({ title: '请输入正确手机号', icon: 'none' });
+    try {
+      const res = await request('/auth/send-code', { method: 'POST', data: { phone } });
+      if (res.code !== 200) throw new Error(res.message || '验证码发送失败');
+      if (res.data.dev_code) this.setData({ bindCode: res.data.dev_code });
+      this.setData({ bindCountdown: 60 });
+      const timer = setInterval(() => { const value = this.data.bindCountdown - 1; if (value <= 0) clearInterval(timer); this.setData({ bindCountdown: Math.max(0, value) }); }, 1000);
+    } catch (err) { wx.showToast({ title: err.message || '验证码发送失败', icon: 'none' }); }
+  },
+
+  async submitBindPhone() {
+    try {
+      const res = await request('/auth/bind-phone', { method: 'POST', data: { phone: this.data.bindPhone, code: this.data.bindCode } });
+      if (res.code !== 200) throw new Error(res.message || '绑定失败');
+      const userInfo = { ...this.data.userInfo, ...res.data.user };
+      wx.setStorageSync('userInfo', userInfo);
+      getApp().globalData.userInfo = userInfo;
+      this.setData({ userInfo, bindPhone: '', bindCode: '' });
+      wx.showToast({ title: '手机号已绑定', icon: 'success' });
+    } catch (err) { wx.showToast({ title: err.message || '绑定失败', icon: 'none' }); }
+  },
+
+  async miniLoginBySms() {
+    const phone = String(this.data.bindPhone || '').trim();
+    const code = String(this.data.bindCode || '').trim();
+    if (!/^1[3-9]\d{9}$/.test(phone) || !/^\d{6}$/.test(code)) return wx.showToast({ title: '请输入手机号和6位验证码', icon: 'none' });
+    try {
+      const res = await request('/auth/mini-login', { method: 'POST', data: { phone, code } });
+      if (res.code !== 200) throw new Error(res.message || '短信登录失败');
+      wx.setStorageSync('token', res.data.token);
+      wx.setStorageSync('userInfo', res.data.user);
+      const app = getApp();
+      app.globalData.userInfo = res.data.user;
+      app.globalData.userReady = Promise.resolve(res.data.user);
+      this.setData({ userInfo: res.data.user, bindPhone: '', bindCode: '' });
+      wx.showToast({ title: '短信登录成功', icon: 'success' });
+    } catch (err) { wx.showToast({ title: err.message || '短信登录失败', icon: 'none' }); }
   },
 
   onShow() {

@@ -21,6 +21,7 @@ const logger = require('../utils/logger');
 const authStore = require('../services/authStore');
 const authMiddleware = require('../middleware/auth');
 const { normalizeRole } = require('../middleware/rbac');
+const { requestTencentSms } = require('../services/smsService');
 
 // ===== 常量 =====
 const CODE_TTL_MS = 5 * 60 * 1000;            // 验证码有效期 5 分钟
@@ -58,6 +59,15 @@ function publicUser(user) {
     role,
     role_label: { developer: '开发者', teacher: '教师', student: '学生' }[role],
     nickname: user.nickname || '',
+    avatar_url: user.avatar_url || '',
+    gender: user.gender || '',
+    birth_date: user.birth_date || '',
+    school: user.school || '',
+    class_name: user.class_name || '',
+    bio: user.bio || '',
+    phone_verified: Boolean(user.phone_verified),
+    source: user.source || 'miniprogram',
+    created_at: user.created_at,
     last_login_at: user.last_login_at,
   };
 }
@@ -115,7 +125,15 @@ router.post('/send-code', async (req, res) => {
       day_start: dayStart,
     });
 
-    logger.info(`[auth] 验证码已生成 手机号=${phone} 验证码=${code} (今日第 ${sendCount} 次)`);
+    let smsResult;
+    try {
+      smsResult = await requestTencentSms({ phone, code });
+    } catch (err) {
+      await authStore.deleteCode(phone).catch(() => {});
+      logger.error('短信发送失败', { phone, error: err.message });
+      return res.status(502).json({ code: 502, message: '短信发送失败，请稍后重试', data: null });
+    }
+    logger.info(`[auth] 验证码已生成 手机号=${phone} (今日第 ${sendCount} 次, sms=${smsResult.configured ? 'sent' : 'dev'})`);
 
     res.json({
       code: 200,
@@ -124,7 +142,7 @@ router.post('/send-code', async (req, res) => {
         expire_seconds: CODE_TTL_MS / 1000,
         resend_after_seconds: CODE_RESEND_MS / 1000,
         // 未接入短信渠道时回显验证码，接入后设 AUTH_DEV_CODE=0 关闭
-        ...(DEV_CODE_RETURN ? { dev_code: code, dev_note: '短信渠道未接入，验证码直接返回；接入短信后此字段关闭' } : {}),
+        ...(!smsResult.configured && DEV_CODE_RETURN ? { dev_code: code, dev_note: '短信渠道未接入，当前为开发回显模式' } : {}),
       },
     });
   } catch (err) {
@@ -193,6 +211,7 @@ router.post('/login', async (req, res) => {
         phone,
         role,
         nickname: '',
+        phone_verified: true,
         source: 'pc',
         status: 'active',
         created_at: new Date().toISOString(),
@@ -211,6 +230,7 @@ router.post('/login', async (req, res) => {
       await authStore.updateUser(user._id, {
         last_login_at: user.last_login_at,
         login_count: user.login_count,
+        phone_verified: true,
       });
     }
 
@@ -237,6 +257,48 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     logger.error('登录失败', { error: err.message });
     res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
+  }
+});
+
+/**
+ * POST /api/auth/mini-login
+ * 小程序手机号短信登录：首次登录自动创建学生账号，并绑定当前微信 openid。
+ */
+router.post('/mini-login', async (req, res) => {
+  try {
+    const phone = String(req.body.phone || '').trim();
+    const code = String(req.body.code || '').trim();
+    const openid = String(req.headers['x-cloud-function-openid'] || '').trim();
+    if (!isValidPhone(phone) || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ code: 400, message: '手机号或验证码格式不正确', data: null });
+    }
+    if (!openid) return res.status(401).json({ code: 401, message: '缺少微信身份，请从小程序发起登录', data: null });
+    const record = await authStore.getCode(phone);
+    if (!record || Date.now() > record.expires_at) {
+      if (record) await authStore.deleteCode(phone);
+      return res.status(400).json({ code: 400, message: '验证码不存在或已过期', data: null });
+    }
+    if (sha256(code + phone) !== record.hash) {
+      await authStore.saveCode(phone, { ...record, attempts: (record.attempts || 0) + 1 });
+      return res.status(400).json({ code: 400, message: '验证码错误', data: null });
+    }
+    await authStore.deleteCode(phone);
+    let user = await authStore.findUserByPhone(phone);
+    const now = new Date().toISOString();
+    if (user && user.status === 'disabled') return res.status(403).json({ code: 403, message: '账号已停用', data: null });
+    if (!user) {
+      user = { _id: `user_${openid}_${crypto.randomBytes(4).toString('hex')}`, openid, phone, phone_verified: true, role: 'student', nickname: '小辩手', grade: 'G5', source: 'miniprogram', status: 'active', created_at: now, last_login_at: now, login_count: 1 };
+      await authStore.createUser(user);
+    } else {
+      await authStore.updateUser(user._id, { openid, phone_verified: true, last_login_at: now, login_count: (user.login_count || 0) + 1, source: 'miniprogram' });
+      user = { ...user, openid, last_login_at: now, login_count: (user.login_count || 0) + 1 };
+    }
+    const token = `tk_${crypto.randomBytes(24).toString('hex')}`;
+    await authStore.saveToken(token, { phone, user_id: user._id, created_at: Date.now(), expires_at: Date.now() + TOKEN_TTL_MS });
+    return res.json({ code: 200, message: '登录成功', data: { token, expires_in: TOKEN_TTL_MS / 1000, user: publicUser(user) } });
+  } catch (err) {
+    logger.error('小程序短信登录失败', { error: err.message });
+    return res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
   }
 });
 
@@ -348,16 +410,70 @@ router.get('/verify', async (req, res) => {
   }
 });
 
+router.post('/bind-phone', authMiddleware, async (req, res) => {
+  try {
+    const phone = String(req.body.phone || '').trim();
+    const code = String(req.body.code || '').trim();
+    if (!isValidPhone(phone) || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ code: 400, message: '手机号或验证码格式不正确', data: null });
+    }
+    const record = await authStore.getCode(phone);
+    if (!record || Date.now() > record.expires_at) {
+      if (record) await authStore.deleteCode(phone);
+      return res.status(400).json({ code: 400, message: '验证码不存在或已过期', data: null });
+    }
+    if (sha256(code + phone) !== record.hash) {
+      await authStore.saveCode(phone, { ...record, attempts: (record.attempts || 0) + 1 });
+      return res.status(400).json({ code: 400, message: '验证码错误', data: null });
+    }
+    const existing = await authStore.findUserByPhone(phone);
+    if (existing && existing._id !== req.user.userId) {
+      return res.status(409).json({ code: 409, message: '该手机号已绑定其他账号', data: null });
+    }
+    await authStore.deleteCode(phone);
+    await authStore.updateUser(req.user.userId, { phone, phone_verified: true, phone_bound_at: new Date().toISOString() });
+    const user = await authStore.findUserById(req.user.userId);
+    return res.json({ code: 200, message: '手机号绑定成功', data: { user: publicUser(user) } });
+  } catch (err) {
+    logger.error('手机号绑定失败', { error: err.message });
+    return res.status(500).json({ code: 500, message: '手机号绑定失败，请稍后重试', data: null });
+  }
+});
+
+router.patch('/profile', authMiddleware, async (req, res) => {
+  try {
+    const allowed = ['nickname', 'avatar_url', 'gender', 'birth_date', 'school', 'class_name', 'grade', 'bio'];
+    const fields = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) fields[key] = String(req.body[key]).trim().slice(0, key === 'bio' ? 300 : 64);
+    }
+    if (!Object.keys(fields).length) return res.status(400).json({ code: 400, message: '没有可更新的资料字段', data: null });
+    fields.updated_at = new Date().toISOString();
+    await authStore.updateUser(req.user.userId, fields);
+    const user = await authStore.findUserById(req.user.userId);
+    return res.json({ code: 200, message: '资料已更新', data: { user: publicUser(user) } });
+  } catch (err) {
+    logger.error('更新用户资料失败', { error: err.message });
+    return res.status(500).json({ code: 500, message: '更新资料失败，请稍后重试', data: null });
+  }
+});
+
 router.post('/mini-profile', authMiddleware, async (req, res) => {
   try {
     let userId = req.user.userId;
     if (!userId) {
       return res.status(400).json({ code: 400, message: '用户资料不存在', data: null });
     }
-    const { nickname, grade } = req.body;
+    const { nickname, grade, avatar_url, gender, birth_date, school, class_name, bio } = req.body;
     await authStore.updateUser(userId, {
       nickname: String(nickname || '小辩手').slice(0, 32),
       grade: String(grade || 'G5').slice(0, 16),
+      ...(avatar_url !== undefined ? { avatar_url: String(avatar_url).slice(0, 256) } : {}),
+      ...(gender !== undefined ? { gender: String(gender).slice(0, 16) } : {}),
+      ...(birth_date !== undefined ? { birth_date: String(birth_date).slice(0, 32) } : {}),
+      ...(school !== undefined ? { school: String(school).slice(0, 64) } : {}),
+      ...(class_name !== undefined ? { class_name: String(class_name).slice(0, 64) } : {}),
+      ...(bio !== undefined ? { bio: String(bio).slice(0, 300) } : {}),
       source: 'miniprogram',
       last_login_at: new Date().toISOString(),
     });

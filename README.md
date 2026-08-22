@@ -38,6 +38,7 @@
 - PC 管理端不再允许任意手机号首次注册。开发者可在“用户列表”的“批量授权教师”面板直接预创建或授权教师手机号；也可通过云托管环境变量 `DEVELOPER_PHONES`（开发者手机号）或 `TEACHER_PHONES`（教师手机号）初始化授权，多个手机号以英文逗号分隔。
 - 也可配置 `DEVELOPER_LOGIN_KEY_HASH` 使用 PC 管理端开发者密钥登录；服务端只保存密钥 SHA-256，不保存明文密钥。
 - 开发者可在“用户列表”中将用户设为教师/学生、启停账户或批量授权教师；教师仅能查看已分配给自己的学生。学生分配教师可调用 `PATCH /api/users/:id/teacher`，请求体为 `{ "teacher_id": "教师用户ID" }`。
+- 小程序“我的”支持手机号绑定、短信登录和完整资料维护（学校、班级、性别、出生日期、个人简介）；PC 用户列表实时展示用户变更，并每 10 秒从共享数据库核对一次。
 
 ---
 
@@ -173,7 +174,7 @@ npm start
 
 直接访问 `http://localhost:3000/`，使用手机号+验证码登录。
 
-- 验证码由服务端随机生成，通过接口 `dev_code` 字段返回（未接入短信渠道时）
+- 已配置腾讯云短信时验证码直接发送到手机；未配置时仅开发环境可通过接口 `dev_code` 字段回显
 - 验证码 5 分钟有效，60 秒重发间隔，每日每号 10 次上限
 - 首次登录自动注册，Token 7 天有效
 
@@ -287,6 +288,9 @@ AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后
 |------|------|------|------|
 | POST | `/auth/send-code` | 发送验证码 `{phone}` | 否 |
 | POST | `/auth/login` | 验证码登录 `{phone, code}` | 否 |
+| POST | `/auth/mini-login` | 小程序短信登录 `{phone, code}` | 微信云函数身份 |
+| POST | `/auth/bind-phone` | 绑定小程序手机号 `{phone, code}` | Bearer Token |
+| PATCH | `/auth/profile` | 更新昵称、学校、班级等资料 | Bearer Token |
 | POST | `/auth/mini-profile` | 登记或更新小程序用户资料 | Bearer Token |
 | GET | `/auth/verify` | 校验 Token 有效性 | Bearer Token |
 
@@ -374,6 +378,8 @@ tcb cloudrun deploy --service-name debate-api --port 3000 --source . --force --w
 - `BAIDU_API_KEY`
 - `BAIDU_SECRET_KEY`
 - `AUTH_DEV_CODE=1`（未接入短信服务时启用开发验证码回显）
+- `TENCENT_SMS_SECRET_ID`、`TENCENT_SMS_SECRET_KEY`、`TENCENT_SMS_SDK_APP_ID`
+- `TENCENT_SMS_SIGN_NAME`、`TENCENT_SMS_TEMPLATE_ID`、`TENCENT_SMS_REGION`（腾讯云短信，生产环境设置 `AUTH_DEV_CODE=0`）
 
 云托管服务还必须绑定可访问当前 CloudBase 环境数据库的服务角色，至少具备上述业务集合的读写权限。仅设置 `CLOUD_ENV` 或能访问 `/api/health` 不代表数据库权限已生效；可用 `/api/topics` 或 `/api/assignments/current` 验证，返回 `CloudBase 数据库不可用` 时需在 CloudBase 控制台的云托管服务权限中补充数据库访问角色。
 
