@@ -1,8 +1,14 @@
 .page-profile { padding: 20rpx; background: #f1f5f9; min-height: 100vh; color: #172033; }
 .profile-actions { display: flex; justify-content: flex-end; margin-bottom: 12rpx; }
 .profile-section { background: #fff; border-radius: 18rpx; margin-bottom: 20rpx; padding: 26rpx; }
-.profile-input { box-sizing: border-box; width: 100%; margin-top: 16rpx; padding: 18rpx 20rpx; background: #f8fafc; border: 1rpx solid #e2e8f0; border-radius: 10rpx; font-size: 25rpx; }
-.code-row { display: flex; align-items: center; gap: 12rpx; }.code-input { flex: 1; }.button-row { display: flex; gap: 12rpx; }.button-row button { flex: 1; }.primary-button { margin-top: 18rpx; background: #2563eb; color: #fff; }.secondary-button { margin-top: 18rpx; background: #e2e8f0; color: #1e293b; }.editor-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: rgba(15, 23, 42, .45); }.editor-panel { width: 100%; box-sizing: border-box; max-height: 85vh; overflow-y: auto; padding: 28rpx; background: #fff; border-radius: 24rpx 24rpx 0 0; }.close-link { color: #2563eb; font-size: 24rpx; }.profile-bio { min-height: 130rpx; }
+.profile-input { box-sizing: border-box; width: 100%; height: 76rpx; margin-top: 16rpx; padding: 0 20rpx; background: #f8fafc; border: 1rpx solid #e2e8f0; border-radius: 10rpx; font-size: 25rpx; line-height: 76rpx; }
+.profile-input::placeholder { color: #94a3b8; }
+.code-row { display: flex; align-items: center; gap: 12rpx; min-width: 0; }
+.code-input { flex: 1; min-width: 0; }
+.code-row button { box-sizing: border-box; flex: 0 0 190rpx; width: 190rpx; height: 76rpx; padding: 0 8rpx; overflow: visible; color: #1e293b; font-size: 24rpx; line-height: 76rpx; white-space: nowrap; }
+.button-row { display: flex; gap: 12rpx; min-width: 0; }
+.button-row button { box-sizing: border-box; flex: 1; min-width: 0; height: 76rpx; padding: 0 8rpx; overflow: visible; font-size: 25rpx; line-height: 76rpx; white-space: nowrap; }
+.primary-button { margin-top: 18rpx; background: #2563eb; color: #fff; }.secondary-button { margin-top: 18rpx; background: #e2e8f0; color: #1e293b; }.editor-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: rgba(15, 23, 42, .45); }.editor-panel { width: 100%; box-sizing: border-box; max-height: 85vh; overflow-y: auto; padding: 28rpx; background: #fff; border-radius: 24rpx 24rpx 0 0; }.close-link { color: #2563eb; font-size: 24rpx; }.profile-bio { min-height: 130rpx; height: 130rpx; padding-top: 18rpx; line-height: 1.5; }
 .user-header, .radar-section, .stats-section, .coach-section, .history-section, .speech-section { background: #fff; border-radius: 18rpx; margin-bottom: 20rpx; box-shadow: 0 4rpx 14rpx rgba(15, 23, 42, .05); }
 .user-header { display: flex; align-items: center; padding: 28rpx; color: #fff; background: #1d4ed8; }
 .avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 36rpx; font-weight: 700; }
@@ -50,3 +56,9 @@
 .speech-value, .speech-label { display: block; }
 .speech-value { color: #475569; font-size: 30rpx; font-weight: 700; }
 .speech-label { margin-top: 5rpx; color: #64748b; font-size: 21rpx; }
+
+@media (max-width: 360px) {
+  .profile-section { padding: 22rpx; }
+  .code-row button { flex-basis: 176rpx; width: 176rpx; font-size: 22rpx; }
+  .button-row button { font-size: 23rpx; }
+}
