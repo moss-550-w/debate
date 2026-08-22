@@ -5,11 +5,13 @@
     <text class="page-description">从文化、教育与社会发展议题展开思辨</text>
   </view>
 
-  <view class="topic-list">
+  <view class="loading-state" wx:if="{{loading}}">正在加载思辨中国辩题...</view>
+
+  <view class="topic-list" wx:else>
     <view class="topic-card" wx:for="{{topics}}" wx:key="_id" bindtap="goPractice" data-id="{{item._id}}" data-title="{{item.title}}">
       <view class="topic-meta">
         <text class="topic-number">{{index + 1}}</text>
-        <text class="topic-level level-{{item.difficulty}}">{{item.difficulty === 'medium' ? '进阶' : '挑战'}}</text>
+        <text class="topic-level level-{{item.difficulty}}">{{item.difficulty === 'easy' ? '常规' : (item.difficulty === 'medium' ? '进阶' : '挑战')}}</text>
       </view>
       <text class="topic-title">{{item.title}}</text>
       <text class="topic-translation">{{item.translation}}</text>

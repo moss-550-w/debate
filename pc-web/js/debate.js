@@ -9,6 +9,7 @@ const CATEGORY_LABELS = {
   education: '教育',
   tech: '科技',
   environment: '环境',
+  china: '思辨中国',
 };
 
 // 难度统一为深浅蓝色系（专业感）
@@ -55,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadTopics() {
   try {
     const [topicsRes, assignmentRes] = await Promise.all([
-      apiRequest('/topics?size=200&admin=1'),
+      apiRequest('/topics?size=500&admin=1'),
       apiRequest('/assignments/current'),
     ]);
 

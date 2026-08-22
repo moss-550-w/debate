@@ -362,6 +362,17 @@ AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后
 
 ### 1. 云托管 `debate-api`
 
+#### 导入思辨中国辩题
+
+`doc/中国议题辩论库_300条.pdf` 已解析为 300 条独立的 `china` 分类辩题，合并到 `backend/topics-seed.json` 和云函数副本。以后替换 PDF 后，可在已安装 `pdftotext` 的环境执行：
+
+```powershell
+cd D:\CODE\Debate
+node backend/scripts/import-china-topics.js
+```
+
+脚本会校验必须解析出 300 条，使用固定 `topic_china_001` 至 `topic_china_300` ID，避免重复导入。小程序“思辨中国”页面和 AI 对练使用 `category=china` 查询；PC 管理端显示分类“思辨中国”，与普通社会、教育、科技、环境辩题隔离。
+
 项目根目录已包含 `Dockerfile`、`cloudbaserc.json` 和 `deploy-cloudbase.bat`。CLI 部署：
 
 ```powershell

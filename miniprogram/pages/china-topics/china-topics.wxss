@@ -41,6 +41,13 @@
   gap: 16rpx;
 }
 
+.loading-state {
+  padding: 40rpx 0;
+  color: #6b7280;
+  font-size: 26rpx;
+  text-align: center;
+}
+
 .topic-card {
   padding: 24rpx;
   background: #ffffff;
@@ -71,6 +78,11 @@
 .level-medium {
   color: #92400e;
   background: #fef3c7;
+}
+
+.level-easy {
+  color: #166534;
+  background: #dcfce7;
 }
 
 .level-hard {

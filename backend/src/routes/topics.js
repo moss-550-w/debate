@@ -52,20 +52,35 @@ async function ensureTopicsReady() {
       }
       return;
     }
-    const cloudTopics = await db.query('topics', {}, { limit: 100 });
-    if (cloudTopics.length > 0) {
-      topics = cloudTopics;
-    } else {
-      for (const topic of topics) {
-        try {
-          await db.set('topics', topic._id, topic);
-        } catch (err) {
-          // 集合尚未在 CloudBase 控制台创建时，继续使用内置种子数据提供读取服务。
-          console.warn('topics 集合尚未创建，暂使用本地种子数据:', err.message);
-          break;
-        }
+    const cloudTopics = [];
+    for (let skip = 0; ; skip += 100) {
+      const page = await db.query('topics', {}, { limit: 100, skip });
+      cloudTopics.push(...page);
+      if (page.length < 100) break;
+    }
+
+    const seedTopics = topics;
+    const cloudTopicById = new Map(cloudTopics.map(topic => [topic._id, topic]));
+    const missingTopics = seedTopics.filter(topic => {
+      const cloudTopic = cloudTopicById.get(topic._id);
+      return !cloudTopic || (topic.category === 'china' && cloudTopic.source_version !== topic.source_version);
+    });
+
+    for (const topic of missingTopics) {
+      try {
+        await db.set('topics', topic._id, topic);
+        cloudTopicById.set(topic._id, topic);
+      } catch (err) {
+        // 集合尚未在 CloudBase 控制台创建时，继续使用内置种子数据提供读取服务。
+        console.warn('topics 集合尚未创建，暂使用本地种子数据:', err.message);
+        break;
       }
     }
+
+    // 云端记录优先，保留管理端对已有辩题的编辑；种子数据补齐新增内容。
+    topics = seedTopics.map(topic => cloudTopicById.get(topic._id) || topic);
+    const seedIds = new Set(seedTopics.map(topic => topic._id));
+    topics.push(...cloudTopics.filter(topic => !seedIds.has(topic._id)));
     topics.forEach(topic => {
       const match = topic._id && topic._id.match(/topic_.*_(\d+)$/);
       if (match) nextSeq = Math.max(nextSeq, parseInt(match[1], 10) + 1);
@@ -116,7 +131,7 @@ router.get('/', adminQueryAuth, async (req, res) => {
     await ensureTopicsReady();
     let { category, difficulty, page, size, keyword, admin } = req.query;
     page = parseInt(page) || 1;
-    size = Math.min(parseInt(size) || 50, 100);
+    size = Math.min(parseInt(size) || 50, 500);
     keyword = (keyword || '').toLowerCase().trim();
 
     let filtered = [...topics];
@@ -188,7 +203,7 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
       });
     }
 
-    const validCategories = ['society', 'education', 'tech', 'environment'];
+    const validCategories = ['society', 'education', 'tech', 'environment', 'china'];
     const validDifficulties = ['easy', 'medium', 'hard'];
 
     if (!validCategories.includes(category)) {
@@ -234,7 +249,7 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
     }
 
     const { title, category, difficulty, background, vocab_list } = req.body;
-    const validCategories = ['society', 'education', 'tech', 'environment'];
+    const validCategories = ['society', 'education', 'tech', 'environment', 'china'];
     const validDifficulties = ['easy', 'medium', 'hard'];
 
     if (category && !validCategories.includes(category)) {

@@ -31,7 +31,14 @@ Page({
 
   async loadTopics() {
     if (this.data.topicScope === 'china') {
-      this.setTopicList(chinaTopics);
+      try {
+        const res = await request('/topics?category=china&size=500');
+        if (res.code !== 200) throw new Error(res.message);
+        this.setTopicList(res.data.list && res.data.list.length ? res.data.list : chinaTopics);
+      } catch (err) {
+        console.warn('加载思辨中国辩题失败，使用本地题库:', err);
+        this.setTopicList(chinaTopics);
+      }
       return;
     }
 
