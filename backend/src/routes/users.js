@@ -50,20 +50,34 @@ function canSeeUser(actor, user) {
   return normalizeRole(user.role) === 'student' && (user.teacher_id === actorId || user.teacherId === actorId);
 }
 
+async function recordsForUser(store, ids) {
+  const groups = await Promise.all(ids.map(id => store.listByUser(id)));
+  return groups.flat().filter((record, index, all) => all.findIndex(item => item._id === record._id) === index);
+}
+
 router.get('/', authMiddleware, requireManagement, async (req, res) => {
   try {
-    const [allUsers, speechRecords, portfolioRecords, debateRecords] = await Promise.all([
-      authStore.listUsers(),
-      practiceStore.list(),
-      portfolioStore.list(),
-      debateStore.list(),
+    const { page: rawPage, size: rawSize } = req.query;
+    const page = Math.max(1, Number.parseInt(rawPage, 10) || 1);
+    const size = Math.min(100, Math.max(1, Number.parseInt(rawSize, 10) || 50));
+    const actorRole = normalizeRole(req.user.role);
+    const actorId = req.user.userId || req.user.openid;
+    const where = actorRole === 'developer' ? {} : { role: 'student', teacher_id: actorId };
+    const skip = (page - 1) * size;
+
+    const [usersPage, total, teacherUsers] = await Promise.all([
+      authStore.listUsers({ where, skip, limit: size }),
+      authStore.countUsers(where),
+      actorRole === 'developer' ? authStore.listUsers({ where: { role: 'teacher' }, limit: 100 }) : Promise.resolve([]),
     ]);
-    const teachers = new Map(allUsers.filter(user => normalizeRole(user.role) === 'teacher').map(user => [user._id, user.nickname || user.phone || user._id]));
-    const users = allUsers.filter(user => canSeeUser(req.user, user)).map(user => {
-      const ids = new Set([user._id, user.openid].filter(Boolean));
-      const speech = speechRecords.filter(record => ids.has(record.user_id));
-      const portfolios = portfolioRecords.filter(record => ids.has(record.user_id));
-      const turns = debateRecords.filter(record => ids.has(record.user_id));
+    const teachers = new Map(teacherUsers.map(user => [user._id, user.nickname || user.phone || user._id]));
+    const users = await Promise.all(usersPage.filter(user => canSeeUser(req.user, user)).map(async user => {
+      const ids = [...new Set([user._id, user.openid].filter(Boolean))];
+      const [speech, portfolios, turns] = await Promise.all([
+        recordsForUser(practiceStore, ids),
+        recordsForUser(portfolioStore, ids),
+        recordsForUser(debateStore, ids),
+      ]);
       return {
         ...publicUser(user),
         practice_count: speech.length + portfolios.length + new Set(turns.map(record => record.session_id).filter(Boolean)).size,
@@ -72,8 +86,11 @@ router.get('/', authMiddleware, requireManagement, async (req, res) => {
         total_duration_min: Math.round(speech.reduce((sum, record) => sum + (Number(record.duration_sec) || 0), 0) / 60),
         teacher_name: teachers.get(user.teacher_id || user.teacherId) || '',
       };
-    });
-    return res.json({ code: 200, message: 'ok', data: { total: users.length, list: users } });
+    }));
+    return res.json({ code: 200, message: 'ok', data: {
+      total, page, size, list: users,
+      teachers: teacherUsers.map(publicUser),
+    } });
   } catch (err) {
     return res.status(500).json({ code: 500, message: '获取用户列表失败', data: null });
   }
@@ -91,7 +108,7 @@ router.get('/stream', authMiddleware, requireManagement, async (req, res) => {
   const heartbeat = setInterval(async () => {
     send({ type: 'heartbeat', at: new Date().toISOString() });
     try {
-      const users = await authStore.listUsers();
+      const users = await authStore.listUsers({ limit: 100 });
       const signature = users.map(user => `${user._id}:${user.updated_at || user.last_login_at || user.created_at || ''}`).join('|');
       if (lastSignature && signature !== lastSignature) send({ type: 'users_changed', source: 'database' });
       lastSignature = signature;

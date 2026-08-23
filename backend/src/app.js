@@ -45,22 +45,12 @@ function createApp({ includeStatic = true } = {}) {
   });
 
   // ===== 健康检查 =====
-  app.get('/api/health', (req, res) => {
-    res.json({
-      code: 200,
-      message: 'ok',
-      data: {
-        status: 'running',
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString(),
-      },
-    });
-  });
-
-  app.get('/api/ready', async (req, res) => {
-    const production = process.env.NODE_ENV === 'production' || process.env.TENCENTCLOUD_RUNENV === '1';
-    const database = await db.isAvailable();
-    const auth = await authStore.checkReady();
+  async function getDependencyChecks() {
+    const production = db.isProductionEnvironment();
+    const [database, auth] = await Promise.all([
+      db.isAvailable(),
+      authStore.checkReady(),
+    ]);
     const checks = {
       database,
       auth: auth.ready,
@@ -68,11 +58,50 @@ function createApp({ includeStatic = true } = {}) {
       speech: Boolean(process.env.BAIDU_API_KEY && process.env.BAIDU_SECRET_KEY),
       sms: !production || isTencentSmsConfigured(),
     };
-    const ready = Object.values(checks).every(Boolean);
-    return res.status(ready ? 200 : 503).json({
-      code: ready ? 200 : 503,
-      message: ready ? 'ready' : '服务尚未满足生产运行条件',
-      data: { ready, checks, auth_error: auth.error || null },
+    return { checks, ready: Object.values(checks).every(Boolean), authError: auth.error || null };
+  }
+
+  app.get('/api/health', async (req, res) => {
+    try {
+      const dependency = await getDependencyChecks();
+      return res.json({
+        code: 200,
+        message: dependency.ready ? 'ok' : 'degraded',
+        data: {
+          status: 'running',
+          ready: dependency.ready,
+          uptime: process.uptime(),
+          timestamp: new Date().toISOString(),
+          ...dependency.checks,
+          auth_error: dependency.authError,
+        },
+      });
+    } catch (err) {
+      return res.json({
+        code: 200,
+        message: 'degraded',
+        data: {
+          status: 'running',
+          ready: false,
+          uptime: process.uptime(),
+          timestamp: new Date().toISOString(),
+          database: false,
+          auth: false,
+          ai: false,
+          speech: false,
+          sms: false,
+          auth_error: err.message,
+        },
+      });
+    }
+  });
+
+  app.get('/api/ready', async (req, res) => {
+    const dependency = await getDependencyChecks();
+    return res.status(dependency.ready ? 200 : 503).json({
+      code: dependency.ready ? 200 : 503,
+      message: dependency.ready ? 'ready' : '服务尚未满足生产运行条件',
+      data: { ready: dependency.ready, checks: dependency.checks, auth_error: dependency.authError },
     });
   });
 

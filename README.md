@@ -131,6 +131,8 @@ debate/
 │   ├── seed-topics.js            # 辩题种子数据导入
 │   ├── topics-seed.json          # 辩题种子数据
 │   ├── test-flow.js              # 后端集成测试
+│   ├── test/                      # Node 内置自动化测试
+│       └── smoke.test.js
 │   └── package.json
 ├── doc/                          # 设计文档
 │   ├── design.md                 # 技术方案
@@ -298,9 +300,9 @@ AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后
 
 | 方法 | 路径 | 说明 | 鉴权 |
 |------|------|------|------|
-| GET | `/health` | 健康检查 | 否 |
+| GET | `/health` | 进程存活与依赖状态检查（始终返回 200） | 否 |
 | GET | `/ready` | 生产就绪检查（数据库、认证、AI、语音、短信） | 否 |
-| GET | `/topics` | 辩题列表（`?category=&difficulty=&keyword=&page=&size=`） | 否 |
+| GET | `/topics` | 辩题列表（数据库条件筛选，`?category=&difficulty=&keyword=&page=&size=`） | 否 |
 | GET | `/topics/:id` | 辩题详情 | 否 |
 | POST | `/generate` | 生成立论框架 | 是 |
 | POST | `/evaluate` | 语音评测 | 是 |
@@ -477,9 +479,14 @@ npm start              # http://localhost:3000
 
 ```bash
 cd backend
+node --test test/*.test.js
+# 或
+npm test
 node test-flow.js
 # 运行后端集成测试
 ```
+
+`/api/topics` 和管理端 `/api/users` 默认按页返回数据，服务端会在 CloudBase 数据库中完成条件筛选、计数和分页，不再把全部辩题或用户记录加载到内存后筛选。`/api/health` 用于存活探测，同时返回 `database`、`auth`、`ai`、`speech`、`sms` 和 `ready` 状态；`/api/ready` 在依赖未满足时返回 HTTP 503。
 
 ---
 

@@ -27,6 +27,9 @@ const DIFFICULTY_COLORS = {
 // 缓存辩题数据
 let allTopics = [];
 let editingTopicId = null; // 当前正在编辑的辩题ID
+let topicPage = 1;
+let topicTotal = 0;
+const TOPIC_PAGE_SIZE = 50;
 
 document.addEventListener('DOMContentLoaded', () => {
   // 仅在已登录时加载数据
@@ -61,13 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadTopics() {
   try {
     const [topicsRes, assignmentRes] = await Promise.all([
-      apiRequest('/topics?size=500&admin=1'),
+      apiRequest(`/topics?page=${topicPage}&size=${TOPIC_PAGE_SIZE}&admin=1`),
       apiRequest('/assignments/current'),
     ]);
 
     if (topicsRes && topicsRes.code === 200) {
       allTopics = topicsRes.data.list;
+      topicTotal = topicsRes.data.total || 0;
       renderTopicTable(allTopics);
+      renderTopicPagination();
     } else {
       throw new Error('获取辩题失败');
     }
@@ -133,9 +138,25 @@ function renderTopicTable(topics) {
 function updateTopicCount(topics) {
   const el = document.getElementById('topicCount');
   if (el) {
-    const active = topics.filter(t => t.status === 1).length;
-    el.textContent = `（共 ${topics.length} 条，上架 ${active} 条）`;
+    el.textContent = `（共 ${topicTotal || topics.length} 条）`;
   }
+}
+
+function renderTopicPagination() {
+  const container = document.getElementById('topicPagination');
+  if (!container) return;
+  const totalPages = Math.max(1, Math.ceil(topicTotal / TOPIC_PAGE_SIZE));
+  container.innerHTML = `
+    <button class="btn-secondary btn-sm" ${topicPage <= 1 ? 'disabled' : ''} onclick="changeTopicPage(${topicPage - 1})">上一页</button>
+    <span>第 ${topicPage} / ${totalPages} 页，共 ${topicTotal} 条</span>
+    <button class="btn-secondary btn-sm" ${topicPage >= totalPages ? 'disabled' : ''} onclick="changeTopicPage(${topicPage + 1})">下一页</button>
+  `;
+}
+
+function changeTopicPage(page) {
+  const totalPages = Math.max(1, Math.ceil(topicTotal / TOPIC_PAGE_SIZE));
+  topicPage = Math.min(totalPages, Math.max(1, page));
+  loadTopics();
 }
 
 // ==================== 辩题弹窗 ====================

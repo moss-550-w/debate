@@ -1,20 +1,28 @@
 /**
  * 辩题列表路由
- * 从 seed JSON 提供辩题数据，支持完整 CRUD
- * 云数据库未连接时，修改会持久化到 topics-seed.json 文件
+ * 云数据库优先使用条件查询和分页；本地开发时回退到 seed JSON。
  */
 const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const db = require('../utils/db');
 const authMiddleware = require('../middleware/auth');
 const { requireManagement } = require('../middleware/rbac');
 
-/**
- * 轻量鉴权：只校验 token 存在性（header / query 二选一），
- * 不访问数据库，在 DB 不可用时也能正常工作
- */
+const COLLECTION = 'topics';
+const seedPath = path.join(__dirname, '../../topics-seed.json');
+const VALID_CATEGORIES = ['society', 'education', 'tech', 'environment', 'china'];
+const VALID_DIFFICULTIES = ['easy', 'medium', 'hard'];
+let topics = [];
+
+try {
+  if (fs.existsSync(seedPath)) topics = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+} catch (err) {
+  console.error('读取辩题种子数据失败:', err.message);
+}
+
 const adminOnly = requireManagement;
 
 function adminQueryAuth(req, res, next) {
@@ -22,97 +30,47 @@ function adminQueryAuth(req, res, next) {
   return authMiddleware(req, res, () => adminOnly(req, res, next));
 }
 
-const seedPath = path.join(__dirname, '../../topics-seed.json');
-let topics = [];
-let nextSeq = 100; // 新增辩题的自增序号
-let cloudTopicsPromise = null;
-
-// 读取 seed 数据
-try {
-  if (fs.existsSync(seedPath)) {
-    topics = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
-    // 计算最大序号
-    topics.forEach(t => {
-      const match = t._id && t._id.match(/topic_.*_(\d+)$/);
-      if (match) {
-        nextSeq = Math.max(nextSeq, parseInt(match[1]) + 1);
-      }
-    });
-  }
-} catch (err) {
-  console.error('读取辩题种子数据失败:', err.message);
+function parsePage(query) {
+  const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+  const size = Math.min(100, Math.max(1, Number.parseInt(query.size, 10) || 50));
+  return { page, size, skip: (page - 1) * size };
 }
 
-async function ensureTopicsReady() {
-  if (cloudTopicsPromise) return cloudTopicsPromise;
-  cloudTopicsPromise = (async () => {
-    if (!(await db.isAvailable())) {
-      if (db.isProductionEnvironment()) {
-        throw new Error('辩题存储初始化失败：生产环境无法连接 CloudBase 数据库');
-      }
-      return;
-    }
-    const cloudTopics = [];
-    for (let skip = 0; ; skip += 100) {
-      const page = await db.query('topics', {}, { limit: 100, skip });
-      cloudTopics.push(...page);
-      if (page.length < 100) break;
-    }
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+}
 
-    const seedTopics = topics;
-    const cloudTopicById = new Map(cloudTopics.map(topic => [topic._id, topic]));
-    const missingTopics = seedTopics.filter(topic => {
-      const cloudTopic = cloudTopicById.get(topic._id);
-      return !cloudTopic || (topic.category === 'china' && cloudTopic.source_version !== topic.source_version);
-    });
+function buildCloudWhere({ category, difficulty, keyword, admin }) {
+  const conditions = [];
+  if (category && category !== 'all') conditions.push({ category });
+  if (difficulty && difficulty !== 'all') conditions.push({ difficulty });
+  if (admin !== '1') conditions.push({ status: 1 });
 
-    for (const topic of missingTopics) {
-      try {
-        await db.set('topics', topic._id, topic);
-        cloudTopicById.set(topic._id, topic);
-      } catch (err) {
-        // 集合尚未在 CloudBase 控制台创建时，继续使用内置种子数据提供读取服务。
-        console.warn('topics 集合尚未创建，暂使用本地种子数据:', err.message);
-        break;
-      }
-    }
+  if (keyword) {
+    const regexp = db.getDB().RegExp({ regexp: escapeRegExp(keyword), options: 'i' });
+    conditions.push(db.getDB().command.or({ title: regexp }, { background: regexp }));
+  }
 
-    // 云端记录优先，保留管理端对已有辩题的编辑；种子数据补齐新增内容。
-    topics = seedTopics.map(topic => cloudTopicById.get(topic._id) || topic);
-    const seedIds = new Set(seedTopics.map(topic => topic._id));
-    topics.push(...cloudTopics.filter(topic => !seedIds.has(topic._id)));
-    topics.forEach(topic => {
-      const match = topic._id && topic._id.match(/topic_.*_(\d+)$/);
-      if (match) nextSeq = Math.max(nextSeq, parseInt(match[1], 10) + 1);
-    });
-  })().catch(err => {
-    cloudTopicsPromise = null;
-    throw err;
+  if (!conditions.length) return {};
+  if (conditions.length === 1 && !keyword) return conditions[0];
+  return db.getDB().command.and(...conditions);
+}
+
+function filterLocalTopics({ category, difficulty, keyword, admin }) {
+  const normalizedKeyword = keyword.toLowerCase();
+  return topics.filter(topic => {
+    if (category && category !== 'all' && topic.category !== category) return false;
+    if (difficulty && difficulty !== 'all' && topic.difficulty !== difficulty) return false;
+    if (admin !== '1' && topic.status !== 1) return false;
+    if (normalizedKeyword && !`${topic.title || ''} ${topic.background || ''}`.toLowerCase().includes(normalizedKeyword)) return false;
+    return true;
   });
-  return cloudTopicsPromise;
 }
 
-async function persistTopic(topic) {
-  if (await db.isAvailable()) return db.set('topics', topic._id, topic);
-  if (db.isProductionEnvironment()) {
-    throw new Error('辩题保存失败：生产环境无法连接 CloudBase 数据库');
-  }
-  saveTopics();
-  return true;
+async function isCloudTopicsAvailable() {
+  return db.isAvailable();
 }
 
-async function removePersistedTopic(id) {
-  if (await db.isAvailable()) return db.remove('topics', id);
-  if (db.isProductionEnvironment()) {
-    throw new Error('辩题删除失败：生产环境无法连接 CloudBase 数据库');
-  }
-  saveTopics();
-  return true;
-}
-
-/**
- * 持久化到文件
- */
 function saveTopics() {
   try {
     fs.writeFileSync(seedPath, JSON.stringify(topics, null, 2), 'utf-8');
@@ -121,146 +79,91 @@ function saveTopics() {
   }
 }
 
-/**
- * GET /api/topics?admin=1
- * 查询辩题列表（管理员模式返回全部含下架，普通模式仅返回上架）
- * 查询参数: ?category=&difficulty=&page=1&size=10&keyword=&admin=1
- */
+async function persistTopic(topic) {
+  if (await isCloudTopicsAvailable()) return db.set(COLLECTION, topic._id, topic);
+  if (db.isProductionEnvironment()) throw new Error('辩题保存失败：生产环境无法连接 CloudBase 数据库');
+  saveTopics();
+  return true;
+}
+
+async function removePersistedTopic(id) {
+  if (await isCloudTopicsAvailable()) return db.remove(COLLECTION, id);
+  if (db.isProductionEnvironment()) throw new Error('辩题删除失败：生产环境无法连接 CloudBase 数据库');
+  saveTopics();
+  return true;
+}
+
+function topicError(err, fallback) {
+  return db.isProductionEnvironment() && /CloudBase|存储初始化|数据库/.test(err.message || '')
+    ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
+    : fallback;
+}
+
 router.get('/', adminQueryAuth, async (req, res) => {
   try {
-    await ensureTopicsReady();
-    let { category, difficulty, page, size, keyword, admin } = req.query;
-    page = parseInt(page) || 1;
-    size = Math.min(parseInt(size) || 50, 500);
-    keyword = (keyword || '').toLowerCase().trim();
+    const { category, difficulty, keyword = '', admin } = req.query;
+    const { page, size, skip } = parsePage(req.query);
+    const normalizedKeyword = keyword.trim();
 
-    let filtered = [...topics];
-
-    if (category && category !== 'all') {
-      filtered = filtered.filter(t => t.category === category);
+    if (await isCloudTopicsAvailable()) {
+      const where = buildCloudWhere({ category, difficulty, keyword: normalizedKeyword, admin });
+      const [list, total] = await Promise.all([
+        db.query(COLLECTION, where, { orderBy: 'created_at', order: 'desc', skip, limit: size }),
+        db.count(COLLECTION, where),
+      ]);
+      return res.json({ code: 200, message: 'ok', data: { total, page, size, list } });
     }
 
-    if (difficulty && difficulty !== 'all') {
-      filtered = filtered.filter(t => t.difficulty === difficulty);
-    }
-
-    if (keyword) {
-      filtered = filtered.filter(t =>
-        t.title.toLowerCase().includes(keyword) ||
-        (t.background && t.background.toLowerCase().includes(keyword))
-      );
-    }
-
-    // 非管理员模式只返回上架的
-    if (admin !== '1') {
-      filtered = filtered.filter(t => t.status === 1);
-    }
-
-    const total = filtered.length;
-    const start = (page - 1) * size;
-    const list = filtered.slice(start, start + size);
-
-    res.json({
-      code: 200,
-      message: 'ok',
-      data: { total, page, size, list },
-    });
+    if (db.isProductionEnvironment()) throw new Error('CloudBase 数据库不可用');
+    const filtered = filterLocalTopics({ category, difficulty, keyword: normalizedKeyword, admin });
+    return res.json({ code: 200, message: 'ok', data: { total: filtered.length, page, size, list: filtered.slice(skip, skip + size) } });
   } catch (err) {
-    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
-      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
-      : '查询辩题失败';
-    res.status(500).json({ code: 500, message, data: null });
+    return res.status(500).json({ code: 500, message: topicError(err, '查询辩题失败'), data: null });
   }
 });
 
-/**
- * GET /api/topics/:id
- * 获取单个辩题详情
- */
 router.get('/:id', async (req, res) => {
-  await ensureTopicsReady();
-  const topic = topics.find(t => t._id === req.params.id);
-  if (!topic) {
-    return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
+  try {
+    const topic = await isCloudTopicsAvailable()
+      ? await db.getById(COLLECTION, req.params.id)
+      : topics.find(item => item._id === req.params.id);
+    if (!topic) return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
+    return res.json({ code: 200, message: 'ok', data: topic });
+  } catch (err) {
+    return res.status(500).json({ code: 500, message: topicError(err, '查询辩题失败'), data: null });
   }
-  res.json({ code: 200, message: 'ok', data: topic });
 });
 
-/**
- * POST /api/topics
- * 创建新辩题（需鉴权）
- */
 router.post('/', authMiddleware, adminOnly, async (req, res) => {
   try {
-    await ensureTopicsReady();
     const { title, category, difficulty, background, vocab_list } = req.body;
-
-    if (!title || !category || !difficulty) {
-      return res.status(400).json({
-        code: 400,
-        message: '缺少必填字段: title, category, difficulty',
-        data: null,
-      });
-    }
-
-    const validCategories = ['society', 'education', 'tech', 'environment', 'china'];
-    const validDifficulties = ['easy', 'medium', 'hard'];
-
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({ code: 400, message: '无效的分类', data: null });
-    }
-    if (!validDifficulties.includes(difficulty)) {
-      return res.status(400).json({ code: 400, message: '无效的难度', data: null });
-    }
+    if (!title || !category || !difficulty) return res.status(400).json({ code: 400, message: '缺少必填字段: title, category, difficulty', data: null });
+    if (!VALID_CATEGORIES.includes(category)) return res.status(400).json({ code: 400, message: '无效的分类', data: null });
+    if (!VALID_DIFFICULTIES.includes(difficulty)) return res.status(400).json({ code: 400, message: '无效的难度', data: null });
 
     const newTopic = {
-      _id: `topic_custom_${nextSeq++}`,
-      title,
-      category,
-      difficulty,
-      vocab_list: vocab_list || [],
-      background: background || '',
-      status: 1,
-      created_at: new Date().toISOString(),
+      _id: `topic_custom_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`,
+      title, category, difficulty, vocab_list: vocab_list || [], background: background || '',
+      status: 1, created_at: new Date().toISOString(),
     };
-
-    topics.push(newTopic);
+    if (!(await isCloudTopicsAvailable())) topics.push(newTopic);
     await persistTopic(newTopic);
-
-    res.json({ code: 200, message: '辩题创建成功', data: newTopic });
+    return res.json({ code: 200, message: '辩题创建成功', data: newTopic });
   } catch (err) {
-    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
-      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
-      : '创建辩题失败';
-    res.status(500).json({ code: 500, message, data: null });
+    return res.status(500).json({ code: 500, message: topicError(err, '创建辩题失败'), data: null });
   }
 });
 
-/**
- * PUT /api/topics/:id
- * 更新辩题（需鉴权）
- */
 router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    await ensureTopicsReady();
-    const idx = topics.findIndex(t => t._id === req.params.id);
-    if (idx === -1) {
-      return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
-    }
-
+    const cloud = await isCloudTopicsAvailable();
+    const current = cloud ? await db.getById(COLLECTION, req.params.id) : topics.find(item => item._id === req.params.id);
+    if (!current) return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
     const { title, category, difficulty, background, vocab_list } = req.body;
-    const validCategories = ['society', 'education', 'tech', 'environment', 'china'];
-    const validDifficulties = ['easy', 'medium', 'hard'];
-
-    if (category && !validCategories.includes(category)) {
-      return res.status(400).json({ code: 400, message: '无效的分类', data: null });
-    }
-    if (difficulty && !validDifficulties.includes(difficulty)) {
-      return res.status(400).json({ code: 400, message: '无效的难度', data: null });
-    }
-
+    if (category && !VALID_CATEGORIES.includes(category)) return res.status(400).json({ code: 400, message: '无效的分类', data: null });
+    if (difficulty && !VALID_DIFFICULTIES.includes(difficulty)) return res.status(400).json({ code: 400, message: '无效的难度', data: null });
     const updated = {
-      ...topics[idx],
+      ...current,
       ...(title !== undefined && { title }),
       ...(category !== undefined && { category }),
       ...(difficulty !== undefined && { difficulty }),
@@ -268,67 +171,47 @@ router.put('/:id', authMiddleware, adminOnly, async (req, res) => {
       ...(vocab_list !== undefined && { vocab_list }),
       updated_at: new Date().toISOString(),
     };
-
-    topics[idx] = updated;
-    await persistTopic(updated);
-
-    res.json({ code: 200, message: '辩题更新成功', data: updated });
+    if (cloud) await db.set(COLLECTION, updated._id, updated);
+    else {
+      topics[topics.findIndex(item => item._id === updated._id)] = updated;
+      saveTopics();
+    }
+    return res.json({ code: 200, message: '辩题更新成功', data: updated });
   } catch (err) {
-    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
-      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
-      : '更新辩题失败';
-    res.status(500).json({ code: 500, message, data: null });
+    return res.status(500).json({ code: 500, message: topicError(err, '更新辩题失败'), data: null });
   }
 });
 
-/**
- * DELETE /api/topics/:id
- * 删除辩题（需鉴权）
- */
 router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
-    await ensureTopicsReady();
-    const idx = topics.findIndex(t => t._id === req.params.id);
-    if (idx === -1) {
-      return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
+    const cloud = await isCloudTopicsAvailable();
+    const current = cloud ? await db.getById(COLLECTION, req.params.id) : topics.find(item => item._id === req.params.id);
+    if (!current) return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
+    if (!cloud) {
+      topics = topics.filter(item => item._id !== req.params.id);
+      saveTopics();
     }
-
-    const removed = topics.splice(idx, 1)[0];
-    await removePersistedTopic(removed._id);
-
-    res.json({ code: 200, message: '辩题已删除', data: { _id: removed._id } });
+    await removePersistedTopic(req.params.id);
+    return res.json({ code: 200, message: '辩题已删除', data: { _id: req.params.id } });
   } catch (err) {
-    const message = db.isProductionEnvironment() && /CloudBase|存储初始化/.test(err.message || '')
-      ? 'CloudBase 数据库不可用，请检查云托管权限和环境变量'
-      : '删除辩题失败';
-    res.status(500).json({ code: 500, message, data: null });
+    return res.status(500).json({ code: 500, message: topicError(err, '删除辩题失败'), data: null });
   }
 });
 
-/**
- * PATCH /api/topics/:id/status
- * 上下架辩题（需鉴权）
- * body: { status: 1 } 上架 / { status: 0 } 下架
- */
 router.patch('/:id/status', authMiddleware, adminOnly, async (req, res) => {
   try {
-    await ensureTopicsReady();
-    const idx = topics.findIndex(t => t._id === req.params.id);
-    if (idx === -1) {
-      return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
+    const cloud = await isCloudTopicsAvailable();
+    const current = cloud ? await db.getById(COLLECTION, req.params.id) : topics.find(item => item._id === req.params.id);
+    if (!current) return res.status(404).json({ code: 404, message: '辩题不存在', data: null });
+    const updated = { ...current, status: req.body.status === 0 ? 0 : 1, updated_at: new Date().toISOString() };
+    if (cloud) await db.set(COLLECTION, updated._id, updated);
+    else {
+      topics[topics.findIndex(item => item._id === updated._id)] = updated;
+      saveTopics();
     }
-
-    const newStatus = req.body.status === 0 ? 0 : 1;
-    topics[idx].status = newStatus;
-    await persistTopic(topics[idx]);
-
-    res.json({
-      code: 200,
-      message: newStatus === 1 ? '辩题已上架' : '辩题已下架',
-      data: topics[idx],
-    });
+    return res.json({ code: 200, message: updated.status === 1 ? '辩题已上架' : '辩题已下架', data: updated });
   } catch (err) {
-    res.status(500).json({ code: 500, message: '操作失败', data: null });
+    return res.status(500).json({ code: 500, message: topicError(err, '操作失败'), data: null });
   }
 });
 

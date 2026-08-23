@@ -113,7 +113,7 @@ function buildStudent(user, speechRecords, portfolios, turns) {
 
 async function buildClassData(actor) {
   const [users, speechRecords, portfolios, turns] = await Promise.all([
-    authStore.listUsers(),
+    authStore.listAllUsers(),
     practiceStore.list(),
     portfolioStore.list(),
     debateStore.list(),

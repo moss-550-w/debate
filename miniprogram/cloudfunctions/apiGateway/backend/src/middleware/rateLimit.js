@@ -21,7 +21,7 @@ function cleanupExpiredKeys() {
 }
 
 // 启动定时清理（生产环境建议使用 Redis 替代内存计数）
-setInterval(cleanupExpiredKeys, CLEANUP_INTERVAL);
+setInterval(cleanupExpiredKeys, CLEANUP_INTERVAL).unref();
 // 进程退出时清理定时器
 process.on('SIGINT', () => { process.exit(); });
 

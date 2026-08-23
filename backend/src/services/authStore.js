@@ -157,11 +157,31 @@ async function updateUser(id, fields) {
   return result;
 }
 
-async function listUsers() {
+function matchesWhere(user, where) {
+  return Object.entries(where || {}).every(([key, value]) => user[key] === value);
+}
+
+async function listUsers({ where = {}, skip = 0, limit = 100 } = {}) {
+  const safeSkip = Math.max(0, Number(skip) || 0);
+  const safeLimit = Math.min(1000, Math.max(1, Number(limit) || 100));
   if ((await getMode()) === 'cloud') {
-    return db.query(COL.USERS, {}, { orderBy: 'created_at', limit: 1000 });
+    return db.query(COL.USERS, where, { orderBy: 'created_at', order: 'desc', skip: safeSkip, limit: safeLimit });
   }
-  return [...local.users];
+  return local.users.filter(user => matchesWhere(user, where)).slice(safeSkip, safeSkip + safeLimit);
+}
+
+async function countUsers(where = {}) {
+  if ((await getMode()) === 'cloud') return db.count(COL.USERS, where);
+  return local.users.filter(user => matchesWhere(user, where)).length;
+}
+
+async function listAllUsers({ where = {} } = {}) {
+  const total = await countUsers(where);
+  const users = [];
+  for (let skip = 0; skip < total; skip += 1000) {
+    users.push(...await listUsers({ where, skip, limit: 1000 }));
+  }
+  return users;
 }
 
 // ===== 验证码（_id = phone，重发整体覆盖） =====
@@ -261,6 +281,8 @@ module.exports = {
   createUser,
   updateUser,
   listUsers,
+  countUsers,
+  listAllUsers,
   saveCode,
   getCode,
   deleteCode,

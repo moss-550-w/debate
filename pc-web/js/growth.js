@@ -94,10 +94,35 @@ function renderUserTable(students) {
 
 async function loadManagedUsers() {
   initializeTeacherAuthorization();
-  const result = await apiRequest('/users');
+  const result = await apiRequest(`/users?page=${managedUserPage}&size=${MANAGED_USER_PAGE_SIZE}`);
   if (result && result.code === 200 && result.data) {
-    renderManagedUsers(result.data.list || []);
+    managedUserTotal = result.data.total || 0;
+    managedTeachers = result.data.teachers || [];
+    renderManagedUsers(result.data.list || [], managedTeachers);
+    renderManagedUserPagination();
   }
+}
+
+let managedUserPage = 1;
+let managedUserTotal = 0;
+let managedTeachers = [];
+const MANAGED_USER_PAGE_SIZE = 50;
+
+function renderManagedUserPagination() {
+  const container = document.getElementById('userPagination');
+  if (!container) return;
+  const totalPages = Math.max(1, Math.ceil(managedUserTotal / MANAGED_USER_PAGE_SIZE));
+  container.innerHTML = `
+    <button class="btn-secondary btn-sm" ${managedUserPage <= 1 ? 'disabled' : ''} onclick="changeManagedUserPage(${managedUserPage - 1})">上一页</button>
+    <span>第 ${managedUserPage} / ${totalPages} 页，共 ${managedUserTotal} 人</span>
+    <button class="btn-secondary btn-sm" ${managedUserPage >= totalPages ? 'disabled' : ''} onclick="changeManagedUserPage(${managedUserPage + 1})">下一页</button>
+  `;
+}
+
+function changeManagedUserPage(page) {
+  const totalPages = Math.max(1, Math.ceil(managedUserTotal / MANAGED_USER_PAGE_SIZE));
+  managedUserPage = Math.min(totalPages, Math.max(1, page));
+  loadManagedUsers();
 }
 
 let managedUsersStreamActive = false;
@@ -180,7 +205,7 @@ async function authorizeTeachers() {
   }
 }
 
-function renderManagedUsers(users) {
+function renderManagedUsers(users, teachers = managedTeachers) {
   const tbody = document.getElementById('userTableBody');
   if (!tbody) return;
   if (!users.length) {
@@ -190,7 +215,6 @@ function renderManagedUsers(users) {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const canEdit = ['developer', 'admin'].includes(currentUser.role);
   const roleLabels = { developer: '开发者', admin: '开发者', teacher: '教师', student: '学生', pupil: '学生' };
-  const teachers = users.filter(user => user.role === 'teacher' || user.role === 'admin');
   tbody.innerHTML = users.map(user => {
     const role = user.role || 'student';
     const nextRole = role === 'student' ? 'teacher' : 'student';

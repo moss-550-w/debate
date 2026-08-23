@@ -481,3 +481,17 @@ body {
   justify-content: flex-end;
   gap: 8px;
 }
+/* 分页控件 */
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--muted, #64748b);
+  font-size: 13px;
+}
+
+.table-pagination button {
+  min-width: 64px;
+}
