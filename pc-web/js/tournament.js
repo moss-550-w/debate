@@ -159,9 +159,32 @@ function renderTournamentList(list) {
         <span>队伍上限：${item.max_teams}</span>
         ${item.registration_deadline ? `<span>报名截止：${formatDate(item.registration_deadline)}</span>` : ''}
       </div>
-      <button class="btn-primary" style="padding:6px 16px;font-size:13px;" onclick="viewTournamentTeams('${item._id}')">查看队伍</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-primary" style="padding:6px 16px;font-size:13px;" onclick="viewTournamentTeams('${item._id}')">查看队伍</button>
+        <button class="btn-danger" style="padding:6px 16px;font-size:13px;" onclick="deleteTournament('${item._id}')">删除赛事</button>
+      </div>
     </div>
   `).join('');
+}
+
+/**
+ * 删除赛事及其报名队伍
+ * @param {string} tournamentId
+ */
+async function deleteTournament(tournamentId) {
+  if (!tournamentId) return;
+  const confirmed = window.confirm('确定删除该赛事吗？赛事及其报名队伍将一并删除，删除后无法恢复。');
+  if (!confirmed) return;
+
+  const res = await apiRequest(`/tournament/${encodeURIComponent(tournamentId)}`, {
+    method: 'DELETE',
+  });
+  if (res && res.code === 200) {
+    showToast('赛事已删除', 'success');
+    await loadTournamentList();
+  } else {
+    showToast(res?.message || '删除赛事失败', 'error');
+  }
 }
 
 /**

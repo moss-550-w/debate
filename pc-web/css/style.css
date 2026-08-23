@@ -152,6 +152,14 @@ body {
 }
 
 .btn-secondary:hover { background: #f8fafc; border-color: var(--primary); color: var(--primary); }
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn-danger:hover { background: #b91c1c; }
 .btn-full { width: 100%; padding: 12px; font-size: 16px; }
 
 /* ===== 管理后台布局 ===== */

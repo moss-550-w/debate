@@ -326,6 +326,90 @@ async function callDoubaoCustom(prompt) {
 }
 
 /**
+ * 调用豆包流式接口，逐段返回辩论回复正文。
+ * 流式接口只输出正文，评测统计由对练路由在结束时补齐。
+ */
+async function callDoubaoDebateStream(prompt, onToken) {
+  const apiKey = process.env.DOUBAO_API_KEY?.trim();
+  const apiUrl = process.env.DOUBAO_API_URL;
+  if (!apiKey) throw new Error('豆包API Key未配置');
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+  let response;
+
+  try {
+    response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'ep-20260426144920-pwjqk',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`豆包流式接口异常: HTTP ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let reply = '';
+
+    const consumeLine = line => {
+      const normalized = line.trim();
+      if (!normalized || normalized.startsWith(':')) return false;
+      const payloadText = normalized.startsWith('data:')
+        ? normalized.slice(5).trim()
+        : normalized;
+      if (!payloadText || payloadText === '[DONE]') return true;
+
+      let payload;
+      try {
+        payload = JSON.parse(payloadText);
+      } catch (_) {
+        return false;
+      }
+
+      const delta = payload.choices?.[0]?.delta?.content
+        || payload.choices?.[0]?.message?.content
+        || payload.output?.text
+        || '';
+      if (delta) {
+        reply += delta;
+        onToken(delta);
+      }
+      return false;
+    };
+
+    let finished = false;
+    while (!finished) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (consumeLine(line)) finished = true;
+      }
+      if (done) break;
+    }
+    if (buffer) consumeLine(buffer);
+
+    if (!reply.trim()) throw new Error('豆包流式接口未返回正文');
+    return reply.trim();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
  * 分析用户的思考记录（专业辩论评委视角）
  * @param {string} content - 用户的思考内容
  * @param {string} contentType - 内容类型
@@ -678,6 +762,25 @@ Respond in JSON:
 }`;
 }
 
+function buildDebateStreamPrompt(topic, position, userSpeech, opponentStyle, history) {
+  const style = OPPONENT_STYLES[opponentStyle];
+  const opponentPosition = position === 'pro' ? 'con' : 'pro';
+  const historyText = (history || []).map((h, i) => `Round ${i + 1}: ${h.role}: ${h.content}`).join('\n');
+
+  return `You are a debate opponent. Your personality: ${style.personality}
+
+Topic: "${topic}"
+Your position: ${opponentPosition} (opposite of user's position)
+
+Previous conversation:
+${historyText || 'No previous conversation.'}
+
+User just said: "${userSpeech}"
+
+Reply in character in 2-3 short English sentences suitable for intermediate English learners.
+Output only the reply text. Do not output JSON, labels, markdown, or analysis.`;
+}
+
 /**
  * AI辩论回复
  * @param {string} topic - 辩题
@@ -716,6 +819,34 @@ async function debateReply(topic, position, userSpeech, opponentStyle, history) 
     is_rebuttal_effective: Math.random() > 0.5,
     rebuttal_quality_score: Math.floor(Math.random() * 41) + 30, // 30-70
   };
+}
+
+/**
+ * 流式生成辩论回复。
+ * 云托管通过 SSE 增量输出；模型不可用时仍逐段发送本地兜底文本。
+ */
+async function debateReplyStream(topic, position, userSpeech, opponentStyle, history, onToken) {
+  const prompt = buildDebateStreamPrompt(topic, position, userSpeech, opponentStyle, history);
+  try {
+    logger.info('调用豆包流式API进行辩论回复', { topic, position, opponentStyle });
+    const reply = await callDoubaoDebateStream(prompt, onToken);
+    const score = Math.max(35, Math.min(85, 40 + Math.round(String(userSpeech || '').length / 4)));
+    return {
+      reply,
+      is_rebuttal_effective: String(userSpeech || '').trim().length >= 20,
+      rebuttal_quality_score: score,
+    };
+  } catch (err) {
+    logger.warn('豆包流式API失败，使用本地兜底', { error: err.message });
+    const fallbacks = debateFallbackReplies[opponentStyle] || debateFallbackReplies.data_monster;
+    const reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    for (const chunk of reply.match(/.{1,12}/g) || [reply]) onToken(chunk);
+    return {
+      reply,
+      is_rebuttal_effective: false,
+      rebuttal_quality_score: 50,
+    };
+  }
 }
 
 /**
@@ -868,5 +999,6 @@ module.exports = {
   analyzeTeamCompatibility,
   OPPONENT_STYLES,
   debateReply,
+  debateReplyStream,
   generateDebateOpening,
 };

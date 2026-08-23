@@ -278,7 +278,7 @@
     </scroll-view>
   </view>
 
-  <view class="loading" wx:if="{{loading}}">
+  <view class="loading" wx:if="{{loading || analysisLoading}}">
     <view class="loading-spinner"></view>
     <text>加载中...</text>
   </view>

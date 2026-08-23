@@ -38,6 +38,7 @@ Page({
     commentSubmitting: false,
     filterType: '',
     loading: true,
+    analysisLoading: false,
     submitting: false,
     formData: {
       topic_id: '',
@@ -59,37 +60,59 @@ Page({
     this.loadData();
   },
 
-    async loadData() {
-      this.setData({ loading: true });
-      const app = getApp();
-      if (app.globalData.userReady) await app.globalData.userReady.catch(() => {});
-      const userId = wx.getStorageSync('userId') || app.globalData.userId;
-      if (!userId) {
-        this.setData({ loading: false });
-        return;
-      }
+  async getCurrentUserId() {
+    const app = getApp();
+    if (app.globalData.userReady) await app.globalData.userReady.catch(() => {});
+    return wx.getStorageSync('userId') || app.globalData.userId;
+  },
+
+  async loadData(filterType = this.data.filterType) {
+    this.setData({ loading: true });
     try {
-      const [listRes, analysisRes] = await Promise.all([
-        request(`/portfolio/${userId}?size=50`),
-        request(`/portfolio/${userId}/analysis`),
-      ]);
-      if (listRes.code === 200) {
-        const records = (listRes.data.records || []).map(r => ({
-          ...r,
-          contentTypeLabel: CONTENT_TYPE_LABELS[r.content_type] || r.content_type,
-          positionLabel: POSITION_LABELS[r.position] || r.position,
-          recordScore: r.ai_feedback ? r.ai_feedback.judge_score : null,
-          displayContent: (r.content || '').slice(0, 60),
-          displayDate: (r.created_at || '').slice(0, 10),
-          hasMoreContent: (r.content || '').length > 60,
-        }));
-        this.setData({ records });
-      }
-      if (analysisRes.code === 200 && analysisRes.data) {
-        const sa = analysisRes.data;
-        const byType = sa.stats && sa.stats.by_type ? sa.stats.by_type : {};
-        const practiceCount = Object.values(byType).reduce((a, b) => a + (b || 0), 0);
-        const analysisData = {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return;
+      await this.loadRecords(userId, filterType);
+    } catch (err) {
+      console.error('加载作品集记录失败:', err);
+    } finally {
+      this.setData({ loading: false });
+    }
+  },
+
+  async loadRecords(userId, filterType = '') {
+    let url = `/portfolio/${encodeURIComponent(userId)}?page=1&size=50`;
+    if (filterType) {
+      url += `&content_type=${encodeURIComponent(filterType)}`;
+    }
+    const listRes = await request(url);
+    if (listRes.code !== 200) return;
+
+    const records = (listRes.data.records || []).map(r => ({
+      ...r,
+      contentTypeLabel: CONTENT_TYPE_LABELS[r.content_type] || r.content_type,
+      positionLabel: POSITION_LABELS[r.position] || r.position,
+      recordScore: r.ai_feedback ? r.ai_feedback.judge_score : null,
+      displayContent: (r.content || '').slice(0, 60),
+      displayDate: (r.created_at || '').slice(0, 10),
+      hasMoreContent: (r.content || '').length > 60,
+    }));
+    this.setData({ records });
+  },
+
+  async loadAnalysisForCurrentUser() {
+    this.setData({ analysisLoading: true });
+    try {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return;
+      const analysisRes = await request(`/portfolio/${encodeURIComponent(userId)}/analysis`);
+      if (analysisRes.code !== 200 || !analysisRes.data) return;
+
+      const sa = analysisRes.data;
+      const byType = sa.stats && sa.stats.by_type ? sa.stats.by_type : {};
+      const practiceCount = Object.values(byType).reduce((a, b) => a + (b || 0), 0);
+      this.setData({
+        styleAnalysis: sa,
+        analysisData: {
           styleLabel: sa.preferred_style ? sa.preferred_style.label : '分析中...',
           styleDesc: sa.preferred_style ? sa.preferred_style.description : '',
           strengthAreas: sa.strength_areas || [],
@@ -98,17 +121,13 @@ Page({
           recommendedTasks: sa.recommended_tasks || [],
           totalRecords: sa.stats ? sa.stats.total_records || 0 : 0,
           avgScore: sa.stats ? sa.stats.avg_score || 0 : 0,
-          practiceCount: practiceCount,
-        };
-        this.setData({
-          styleAnalysis: sa,
-          analysisData: analysisData,
-        });
-      }
+          practiceCount,
+        },
+      });
     } catch (err) {
-      console.error('加载作品集失败:', err);
+      console.error('加载作品集分析失败:', err);
     } finally {
-      this.setData({ loading: false });
+      this.setData({ analysisLoading: false });
     }
   },
 
@@ -307,12 +326,17 @@ Page({
 
   filterByType(e) {
     const type = e.currentTarget.dataset.type;
-    this.setData({ filterType: type === this.data.filterType ? '' : type });
-    this.loadData();
+    const nextType = type === this.data.filterType ? '' : type;
+    this.setData({ filterType: nextType });
+    this.loadData(nextType);
   },
 
   switchTab(e) {
-    this.setData({ activeTab: e.currentTarget.dataset.tab });
+    const tab = e.currentTarget.dataset.tab;
+    this.setData({ activeTab: tab });
+    if (tab === 'analysis') {
+      this.loadAnalysisForCurrentUser();
+    }
   },
 
   goPractice() {

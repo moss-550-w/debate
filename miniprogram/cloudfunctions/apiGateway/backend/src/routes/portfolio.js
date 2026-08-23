@@ -98,9 +98,18 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
 router.get('/:userId', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
-    const page = parseInt(req.query.page, 10) || 1;
-    const size = parseInt(req.query.size, 10) || 10;
-    const contentType = req.query.content_type;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const size = Math.min(50, Math.max(1, parseInt(req.query.size, 10) || 10));
+    const requestedContentType = String(req.query.content_type || '').trim();
+    const contentType = requestedContentType || null;
+
+    if (contentType && !VALID_CONTENT_TYPES.includes(contentType)) {
+      return res.status(400).json({
+        code: 400,
+        message: `无效的 content_type，可选值: ${VALID_CONTENT_TYPES.join(', ')}`,
+        data: null,
+      });
+    }
 
     // 安全校验：只能查看自己的作品集
     const currentUserId = req.user.userId || req.user.openid;
@@ -112,29 +121,24 @@ router.get('/:userId', authMiddleware, async (req, res) => {
       });
     }
 
-    // 获取用户记录
-    let records = await portfolioStore.listByUser(userId);
-
-    // 内容类型筛选
-    if (contentType && VALID_CONTENT_TYPES.includes(contentType)) {
-      records = records.filter(r => r.content_type === contentType);
-    }
-
-    // 按时间倒序排列
-    records.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    const total = records.length;
+    // 在数据库侧完成类型筛选、排序和分页，避免拉取全部记录后再处理。
+    const [records, total] = await Promise.all([
+      portfolioStore.listByUser(userId, {
+        contentType,
+        skip: (page - 1) * size,
+        limit: size,
+      }),
+      portfolioStore.countByUser(userId, contentType),
+    ]);
     const totalPages = Math.ceil(total / size);
-    const startIdx = (page - 1) * size;
-    const paginatedRecords = records.slice(startIdx, startIdx + size);
 
-    logger.info('作品集列表获取成功', { userId, total, page, size });
+    logger.info('作品集列表获取成功', { userId, total, page, size, contentType });
 
     res.json({
       code: 200,
       message: 'ok',
       data: {
-        records: paginatedRecords,
+        records,
         pagination: {
           page,
           size,

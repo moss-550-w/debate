@@ -98,18 +98,18 @@
           <text class="form-label">队员 {{idx + 1}}</text>
           <input class="form-input" placeholder="队员名称" value="{{item}}" bindinput="memberInputChange" data-index="{{idx}}" data-field="name" />
           <view class="style-select">
-            <view class="style-option {{registerForm.member_styles[idx] === opt.value ? 'active' : ''}}" wx:for="{{styleOptions}}" wx:key="value" bindtap="selectStyle" data-index="{{idx}}" data-value="{{opt.value}}">{{opt.label}}</view>
+            <view class="style-option {{registerForm.member_styles[idx] === option.value ? 'active' : ''}}" wx:for="{{styleOptions}}" wx:for-item="option" wx:key="value" bindtap="selectStyle" data-index="{{idx}}" data-value="{{option.value}}">{{option.label}}</view>
           </view>
         </view>
 
         <view class="member-actions">
-          <button class="add-member-btn" bindtap="addMember">+ 添加队员</button>
-          <button class="remove-member-btn" bindtap="removeMember">- 移除队员</button>
+          <button class="add-member-btn" disabled="{{registerForm.members.length >= selectedTournament.teamSize}}" bindtap="addMember">+ 添加队员</button>
+          <button class="remove-member-btn" disabled="{{registerForm.members.length <= 1}}" bindtap="removeMember">- 移除队员</button>
         </view>
       </scroll-view>
 
       <view class="modal-footer">
-        <button class="register-btn" bindtap="submitRegister">确认报名</button>
+        <button class="register-btn" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submitRegister">{{submitting ? '正在报名...' : '确认报名'}}</button>
       </view>
     </view>
   </view>

@@ -5,6 +5,14 @@ const FORMAT_LABELS = {
   points: '积分赛',
 };
 
+function createRegisterForm(teamSize) {
+  return {
+    team_name: '',
+    members: [''],
+    member_styles: [''],
+  };
+}
+
 Page({
   data: {
     tournaments: [],
@@ -25,6 +33,7 @@ Page({
     ],
     matchRecommendations: null,
     loading: true,
+    submitting: false,
     activeTab: 'list', // list | detail | teams
   },
 
@@ -91,9 +100,10 @@ Page({
   },
 
   openRegister() {
+    if (!this.data.selectedTournament) return;
     this.setData({
       showRegister: true,
-      registerForm: { team_name: '', members: [''], member_styles: [''] },
+      registerForm: createRegisterForm(this.data.selectedTournament.teamSize),
     });
   },
 
@@ -115,6 +125,11 @@ Page({
   },
 
   addMember() {
+    const teamSize = Number(this.data.selectedTournament && this.data.selectedTournament.teamSize) || 1;
+    if (this.data.registerForm.members.length >= teamSize) {
+      wx.showToast({ title: `该赛事要求 ${teamSize} 名队员`, icon: 'none' });
+      return;
+    }
     const members = [...this.data.registerForm.members, ''];
     const styles = [...this.data.registerForm.member_styles, ''];
     this.setData({ 'registerForm.members': members, 'registerForm.member_styles': styles });
@@ -135,30 +150,46 @@ Page({
   },
 
   async submitRegister() {
+    if (this.data.submitting) return;
     const form = this.data.registerForm;
-    if (!form.team_name || form.members.some(m => !m.trim())) {
-      wx.showToast({ title: '请填写完整信息', icon: 'none' });
+    const teamSize = Number(this.data.selectedTournament && this.data.selectedTournament.teamSize) || 1;
+    const members = form.members.map(member => String(member || '').trim());
+    const memberStyles = form.member_styles.map(style => String(style || '').trim());
+    if (!String(form.team_name || '').trim()) {
+      wx.showToast({ title: '请输入队伍名称', icon: 'none' });
       return;
     }
+    if (members.length !== teamSize || members.some(member => !member)) {
+      wx.showToast({ title: `请填写 ${teamSize} 名队员`, icon: 'none' });
+      return;
+    }
+    if (memberStyles.length !== teamSize || memberStyles.some(style => !style)) {
+      wx.showToast({ title: '请为每名队员选择辩论风格', icon: 'none' });
+      return;
+    }
+    const tournamentId = this.data.selectedTournament._id;
+    this.setData({ submitting: true });
     try {
       wx.showLoading({ title: '报名中...' });
-      const res = await request(`/tournament/${this.data.selectedTournament._id}/register`, {
+      const res = await request(`/tournament/${tournamentId}/register`, {
         method: 'POST',
         data: {
-          team_name: form.team_name,
-          members: form.members.filter(m => m.trim()),
-          member_styles: form.member_styles.filter(s => s),
+          team_name: String(form.team_name).trim(),
+          members,
+          member_styles: memberStyles,
         },
       });
       wx.hideLoading();
-      if (res.code === 200) {
-        wx.showToast({ title: '报名成功', icon: 'success' });
-        this.setData({ showRegister: false });
-        this.viewDetail({ currentTarget: { dataset: { id: this.data.selectedTournament._id } } });
-      }
+      if (!res || res.code !== 200) throw new Error((res && res.message) || '报名失败');
+      wx.showToast({ title: '报名成功', icon: 'success' });
+      this.setData({ showRegister: false }, () => {
+        this.viewDetail({ currentTarget: { dataset: { id: tournamentId } } });
+      });
     } catch (err) {
       wx.hideLoading();
-      wx.showToast({ title: '报名失败', icon: 'none' });
+      wx.showToast({ title: err.message || '报名失败', icon: 'none' });
+    } finally {
+      this.setData({ submitting: false });
     }
   },
 

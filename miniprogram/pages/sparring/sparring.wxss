@@ -8,7 +8,7 @@
 
 /* ========== 选择阶段 ========== */
 .select-phase {
-  padding: 30rpx 30rpx 80rpx;
+  padding: 30rpx 30rpx 220rpx;
   width: 100%;
   box-sizing: border-box;
 }
@@ -149,12 +149,62 @@
   color: #ffffff;
   font-size: 32rpx;
   font-weight: bold;
-  padding: 26rpx;
+  height: 82rpx;
+  line-height: 82rpx;
+  padding: 0 28rpx;
   border-radius: 50rpx;
   border: none;
-  width: 100%;
-  margin-top: 40rpx;
+  width: 300rpx;
+  margin: 0;
   box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.start-btn[disabled] {
+  background: #cbd5e1;
+  color: #ffffff;
+}
+
+.start-action {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 124rpx;
+  padding: 18rpx 30rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, .97);
+  border-top: 1rpx solid #e5e7eb;
+  box-shadow: 0 -6rpx 20rpx rgba(15, 23, 42, .08);
+  box-sizing: border-box;
+}
+
+.start-selection {
+  flex: 1;
+  min-width: 0;
+}
+
+.start-selection-topic,
+.start-selection-status {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.start-selection-topic {
+  color: #1f2937;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.start-selection-status {
+  margin-top: 6rpx;
+  color: #64748b;
+  font-size: 21rpx;
 }
 
 /* ========== 对练阶段 ========== */

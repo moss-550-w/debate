@@ -26,7 +26,14 @@
       <view class="topic-empty" wx:if="{{!topicsLoading && displayTopics.length === 0}}">没有找到匹配的辩题，请换个关键词。</view>
     </view>
 
-    <button class="start-btn" bindtap="startBattle">开始对练</button>
+  </view>
+
+  <view class="start-action" wx:if="{{step === 'select'}}">
+    <view class="start-selection">
+      <text class="start-selection-topic">{{selectedTopic ? selectedTopic.title : '请选择辩题'}}</text>
+      <text class="start-selection-status">{{selectedStyle ? '对手风格已选择' : '还需选择对手风格'}}</text>
+    </view>
+    <button class="start-btn" disabled="{{!selectedStyle || !selectedTopicId || topicsLoading}}" bindtap="startBattle">开始对练</button>
   </view>
 
   <!-- 对练阶段 -->

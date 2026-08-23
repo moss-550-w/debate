@@ -153,6 +153,22 @@ async function query(collectionName, where = {}, options = {}) {
 }
 
 /**
+ * 统计符合条件的记录数
+ * @param {string} collectionName - 集合名
+ * @param {object} where - 查询条件
+ * @returns {Promise<number>}
+ */
+async function count(collectionName, where = {}) {
+  try {
+    const res = await withTimeout(collection(collectionName).where(where).count(), `数据库计数 [${collectionName}]`);
+    return Number(res.total) || 0;
+  } catch (err) {
+    logger.error(`数据库计数失败 [${collectionName}]`, { where, error: err.message });
+    throw err;
+  }
+}
+
+/**
  * 新增记录
  * @param {string} collectionName
  * @param {object} data
@@ -236,6 +252,7 @@ module.exports = {
   collection,
   getById,
   query,
+  count,
   add,
   update,
   set,

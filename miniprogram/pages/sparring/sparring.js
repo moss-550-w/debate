@@ -1,4 +1,4 @@
-const { request } = require('../../utils/request');
+const { request, requestStream } = require('../../utils/request');
 const chinaTopics = require('../../data/chinaTopics');
 
 const OPPONENT_STYLES = {
@@ -244,28 +244,52 @@ Page({
     if (!text) return;
     if (this.data.sending) return;
 
-    // 1. 立即添加用户消息
+    // 1. 立即添加用户消息和 AI 占位消息，避免等待期间页面无反馈
     const beforeMsgs = this.data.messages.concat([{ role: 'user', content: text }]);
+    const style = this.data.selectedStyle;
+    const styleName = OPPONENT_STYLES[style] ? OPPONENT_STYLES[style].name : 'AI对手';
+    const replies = MOCK_REPLIES[style] || MOCK_REPLIES.logic_deconstruction;
+    const replyIndex = this.data._replyIndex % replies.length;
+    const fallbackReply = replies[replyIndex];
+    const pendingIndex = beforeMsgs.length;
+    const pendingMsgs = beforeMsgs.concat([{ role: 'ai', content: 'AI 正在思考…', styleName, streaming: true }]);
     this.setData({
       userInput: '',
       textInputFocused: false,
       sending: true,
-      messages: beforeMsgs,
-      debugMsgCount: beforeMsgs.length,
+      messages: pendingMsgs,
+      debugMsgCount: pendingMsgs.length,
     });
 
-    // 2. 构造 AI 回复（先本地生成兜底，再尝试真实API）
-    const style = this.data.selectedStyle;
-    const replies = MOCK_REPLIES[style] || MOCK_REPLIES.logic_deconstruction;
-    const idx = this.data._replyIndex % replies.length;
-    let aiText = replies[idx];
-    const newReplyIndex = idx + 1;
+    let streamedText = '';
+    let flushTimer = null;
+    let latestStats = null;
+    let latestSessionId = this.data.sessionId;
+    const updatePending = (content, streaming = true) => {
+      const messages = [...this.data.messages];
+      if (!messages[pendingIndex]) return;
+      messages[pendingIndex] = { ...messages[pendingIndex], content, streaming };
+      this.setData({ messages, debugMsgCount: messages.length });
+    };
+    const appendToken = token => {
+      streamedText += String(token || '');
+      if (flushTimer) return;
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        updatePending(streamedText || 'AI 正在思考…');
+      }, 50);
+    };
+    const applyStats = data => {
+      if (!data) return;
+      if (data.session_id) latestSessionId = data.session_id;
+      if (data.stats) latestStats = data.stats;
+    };
 
-    let newStats = null;
     try {
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('t')), 10000));
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('AI响应超时')), 45000));
       const res = await Promise.race([
-        request('/debate', {
+        requestStream('/debate/stream', {
+          fallbackPath: '/debate',
           method: 'POST',
           data: {
             topic_id: this.data.selectedTopic.id,
@@ -275,32 +299,35 @@ Page({
             opponent_style: style,
             session_id: this.data.sessionId,
           },
+          timeout: 60000,
+          onEvent: event => {
+            if (event.type === 'delta') appendToken(event.data && event.data.text);
+            if (event.type === 'start' || event.type === 'done') applyStats(event.data);
+          },
         }),
         timeoutPromise,
-      ]).catch(() => null);
-      if (res && res.code === 200 && res.data) {
-        if (res.data.ai_reply) aiText = res.data.ai_reply;
-        if (res.data.stats) newStats = res.data.stats;
-        if (res.data.session_id) {
-          this.setData({ sessionId: res.data.session_id });
-        }
-      }
+      ]);
+      if (!streamedText && res && res.data && res.data.ai_reply) streamedText = res.data.ai_reply;
+      if (res && res.data) applyStats(res.data);
     } catch (e) {
-      // ignore
+      console.warn('流式对练失败，使用本地兜底:', e.message);
+      streamedText = fallbackReply;
+    } finally {
+      if (flushTimer) clearTimeout(flushTimer);
     }
 
-    // 3. 添加 AI 消息、更新状态
-    const styleName = OPPONENT_STYLES[style] ? OPPONENT_STYLES[style].name : 'AI对手';
-    const afterMsgs = beforeMsgs.concat([{ role: 'ai', content: aiText, styleName: styleName }]);
+    const aiText = streamedText || fallbackReply;
+    const afterMsgs = [...this.data.messages];
+    afterMsgs[pendingIndex] = { role: 'ai', content: aiText, styleName, streaming: false };
 
     // 统计显示
     let displayStats;
-    if (newStats) {
-      const rate = newStats.effective_rebuttal_rate || 0;
+    if (latestStats) {
+      const rate = latestStats.effective_rebuttal_rate || 0;
       displayStats = {
-        totalRounds: newStats.total_rounds || 0,
+        totalRounds: latestStats.total_rounds || 0,
         effectiveRate: Math.round(rate * 100) + '%',
-        stallCount: newStats.stall_count || 0,
+        stallCount: latestStats.stall_count || 0,
       };
     } else {
       const next = this.data.statsDisplay.totalRounds + 1;
@@ -316,7 +343,8 @@ Page({
       debugMsgCount: afterMsgs.length,
       sending: false,
       statsDisplay: displayStats,
-      _replyIndex: newReplyIndex,
+      sessionId: latestSessionId,
+      _replyIndex: replyIndex + 1,
       _lastMsgTs: Date.now(),
     });
   },

@@ -26,6 +26,11 @@ async function list(collection, where = {}, options = {}) {
   return db.query(collection, where, options);
 }
 
+async function count(collection, where = {}) {
+  await getMode();
+  return db.count(collection, where);
+}
+
 async function set(collection, id, record) {
   const value = { ...record, _id: id, updated_at: new Date().toISOString() };
   await getMode();
@@ -37,4 +42,4 @@ async function remove(collection, id) {
   return db.remove(collection, id);
 }
 
-module.exports = { get, list, set, remove };
+module.exports = { get, list, count, set, remove };

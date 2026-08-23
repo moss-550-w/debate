@@ -19,6 +19,15 @@ async function getTeams(tournamentId) {
   return store.list(TEAMS, { tournament_id: tournamentId }, { orderBy: 'created_at', order: 'desc', limit: 100 });
 }
 
+function isRegistrationExpired(deadline) {
+  if (!deadline) return false;
+  const value = String(deadline).trim();
+  const deadlineDate = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T23:59:59.999+08:00`)
+    : new Date(value);
+  return !Number.isNaN(deadlineDate.getTime()) && deadlineDate.getTime() < Date.now();
+}
+
 router.post('/create', authMiddleware, requireManagement, async (req, res) => {
   try {
     const { name, format, topic_ids, judge_ids, max_teams, team_size, registration_deadline, rules } = req.body;
@@ -84,26 +93,30 @@ router.post('/:id/register', authMiddleware, async (req, res) => {
     const { team_name, members, member_styles } = req.body;
     if (!tournament) return res.status(404).json({ code: 404, message: '赛事不存在', data: null });
     if (tournament.status !== 'registering') return res.status(400).json({ code: 400, message: '赛事当前未开放报名', data: null });
-    if (tournament.registration_deadline && new Date(tournament.registration_deadline) < new Date()) {
+    if (isRegistrationExpired(tournament.registration_deadline)) {
       return res.status(400).json({ code: 400, message: '报名已截止', data: null });
     }
-    if (!team_name || !Array.isArray(members) || !Array.isArray(member_styles) || members.length !== tournament.team_size || member_styles.length !== members.length) {
+    const normalizedTeamName = String(team_name || '').trim();
+    const normalizedMembers = Array.isArray(members) ? members.map(member => String(member || '').trim()) : [];
+    const normalizedStyles = Array.isArray(member_styles) ? member_styles.map(style => String(style || '').trim()) : [];
+    const validStyles = ['data_driven', 'value_driven', 'logic_focused', 'balanced'];
+    if (!normalizedTeamName || normalizedMembers.length !== tournament.team_size || normalizedMembers.some(member => !member) || normalizedStyles.length !== normalizedMembers.length || normalizedStyles.some(style => !validStyles.includes(style))) {
       return res.status(400).json({ code: 400, message: `请填写 ${tournament.team_size} 名队员及对应风格`, data: null });
     }
     const teams = await getTeams(tournament._id);
     if (teams.length >= tournament.max_teams) return res.status(400).json({ code: 400, message: '参赛队伍已满', data: null });
     let compatibility;
     try {
-      compatibility = await aiService.analyzeTeamCompatibility(members, member_styles);
+      compatibility = await aiService.analyzeTeamCompatibility(normalizedMembers, normalizedStyles);
     } catch (err) {
-      compatibility = getDefaultCompatibility(member_styles);
+      compatibility = getDefaultCompatibility(normalizedStyles);
     }
     const team = {
       _id: createId('team'),
       tournament_id: tournament._id,
-      team_name: team_name.trim(),
-      members: members.map(member => String(member).trim()),
-      member_styles,
+      team_name: normalizedTeamName,
+      members: normalizedMembers,
+      member_styles: normalizedStyles,
       compatibility,
       created_by: req.user.userId || req.user.openid,
       created_at: new Date().toISOString(),
@@ -113,6 +126,32 @@ router.post('/:id/register', authMiddleware, async (req, res) => {
   } catch (err) {
     logger.error('报名参赛失败', { error: err.message });
     return res.status(500).json({ code: 500, message: '报名参赛失败', data: null });
+  }
+});
+
+router.delete('/:id', authMiddleware, requireManagement, async (req, res) => {
+  try {
+    const tournament = await store.get(TOURNAMENTS, req.params.id);
+    if (!tournament) {
+      return res.status(404).json({ code: 404, message: '赛事不存在', data: null });
+    }
+
+    const teams = await getTeams(tournament._id);
+    await Promise.all(teams.map(team => store.remove(TEAMS, team._id)));
+    await store.remove(TOURNAMENTS, tournament._id);
+
+    logger.info('赛事删除成功', {
+      tournamentId: tournament._id,
+      teamCount: teams.length,
+    });
+    return res.json({
+      code: 200,
+      message: '赛事已删除',
+      data: { _id: tournament._id, deleted_team_count: teams.length },
+    });
+  } catch (err) {
+    logger.error('删除赛事失败', { error: err.message, tournamentId: req.params.id });
+    return res.status(500).json({ code: 500, message: '删除赛事失败', data: null });
   }
 });
 

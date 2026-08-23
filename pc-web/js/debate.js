@@ -46,6 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // 成绩导出
   document.getElementById('exportGradesBtn').addEventListener('click', loadAndShowGrades);
   document.getElementById('exportGradesCsvBtn2').addEventListener('click', exportGradesCsv);
+
+  const cancelCurrentAssignmentBtn = document.getElementById('cancelCurrentAssignmentBtn');
+  if (cancelCurrentAssignmentBtn) {
+    cancelCurrentAssignmentBtn.addEventListener('click', cancelCurrentAssignment);
+  }
 });
 
 // ==================== 辩题 CRUD ====================
@@ -428,6 +433,38 @@ async function publishAssignment(topicId, topicTitle) {
   } catch (err) {
     console.error('发布任务失败:', err);
     showToast('发布任务失败，请稍后重试', 'error');
+  }
+}
+
+/**
+ * 取消当前布置任务
+ */
+async function cancelCurrentAssignment() {
+  if (!window.confirm('确定取消当前布置任务吗？取消后，学生端将不再显示该任务。')) return;
+
+  const button = document.getElementById('cancelCurrentAssignmentBtn');
+  if (button) {
+    button.disabled = true;
+    button.textContent = '取消中...';
+  }
+
+  try {
+    const res = await apiRequest('/assignments/current/cancel', { method: 'POST' });
+    if (res && res.code === 200) {
+      const banner = document.getElementById('currentAssignmentBanner');
+      if (banner) banner.style.display = 'none';
+      showToast('当前任务已取消', 'success');
+    } else {
+      showToast(res?.message || '取消任务失败', 'error');
+    }
+  } catch (err) {
+    console.error('取消当前任务失败:', err);
+    showToast('取消任务失败，请稍后重试', 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = '取消任务';
+    }
   }
 }
 

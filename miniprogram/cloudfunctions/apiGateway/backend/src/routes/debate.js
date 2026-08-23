@@ -32,6 +32,113 @@ function isValidPosition(position) {
   return position === 'pro' || position === 'con';
 }
 
+function sendStreamEvent(res, type, data) {
+  if (res.writableEnded || res.destroyed) return;
+  res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+// ===== 1.0 POST /api/debate/stream — SSE 流式发送消息 =====
+router.post('/stream', authMiddleware, rateLimitMiddleware, async (req, res) => {
+  const { topic_id, topic_title, position, user_speech, opponent_style, session_id, response_time_ms } = req.body;
+
+  if (!topic_id || !user_speech || !opponent_style) {
+    return res.status(400).json({ code: 400, message: '缺少必填参数: topic_id, user_speech, opponent_style', data: null });
+  }
+  if (!isValidStyle(opponent_style)) {
+    return res.status(400).json({ code: 400, message: '无效的对手风格', data: null });
+  }
+
+  let session = session_id ? debateSessions.get(session_id) : null;
+  let sessionId = session_id;
+  if (!session) {
+    sessionId = generateSessionId();
+    session = {
+      userId: req.user.userId,
+      topic: topic_title || 'General debate topic',
+      topic_id,
+      position: isValidPosition(position) ? position : 'pro',
+      style: opponent_style,
+      history: [],
+      stats: { total_rounds: 0, effective_count: 0, rebuttal_score_sum: 0, stall_count: 0 },
+      createdAt: new Date().toISOString(),
+      lastActivity: new Date().toISOString(),
+    };
+    debateSessions.set(sessionId, session);
+  }
+
+  if (session.userId !== req.user.userId && req.user.userId) {
+    return res.status(403).json({ code: 403, message: '无权操作其他用户的对练会话', data: null });
+  }
+
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  sendStreamEvent(res, 'start', { session_id: sessionId });
+
+  try {
+    const history = session.history || [];
+    const aiResult = await aiService.debateReplyStream(
+      topic_title || session.topic,
+      position || session.position,
+      user_speech,
+      opponent_style,
+      history,
+      token => sendStreamEvent(res, 'delta', { text: token })
+    );
+
+    if (typeof response_time_ms === 'number' && response_time_ms > 10000) {
+      session.stats.stall_count = (session.stats.stall_count || 0) + 1;
+    }
+    session.stats.total_rounds = (session.stats.total_rounds || 0) + 1;
+    session.stats.effective_count = (session.stats.effective_count || 0) + (aiResult.is_rebuttal_effective ? 1 : 0);
+    session.stats.rebuttal_score_sum = (session.stats.rebuttal_score_sum || 0) + aiResult.rebuttal_quality_score;
+
+    const effectiveRate = session.stats.total_rounds > 0
+      ? session.stats.effective_count / session.stats.total_rounds
+      : 0;
+    history.push({ role: 'user', content: user_speech });
+    history.push({ role: 'ai', content: aiResult.reply, style: opponent_style });
+    session.history = history.length > 20 ? history.slice(-20) : history;
+    session.lastActivity = new Date().toISOString();
+
+    try {
+      await debateStore.recordTurn({
+        user_id: req.user.userId || req.user.openid,
+        session_id: sessionId,
+        topic_id,
+        topic_title: topic_title || session.topic,
+        opponent_style,
+        user_speech,
+        rebuttal_score: aiResult.rebuttal_quality_score,
+        is_rebuttal_effective: !!aiResult.is_rebuttal_effective,
+        response_time_ms: Number(response_time_ms) || 0,
+      });
+    } catch (recordError) {
+      logger.warn('流式对练记录写入失败', { error: recordError.message });
+    }
+
+    sendStreamEvent(res, 'done', {
+      session_id: sessionId,
+      ai_reply: aiResult.reply,
+      reply_style: opponent_style,
+      round: session.stats.total_rounds,
+      stats: {
+        effective_rebuttal_rate: Math.round(effectiveRate * 100) / 100,
+        stall_count: session.stats.stall_count || 0,
+        total_rounds: session.stats.total_rounds || 0,
+      },
+    });
+  } catch (err) {
+    logger.error('流式辩论对练失败', { error: err.message });
+    sendStreamEvent(res, 'error', { code: 500, message: '对练回复失败' });
+  } finally {
+    res.end();
+  }
+});
+
 // ===== 1.1 POST /api/debate — 发送消息 =====
 router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
   try {

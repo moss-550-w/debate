@@ -137,4 +137,123 @@ function request(path, options = {}) {
   return send(0);
 }
 
-module.exports = { request };
+function decodeChunk(data) {
+  if (typeof data === 'string') return data;
+  try {
+    if (typeof TextDecoder !== 'undefined') return new TextDecoder('utf-8').decode(data);
+  } catch (_) {
+    // 兼容部分旧版基础库
+  }
+  const bytes = new Uint8Array(data);
+  let binary = '';
+  for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+  try {
+    return decodeURIComponent(escape(binary));
+  } catch (_) {
+    return binary;
+  }
+}
+
+/**
+ * 订阅 SSE 流式接口。
+ * 云函数不能透传分块响应，因此自动降级到普通接口；云托管/本地模式使用真实增量输出。
+ */
+function requestStream(path, options = {}) {
+  const baseUrl = app.globalData.apiBaseUrl;
+  const token = wx.getStorageSync('token');
+  const onEvent = typeof options.onEvent === 'function' ? options.onEvent : () => {};
+  const fallbackPath = options.fallbackPath || path.replace(/\/stream(?=\?|$)/, '');
+
+  if (app.globalData.apiMode === 'cloud-function') {
+    const fallbackOptions = { ...options };
+    delete fallbackOptions.onEvent;
+    delete fallbackOptions.fallbackPath;
+    return request(fallbackPath, fallbackOptions).then(result => {
+      if (result && result.code === 200) onEvent({ type: 'done', data: result.data || {} });
+      return result;
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    let finalResult = null;
+    let streamError = null;
+    let settled = false;
+
+    const handleFrame = frame => {
+      const lines = frame.split(/\r?\n/);
+      const eventLine = lines.find(line => line.startsWith('event:')) || '';
+      const dataLines = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim());
+      if (!dataLines.length) return;
+
+      let payload;
+      try {
+        payload = JSON.parse(dataLines.join('\n'));
+      } catch (_) {
+        return;
+      }
+
+      const type = eventLine.slice(6).trim() || payload.type || 'message';
+      const event = { type, data: payload.data !== undefined ? payload.data : payload };
+      onEvent(event);
+      if (type === 'done') finalResult = { code: 200, message: 'ok', data: event.data || {} };
+      if (type === 'error') streamError = new Error((event.data && event.data.message) || '流式响应失败');
+    };
+
+    const handleChunk = chunk => {
+      buffer += decodeChunk(chunk);
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop() || '';
+      frames.forEach(handleFrame);
+    };
+
+    const requestTask = wx.request({
+      url: baseUrl + path,
+      method: options.method || 'POST',
+      data: options.data || {},
+      enableChunked: true,
+      timeout: options.timeout || 60000,
+      header: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+      success(res) {
+        if (settled) return;
+        if (res.data && res.data.code === 401) {
+          settled = true;
+          wx.removeStorageSync('token');
+          wx.removeStorageSync('openid');
+          wx.navigateTo({ url: '/pages/index/index' });
+          reject(new Error('登录已过期'));
+          return;
+        }
+        if (buffer.trim()) handleFrame(buffer);
+        settled = true;
+        if (streamError) {
+          reject(streamError);
+        } else if (finalResult) {
+          resolve(finalResult);
+        } else if (res.data && typeof res.data === 'object') {
+          resolve(res.data);
+        } else {
+          reject(new Error('流式响应未完成'));
+        }
+      },
+      fail(err) {
+        if (settled) return;
+        settled = true;
+        reject(err);
+      },
+    });
+
+    if (requestTask && typeof requestTask.onChunkReceived === 'function') {
+      requestTask.onChunkReceived(result => handleChunk(result.data));
+    } else {
+      requestTask && requestTask.abort && requestTask.abort();
+      reject(new Error('当前微信基础库不支持流式响应'));
+    }
+  });
+}
+
+module.exports = { request, requestStream };
