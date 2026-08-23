@@ -73,6 +73,15 @@
 .record-hint {
   font-size: 24rpx;
   color: #6b7280;
+  text-align: center;
+  line-height: 1.6;
+  max-width: 620rpx;
+}
+
+.record-segments {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #2563eb;
 }
 
 /* 评测结果 */

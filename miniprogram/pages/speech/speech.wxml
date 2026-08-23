@@ -7,11 +7,13 @@
 
   <!-- 录音区域 -->
   <view class="record-area">
-    <view class="record-btn {{recording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord" bindtouchcancel="cancelRecord">
+    <view class="record-btn {{recording ? 'recording' : ''}}" bindtap="toggleRecord">
       <text class="record-icon">{{recording ? '🔴' : '🎤'}}</text>
-      <text class="record-text">{{recording ? '录音中...' : '按住说话'}}</text>
+      <text class="record-text">{{recording ? '点击结束' : '点击开始'}}</text>
     </view>
-    <text class="record-hint">{{recording ? '松开自动提交评测' : '长按按钮开始录音'}}</text>
+    <text class="record-hint" wx:if="{{recording}}">已录制 {{recordedSeconds}} 秒 · 自动分段中</text>
+    <text class="record-hint" wx:else>长文会自动分段，点击结束后统一评测</text>
+    <text class="record-segments" wx:if="{{segmentCount > 0}}">已完成 {{segmentCount}} 段录音</text>
   </view>
 
   <!-- 评测结果 -->

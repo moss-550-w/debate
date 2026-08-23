@@ -15,6 +15,8 @@ Page({
     wordScores: [],
     tempAudioPath: '',
     scoreColor: '',
+    segmentCount: 0,
+    recordedSeconds: 0,
   },
 
   onLoad(options) {
@@ -26,24 +28,48 @@ Page({
       });
     }
 
-    this._recordTouchActive = false;
-    this._shouldSubmitRecording = false;
+    this._recordingSessionActive = false;
+    this._discardRecording = false;
+    this._segmentPaths = [];
+    this._recordedDurationMs = 0;
+    this._segmentTimer = null;
+    this._segmentStartedAt = 0;
     this.recorderManager = wx.getRecorderManager();
     this.recorderManager.onStart(() => {
+      this._segmentStartedAt = Date.now();
       this.setData({ recording: true, showResult: false });
-      if (!this._recordTouchActive) this.recorderManager.stop();
+      this._segmentTimer = setTimeout(() => {
+        if (this._recordingSessionActive && this.data.recording) this.recorderManager.stop();
+      }, 24000);
     });
     this.recorderManager.onStop((res) => {
-      const shouldSubmit = this._shouldSubmitRecording;
-      this._shouldSubmitRecording = false;
-      this.setData({ recording: false });
-      if (!shouldSubmit || !res.tempFilePath) return;
-      this.setData({ tempAudioPath: res.tempFilePath });
-      this.submitEvaluate(res.tempFilePath);
+      if (this._segmentTimer) clearTimeout(this._segmentTimer);
+      this._segmentTimer = null;
+      if (res.tempFilePath && !this._discardRecording) {
+        this._segmentPaths.push(res.tempFilePath);
+        this._recordedDurationMs += Number(res.duration) || Math.max(0, Date.now() - this._segmentStartedAt);
+        this.setData({
+          tempAudioPath: res.tempFilePath,
+          segmentCount: this._segmentPaths.length,
+          recordedSeconds: Math.round(this._recordedDurationMs / 1000),
+        });
+      }
+
+      if (this._recordingSessionActive && !this._discardRecording) {
+        this._nextSegmentTimer = setTimeout(() => {
+          this._nextSegmentTimer = null;
+          this.startNextSegment();
+        }, 100);
+        return;
+      }
+
+      this.finishRecordingSession();
+      this._discardRecording = false;
     });
     this.recorderManager.onError((err) => {
       console.error('录音失败:', err);
-      this._shouldSubmitRecording = false;
+      this._recordingSessionActive = false;
+      this._discardRecording = true;
       this.setData({ recording: false });
       wx.showToast({ title: '录音失败，请检查麦克风权限', icon: 'none' });
     });
@@ -51,28 +77,54 @@ Page({
 
   async startRecord() {
     if (this.data.recording || this.data.evaluating) return;
-    this._recordTouchActive = true;
     const authorized = await this.ensureRecordAuthorization();
-    if (!authorized || !this._recordTouchActive) return;
+    if (!authorized) return;
 
-    const options = {
-      duration: 30000,
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      format: 'wav',
-    };
-
-    this._shouldSubmitRecording = true;
-    this.recorderManager.start(options);
+    this._recordingSessionActive = true;
+    this._discardRecording = false;
+    if (this._nextSegmentTimer) clearTimeout(this._nextSegmentTimer);
+    this._segmentPaths = [];
+    this._recordedDurationMs = 0;
+    this.setData({ segmentCount: 0, recordedSeconds: 0, showResult: false });
+    this.startNextSegment();
   },
 
   stopRecord() {
-    this._recordTouchActive = false;
-    if (this.data.recording) this.recorderManager.stop();
+    if (!this._recordingSessionActive) return;
+    this._recordingSessionActive = false;
+    if (this.data.recording) {
+      this.recorderManager.stop();
+    } else {
+      if (this._nextSegmentTimer) clearTimeout(this._nextSegmentTimer);
+      this._nextSegmentTimer = null;
+      this.finishRecordingSession();
+    }
   },
 
   cancelRecord() {
     this.stopRecord();
+  },
+
+  startNextSegment() {
+    if (!this._recordingSessionActive || this.data.evaluating) return;
+    this.recorderManager.start({
+      duration: 25000,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      format: 'wav',
+    });
+  },
+
+  toggleRecord() {
+    if (this.data.recording) this.stopRecord();
+    else this.startRecord();
+  },
+
+  finishRecordingSession() {
+    const segmentPaths = this._segmentPaths.slice();
+    this.setData({ recording: false });
+    this._segmentPaths = [];
+    if (segmentPaths.length && !this._discardRecording) this.submitEvaluate(segmentPaths);
   },
 
   async ensureRecordAuthorization() {
@@ -95,21 +147,26 @@ Page({
     }
   },
 
-  async submitEvaluate(audioPath) {
+  async submitEvaluate(segmentPaths) {
     this.setData({ evaluating: true });
 
     try {
+      const requestData = {
+        ref_text: this.data.refText,
+        format: 'wav',
+        duration_sec: Math.max(1, this.data.recordedSeconds),
+      };
       const requestOptions = {
         method: 'POST',
-        data: {
-          ref_text: this.data.refText,
-          format: 'wav',
-        },
+        data: requestData,
+        timeout: 60000,
       };
       if (getApp().globalData.apiMode === 'cloud-function') {
-        requestOptions.filePath = audioPath;
+        requestOptions.filePaths = segmentPaths;
       } else {
-        requestOptions.data.audio_base64 = wx.getFileSystemManager().readFileSync(audioPath, 'base64');
+        requestData.audio_base64s = segmentPaths.map(audioPath => (
+          wx.getFileSystemManager().readFileSync(audioPath, 'base64')
+        ));
       }
 
       const res = await request('/evaluate', requestOptions);
@@ -170,8 +227,10 @@ Page({
   },
 
   onHide() {
-    this._recordTouchActive = false;
-    this._shouldSubmitRecording = false;
+    this._recordingSessionActive = false;
+    this._discardRecording = true;
+    if (this._nextSegmentTimer) clearTimeout(this._nextSegmentTimer);
+    this._nextSegmentTimer = null;
     if (this.data.recording) this.recorderManager.stop();
   },
 

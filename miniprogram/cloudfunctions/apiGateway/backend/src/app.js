@@ -26,7 +26,7 @@ function createApp({ includeStatic = true } = {}) {
 
   // ===== 中间件注册 =====
   app.use(cors());
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '32mb' }));
   app.use(express.urlencoded({ extended: true }));
 
   // ===== 静态资源：PC 网页端 =====

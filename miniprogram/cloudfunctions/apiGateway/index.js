@@ -54,16 +54,27 @@ function createRequest(event, context, wxContext = {}) {
 }
 
 async function prepareAudio(event) {
-  const fileID = event.audio_file_id || (event.body && event.body.audio_file_id);
-  if (!fileID) return { event, fileID: null };
+  const fileIDs = Array.isArray(event.audio_file_ids)
+    ? event.audio_file_ids
+    : (Array.isArray(event.body && event.body.audio_file_ids)
+      ? event.body.audio_file_ids
+      : []);
+  const singleFileID = event.audio_file_id || (event.body && event.body.audio_file_id);
+  const ids = fileIDs.length > 0 ? fileIDs : (singleFileID ? [singleFileID] : []);
+  if (ids.length === 0) return { event, fileIDs: [] };
 
-  const file = await cloud.downloadFile({ fileID });
-  const audioBase64 = file.fileContent.toString('base64');
+  const files = await Promise.all(ids.map(fileID => cloud.downloadFile({ fileID })));
   const body = { ...(event.body || {}) };
   delete body.audio_file_id;
-  body.audio_base64 = audioBase64;
-  body.audio = audioBase64;
-  return { event: { ...event, body }, fileID };
+  delete body.audio_file_ids;
+  if (ids.length === 1 && !fileIDs.length) {
+    const audioBase64 = files[0].fileContent.toString('base64');
+    body.audio_base64 = audioBase64;
+    body.audio = audioBase64;
+  } else {
+    body.audio_base64s = files.map(file => file.fileContent.toString('base64'));
+  }
+  return { event: { ...event, body }, fileIDs: ids };
 }
 
 function invokeApp(app, request) {
@@ -135,8 +146,8 @@ exports.main = async (event, context) => {
     try {
       return await invokeApp(app, createRequest(prepared.event, context, wxContext));
     } finally {
-      if (prepared.fileID) {
-        await cloud.deleteFile({ fileList: [prepared.fileID] }).catch(err => {
+      if (prepared.fileIDs.length > 0) {
+        await cloud.deleteFile({ fileList: prepared.fileIDs }).catch(err => {
           console.warn('临时音频删除失败:', err.message);
         });
       }

@@ -57,7 +57,24 @@ function request(path, options = {}) {
             reject(err);
           },
         });
-        if (options.filePath) {
+        if (Array.isArray(options.filePaths) && options.filePaths.length > 0) {
+          Promise.all(options.filePaths.map(filePath => new Promise((resolve, reject) => {
+            wx.cloud.uploadFile({
+              cloudPath: `temp-audio/${Date.now()}_${Math.random().toString(36).slice(2)}.wav`,
+              filePath,
+              success: uploadRes => resolve(uploadRes.fileID),
+              fail: reject,
+            });
+          }))).then(audioFileIds => {
+            const body = { ...(options.data || {}), audio_file_ids: audioFileIds };
+            delete body.audio_base64;
+            delete body.audio;
+            invoke(body);
+          }).catch(err => {
+            console.error('音频上传失败:', err);
+            reject(err);
+          });
+        } else if (options.filePath) {
           wx.cloud.uploadFile({
             cloudPath: `temp-audio/${Date.now()}_${Math.random().toString(36).slice(2)}.wav`,
             filePath: options.filePath,

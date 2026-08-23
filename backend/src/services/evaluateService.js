@@ -124,18 +124,12 @@ async function transcribeEnglish(audioBase64, audioFormat) {
   return data.result.join(' ').trim();
 }
 
-async function evaluate(audioBase64, refText, format = 'wav') {
+function scoreTranscript(transcript, refText, durationSec) {
   const referenceWords = normalizeWords(refText);
   if (referenceWords.length === 0) {
     throw new SpeechEvaluationError('参考文本不能为空', 400);
   }
 
-  const audioFormat = String(format).toLowerCase();
-  if (!['wav', 'pcm', 'amr', 'm4a'].includes(audioFormat)) {
-    throw new SpeechEvaluationError('不支持的录音格式，请使用 WAV 格式重新录制', 400);
-  }
-
-  const transcript = await transcribeEnglish(audioBase64, audioFormat);
   const spokenWords = normalizeWords(transcript);
   if (spokenWords.length === 0) {
     throw new SpeechEvaluationError('未识别到清晰的英文语音，请重新录制', 422);
@@ -143,7 +137,9 @@ async function evaluate(audioBase64, refText, format = 'wav') {
 
   const { distance, matchedWords, wordScores } = alignWords(referenceWords, spokenWords);
   const accuracy = matchedWords / referenceWords.length;
-  const estimatedDuration = Buffer.byteLength(audioBase64, 'base64') / 8000;
+  const estimatedDuration = Number.isFinite(Number(durationSec)) && Number(durationSec) > 0
+    ? Number(durationSec)
+    : spokenWords.length / 2.2;
   const wordsPerSecond = spokenWords.length / Math.max(estimatedDuration, 1);
   const paceScore = Math.max(0, 100 - Math.abs(wordsPerSecond - 2.2) * 28);
   const precision = matchedWords / Math.max(spokenWords.length, 1);
@@ -171,4 +167,35 @@ async function evaluate(audioBase64, refText, format = 'wav') {
   };
 }
 
-module.exports = { evaluate, transcribeEnglish, SpeechEvaluationError };
+async function evaluate(audioBase64, refText, format = 'wav', durationSec) {
+  const audioFormat = String(format).toLowerCase();
+  if (!['wav', 'pcm', 'amr', 'm4a'].includes(audioFormat)) {
+    throw new SpeechEvaluationError('不支持的录音格式，请使用 WAV 格式重新录制', 400);
+  }
+
+  const transcript = await transcribeEnglish(audioBase64, audioFormat);
+  const estimatedDuration = durationSec || Buffer.byteLength(audioBase64, 'base64') / 32000;
+  return scoreTranscript(transcript, refText, estimatedDuration);
+}
+
+async function evaluateChunks(audioChunks, refText, format = 'wav', durationSec) {
+  const audioFormat = String(format).toLowerCase();
+  if (!['wav', 'pcm', 'amr', 'm4a'].includes(audioFormat)) {
+    throw new SpeechEvaluationError('不支持的录音格式，请使用 WAV 格式重新录制', 400);
+  }
+  if (!Array.isArray(audioChunks) || audioChunks.length === 0) {
+    throw new SpeechEvaluationError('缺少音频分段数据', 400);
+  }
+
+  const transcripts = [];
+  for (const audioBase64 of audioChunks) {
+    transcripts.push(await transcribeEnglish(audioBase64, audioFormat));
+  }
+  return scoreTranscript(transcripts.join(' '), refText, durationSec);
+}
+
+function evaluateTranscript(transcript, refText, durationSec) {
+  return scoreTranscript(transcript, refText, durationSec);
+}
+
+module.exports = { evaluate, evaluateChunks, evaluateTranscript, transcribeEnglish, SpeechEvaluationError };
