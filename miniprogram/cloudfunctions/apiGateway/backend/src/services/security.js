@@ -44,7 +44,8 @@ async function checkText(text) {
   try {
     const token = await getAccessToken();
     if (!token) {
-      return true; // 无法检测时默认通过
+      logger.error('内容安全检测不可用：缺少微信 access_token');
+      return false;
     }
 
     const url = `https://api.weixin.qq.com/wxa/msg_sec_check?access_token=${token}`;
@@ -63,8 +64,8 @@ async function checkText(text) {
     logger.warn('内容安全检测未通过', { errcode: data.errcode, errmsg: data.errmsg });
     return false;
   } catch (err) {
-    logger.error('内容安全检测异常', { error: err.message });
-    return true; // 异常时默认通过，避免阻断正常服务
+    logger.error('内容安全检测异常，已按不安全处理', { error: err.message });
+    return false;
   }
 }
 

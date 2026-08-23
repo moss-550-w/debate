@@ -299,6 +299,7 @@ AI 对练和作品集必须写入 `debate_turns`、`portfolio_records` 集合后
 | 方法 | 路径 | 说明 | 鉴权 |
 |------|------|------|------|
 | GET | `/health` | 健康检查 | 否 |
+| GET | `/ready` | 生产就绪检查（数据库、认证、AI、语音、短信） | 否 |
 | GET | `/topics` | 辩题列表（`?category=&difficulty=&keyword=&page=&size=`） | 否 |
 | GET | `/topics/:id` | 辩题详情 | 否 |
 | POST | `/generate` | 生成立论框架 | 是 |
@@ -398,6 +399,22 @@ tcb cloudrun deploy --service-name debate-api --port 3000 --source . --force --w
 
 ```powershell
 Invoke-RestMethod https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api/health
+
+# 生产就绪检查；返回 503 表示仍有依赖未配置
+Invoke-RestMethod https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api/ready
+```
+
+`/api/ready` 不会返回任何密钥，只返回各依赖是否已配置。正式上线前必须全部为 `true`：
+
+- `database`、`auth`：云托管服务可访问 `users`、`auth_codes`、`auth_tokens` 集合。
+- `ai`：已配置 `DOUBAO_API_KEY` 和 `DOUBAO_API_URL`。
+- `speech`：已配置 `BAIDU_API_KEY` 和 `BAIDU_SECRET_KEY`。
+- `sms`：生产环境已配置腾讯云短信五项变量；生产环境不会回显开发验证码。
+
+开发者密钥登录只保存 `DEVELOPER_LOGIN_KEY_HASH` 的 SHA-256，不接受明文密钥。可使用下面命令生成哈希：
+
+```powershell
+node -e "console.log(require('crypto').createHash('sha256').update('你的开发者密钥').digest('hex'))"
 ```
 
 ### 2. 云函数 `apiGateway`

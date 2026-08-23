@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const { normalizeRole } = require('./rbac');
 
 // 内存计数：{ openid: { date: '2026-08-15', count: 5 } }
 const dailyCounts = new Map();
@@ -26,14 +27,14 @@ process.on('SIGINT', () => { process.exit(); });
 
 /**
  * 限流中间件 - 小学生每日20次调用限制
- * 通过 openid 识别用户，role 为 pupil 时生效
+ * 通过 openid 识别用户，student 角色生效
  *
  * 注意：内存计数在 PM2 多进程模式下不共享，
  * 生产环境多进程部署时应改用 Redis 或云数据库计数器。
  */
 function rateLimitMiddleware(req, res, next) {
   // 仅对小学生限流；若 req.user 不存在则跳过（防御性编程）
-  if (!req.user || req.user.role !== 'pupil') {
+  if (!req.user || normalizeRole(req.user.role) !== 'student') {
     return next();
   }
 

@@ -1,6 +1,16 @@
 const crypto = require('crypto');
 const https = require('https');
 
+function isTencentSmsConfigured() {
+  return [
+    process.env.TENCENT_SMS_SECRET_ID || process.env.TCB_SECRET_ID,
+    process.env.TENCENT_SMS_SECRET_KEY || process.env.TCB_SECRET_KEY,
+    process.env.TENCENT_SMS_SDK_APP_ID,
+    process.env.TENCENT_SMS_SIGN_NAME,
+    process.env.TENCENT_SMS_TEMPLATE_ID,
+  ].every(value => String(value || '').trim());
+}
+
 function requestTencentSms({ phone, code }) {
   const secretId = String(process.env.TENCENT_SMS_SECRET_ID || process.env.TCB_SECRET_ID || '').trim();
   const secretKey = String(process.env.TENCENT_SMS_SECRET_KEY || process.env.TCB_SECRET_KEY || '').trim();
@@ -9,7 +19,7 @@ function requestTencentSms({ phone, code }) {
   const templateId = String(process.env.TENCENT_SMS_TEMPLATE_ID || '').trim();
   const endpoint = 'sms.tencentcloudapi.com';
 
-  if (!secretId || !secretKey || !sdkAppId || !signName || !templateId) {
+  if (!isTencentSmsConfigured()) {
     return Promise.resolve({ configured: false });
   }
 
@@ -74,4 +84,4 @@ function requestTencentSms({ phone, code }) {
   });
 }
 
-module.exports = { requestTencentSms };
+module.exports = { requestTencentSms, isTencentSmsConfigured };

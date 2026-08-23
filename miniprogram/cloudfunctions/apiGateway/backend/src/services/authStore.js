@@ -22,6 +22,7 @@ const COL = {
   CODES: 'auth_codes',
   TOKENS: 'auth_tokens',
 };
+const AUTH_COLLECTIONS = [COL.USERS, COL.CODES, COL.TOKENS];
 
 // ===== 本地 JSON 回退存储 =====
 const storePath = path.join(__dirname, '../../auth-store.json');
@@ -46,6 +47,25 @@ function saveLocal() {
 let mode = null;
 let modePromise = null;
 
+async function verifyCloudCollections() {
+  const missing = [];
+  for (const collectionName of AUTH_COLLECTIONS) {
+    try {
+      await db.query(collectionName, {}, { limit: 1 });
+    } catch (err) {
+      const message = String(err && (err.errMsg || err.message) || '');
+      if (/collection\s+not\s+exist|集合不存在/i.test(message)) {
+        missing.push(collectionName);
+        continue;
+      }
+      throw new Error(`认证集合 ${collectionName} 检查失败：${message}`);
+    }
+  }
+  if (missing.length) {
+    throw new Error(`认证数据库集合未配置：${missing.join(', ')}`);
+  }
+}
+
 function getMode() {
   if (mode) return Promise.resolve(mode);
   if (!modePromise) {
@@ -56,6 +76,7 @@ function getMode() {
       } else if (process.env.AUTH_STORAGE === 'local' && db.isProductionEnvironment()) {
         throw new Error('生产环境禁止通过 AUTH_STORAGE=local 使用本地认证存储');
       } else if (await db.isAvailable()) {
+        await verifyCloudCollections();
         mode = 'cloud';
         logger.info('认证存储: 云数据库');
       } else if (db.isProductionEnvironment()) {
@@ -65,9 +86,22 @@ function getMode() {
         logger.warn('认证存储: 本地JSON（云数据库不可用，仅限本地开发使用）');
       }
       return mode;
-    })();
+    })().catch(err => {
+      modePromise = null;
+      mode = null;
+      throw err;
+    });
   }
   return modePromise;
+}
+
+async function checkReady() {
+  try {
+    const storageMode = await getMode();
+    return { ready: storageMode === 'cloud', mode: storageMode, error: null };
+  } catch (err) {
+    return { ready: false, mode: null, error: err.message };
+  }
 }
 
 /** 当前生效的存储模式（已探测后可用，用于日志/调试） */
@@ -234,4 +268,5 @@ module.exports = {
   getToken,
   deleteToken,
   cleanup,
+  checkReady,
 };

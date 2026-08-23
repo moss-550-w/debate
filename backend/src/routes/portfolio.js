@@ -5,6 +5,7 @@ const rateLimitMiddleware = require('../middleware/rateLimit');
 const aiService = require('../services/aiService');
 const portfolioStore = require('../services/portfolioStore');
 const logger = require('../utils/logger');
+const security = require('../services/security');
 
 // 内容类型列表
 const VALID_CONTENT_TYPES = ['case', 'argument', 'mechanism', 'clash', 'question'];
@@ -41,12 +42,13 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
         data: null,
       });
     }
+    const filteredContent = await security.safeFilter(String(content).slice(0, 5000));
 
     // 调用 AI 分析用户的思考内容
     const userId = req.user.userId || req.user.openid;
     let aiFeedback;
     try {
-      aiFeedback = await aiService.analyzePortfolio(content, content_type, topic_title);
+      aiFeedback = await aiService.analyzePortfolio(filteredContent, content_type, topic_title);
       logger.info('AI 作品集分析成功', { userId, content_type });
     } catch (err) {
       logger.warn('AI 作品集分析失败，使用预设反馈', { error: err.message });
@@ -66,7 +68,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
       topic_title,
       content_type,
       title,
-      content,
+      content: filteredContent,
       position,
       ai_feedback: aiFeedback,
       created_at: new Date().toISOString(),

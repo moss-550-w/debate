@@ -63,7 +63,7 @@ router.post('/create', authMiddleware, requireManagement, async (req, res) => {
   }
 });
 
-router.get('/list', async (req, res) => {
+router.get('/list', authMiddleware, async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const size = Math.min(Math.max(parseInt(req.query.size, 10) || 10, 1), 100);
@@ -155,7 +155,7 @@ router.delete('/:id', authMiddleware, requireManagement, async (req, res) => {
   }
 });
 
-router.get('/:id/teams', async (req, res) => {
+router.get('/:id/teams', authMiddleware, async (req, res) => {
   try {
     const tournament = await store.get(TOURNAMENTS, req.params.id);
     if (!tournament) return res.status(404).json({ code: 404, message: '赛事不存在', data: null });
@@ -166,7 +166,7 @@ router.get('/:id/teams', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const tournament = await store.get(TOURNAMENTS, req.params.id);
     if (!tournament) return res.status(404).json({ code: 404, message: '赛事不存在', data: null });

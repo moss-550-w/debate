@@ -30,7 +30,8 @@ const CODE_MAX_ATTEMPTS = 5;                  // 单个验证码最多尝试 5 �
 const DAILY_SEND_LIMIT = 10;                  // 单手机号每日发送上限
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // Token 有效期 7 天
-const DEV_CODE_RETURN = process.env.AUTH_DEV_CODE !== '0';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.TENCENTCLOUD_RUNENV === '1';
+const DEV_CODE_RETURN = !IS_PRODUCTION && process.env.AUTH_DEV_CODE !== '0';
 const developerKeyFailures = new Map();
 const DEVELOPER_KEY_WINDOW_MS = 15 * 60 * 1000;
 const DEVELOPER_KEY_MAX_FAILURES = 5;
@@ -49,6 +50,14 @@ function matchesConfiguredHash(value, configuredHash) {
 
 function isValidPhone(phone) {
   return /^1[3-9]\d{9}$/.test(phone);
+}
+
+function sendAuthInfrastructureError(res, err, fallbackMessage) {
+  const message = String(err && err.message || '');
+  if (/认证数据库|认证集合|CloudBase|数据库|集合|权限|未初始化/i.test(message)) {
+    return res.status(503).json({ code: 503, message: '认证服务未就绪，请检查 CloudBase 认证集合和权限', data: null });
+  }
+  return res.status(500).json({ code: 500, message: fallbackMessage, data: null });
 }
 
 function publicUser(user) {
@@ -133,6 +142,10 @@ router.post('/send-code', async (req, res) => {
       logger.error('短信发送失败', { phone, error: err.message });
       return res.status(502).json({ code: 502, message: '短信发送失败，请稍后重试', data: null });
     }
+    if (!smsResult.configured && IS_PRODUCTION) {
+      await authStore.deleteCode(phone).catch(() => {});
+      return res.status(503).json({ code: 503, message: '短信服务未配置，请联系管理员', data: null });
+    }
     logger.info(`[auth] 验证码已生成 手机号=${phone} (今日第 ${sendCount} 次, sms=${smsResult.configured ? 'sent' : 'dev'})`);
 
     res.json({
@@ -147,7 +160,7 @@ router.post('/send-code', async (req, res) => {
     });
   } catch (err) {
     logger.error('发送验证码失败', { error: err.message });
-    res.status(500).json({ code: 500, message: '验证码发送失败，请稍后重试', data: null });
+    sendAuthInfrastructureError(res, err, '验证码发送失败，请稍后重试');
   }
 });
 
@@ -256,7 +269,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     logger.error('登录失败', { error: err.message });
-    res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
+    sendAuthInfrastructureError(res, err, '登录失败，请稍后重试');
   }
 });
 
@@ -298,7 +311,7 @@ router.post('/mini-login', async (req, res) => {
     return res.json({ code: 200, message: '登录成功', data: { token, expires_in: TOKEN_TTL_MS / 1000, user: publicUser(user) } });
   } catch (err) {
     logger.error('小程序短信登录失败', { error: err.message });
-    return res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
+    return sendAuthInfrastructureError(res, err, '登录失败，请稍后重试');
   }
 });
 
@@ -374,7 +387,7 @@ router.post('/developer-login', async (req, res) => {
     });
   } catch (err) {
     logger.error('开发者密钥登录失败', { error: err.message });
-    return res.status(500).json({ code: 500, message: '登录失败，请稍后重试', data: null });
+    return sendAuthInfrastructureError(res, err, '登录失败，请稍后重试');
   }
 });
 
@@ -406,7 +419,7 @@ router.get('/verify', async (req, res) => {
     res.json({ code: 200, message: 'ok', data: { user: publicUser(user) } });
   } catch (err) {
     logger.error('Token校验失败', { error: err.message });
-    res.status(500).json({ code: 500, message: '校验失败，请稍后重试', data: null });
+    sendAuthInfrastructureError(res, err, '校验失败，请稍后重试');
   }
 });
 

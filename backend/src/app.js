@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const logger = require('./utils/logger');
 const db = require('./utils/db');
+const authStore = require('./services/authStore');
+const { isTencentSmsConfigured } = require('./services/smsService');
 
 // 路由
 const authRouter = require('./routes/auth');
@@ -52,6 +54,25 @@ function createApp({ includeStatic = true } = {}) {
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
       },
+    });
+  });
+
+  app.get('/api/ready', async (req, res) => {
+    const production = process.env.NODE_ENV === 'production' || process.env.TENCENTCLOUD_RUNENV === '1';
+    const database = await db.isAvailable();
+    const auth = await authStore.checkReady();
+    const checks = {
+      database,
+      auth: auth.ready,
+      ai: Boolean(process.env.DOUBAO_API_KEY && process.env.DOUBAO_API_URL),
+      speech: Boolean(process.env.BAIDU_API_KEY && process.env.BAIDU_SECRET_KEY),
+      sms: !production || isTencentSmsConfigured(),
+    };
+    const ready = Object.values(checks).every(Boolean);
+    return res.status(ready ? 200 : 503).json({
+      code: ready ? 200 : 503,
+      message: ready ? 'ready' : '服务尚未满足生产运行条件',
+      data: { ready, checks, auth_error: auth.error || null },
     });
   });
 

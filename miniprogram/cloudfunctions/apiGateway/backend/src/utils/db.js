@@ -44,7 +44,9 @@ function init(env) {
  * @returns {Promise<boolean>}
  */
 let availableCache = null;
+let availableAt = 0;
 const DB_OPERATION_TIMEOUT_MS = 8000;
+const DB_CACHE_TTL_MS = 5000;
 
 function withTimeout(promise, label) {
   return Promise.race([
@@ -60,9 +62,10 @@ function isProductionEnvironment() {
 }
 
 async function isAvailable() {
-  if (availableCache !== null) return availableCache;
+  if (availableCache !== null && Date.now() - availableAt < DB_CACHE_TTL_MS) return availableCache;
   if (!db) {
     availableCache = false;
+    availableAt = Date.now();
     return availableCache;
   }
   try {
@@ -71,6 +74,7 @@ async function isAvailable() {
       new Promise((_, reject) => setTimeout(() => reject(new Error('数据库探测超时')), 5000)),
     ]);
     availableCache = true;
+    availableAt = Date.now();
   } catch (err) {
     const msg = (err && (err.errMsg || err.message)) || String(err);
     const code = err && (err.code || err.errCode);
@@ -79,9 +83,11 @@ async function isAvailable() {
     if ((code === -502001 || /collection\s+not\s+exist|集合不存在/i.test(msg))
         && !/env\s+not\s+exist|INVALID_ENV|环境不存在/i.test(msg)) {
       availableCache = true;
+      availableAt = Date.now();
     } else {
       logger.warn('云数据库不可用', { error: msg });
       availableCache = false;
+      availableAt = Date.now();
     }
   }
   return availableCache;
@@ -122,7 +128,7 @@ async function getById(collectionName, id) {
   } catch (err) {
     logger.error(`数据库查询失败 [${collectionName}]`, { id, error: err.message });
     const message = String(err && (err.errMsg || err.message) || '');
-    if (/document.*not exist|doc.*not exist|记录不存在|文档不存在/i.test(message)) return null;
+    if (/document.*(?:not exist|not found)|doc.*(?:not exist|not found)|not found|记录不存在|文档不存在/i.test(message)) return null;
     throw err;
   }
 }

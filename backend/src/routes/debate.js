@@ -5,6 +5,7 @@ const rateLimitMiddleware = require('../middleware/rateLimit');
 const aiService = require('../services/aiService');
 const debateStore = require('../services/debateStore');
 const logger = require('../utils/logger');
+const security = require('../services/security');
 
 const { OPPONENT_STYLES } = aiService;
 
@@ -47,6 +48,7 @@ router.post('/stream', authMiddleware, rateLimitMiddleware, async (req, res) => 
   if (!isValidStyle(opponent_style)) {
     return res.status(400).json({ code: 400, message: '无效的对手风格', data: null });
   }
+  const filteredUserSpeech = await security.safeFilter(String(user_speech).slice(0, 2000));
 
   let session = session_id ? debateSessions.get(session_id) : null;
   let sessionId = session_id;
@@ -83,7 +85,7 @@ router.post('/stream', authMiddleware, rateLimitMiddleware, async (req, res) => 
     const aiResult = await aiService.debateReplyStream(
       topic_title || session.topic,
       position || session.position,
-      user_speech,
+      filteredUserSpeech,
       opponent_style,
       history,
       token => sendStreamEvent(res, 'delta', { text: token })
@@ -99,7 +101,7 @@ router.post('/stream', authMiddleware, rateLimitMiddleware, async (req, res) => 
     const effectiveRate = session.stats.total_rounds > 0
       ? session.stats.effective_count / session.stats.total_rounds
       : 0;
-    history.push({ role: 'user', content: user_speech });
+    history.push({ role: 'user', content: filteredUserSpeech });
     history.push({ role: 'ai', content: aiResult.reply, style: opponent_style });
     session.history = history.length > 20 ? history.slice(-20) : history;
     session.lastActivity = new Date().toISOString();
@@ -111,7 +113,7 @@ router.post('/stream', authMiddleware, rateLimitMiddleware, async (req, res) => 
         topic_id,
         topic_title: topic_title || session.topic,
         opponent_style,
-        user_speech,
+        user_speech: filteredUserSpeech,
         rebuttal_score: aiResult.rebuttal_quality_score,
         is_rebuttal_effective: !!aiResult.is_rebuttal_effective,
         response_time_ms: Number(response_time_ms) || 0,
@@ -160,6 +162,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
         data: null,
       });
     }
+    const filteredUserSpeech = await security.safeFilter(String(user_speech).slice(0, 2000));
 
     // 获取 session；不存在时自动创建（兼容后端重启/本地mock会话）
     let session = session_id ? debateSessions.get(session_id) : null;
@@ -202,7 +205,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
     const aiResult = await aiService.debateReply(
       topic_title || session.topic,
       position || session.position,
-      user_speech,
+      filteredUserSpeech,
       opponent_style,
       history
     );
@@ -224,7 +227,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
       : 0;
 
     // 更新对话历史（保留最近 10 轮）
-    history.push({ role: 'user', content: user_speech });
+    history.push({ role: 'user', content: filteredUserSpeech });
     history.push({ role: 'ai', content: aiResult.reply, style: opponent_style });
     if (history.length > 20) {
       session.history = history.slice(-20); // 10轮对话 = 20条消息
@@ -242,7 +245,7 @@ router.post('/', authMiddleware, rateLimitMiddleware, async (req, res) => {
         topic_id,
         topic_title: topic_title || session.topic,
         opponent_style,
-        user_speech,
+        user_speech: filteredUserSpeech,
         rebuttal_score: aiResult.rebuttal_quality_score,
         is_rebuttal_effective: !!aiResult.is_rebuttal_effective,
         response_time_ms: Number(response_time_ms) || 0,
