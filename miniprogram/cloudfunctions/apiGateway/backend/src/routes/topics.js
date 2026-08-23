@@ -32,7 +32,8 @@ function adminQueryAuth(req, res, next) {
 
 function parsePage(query) {
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
-  const size = Math.min(100, Math.max(1, Number.parseInt(query.size, 10) || 50));
+  // 默认分页保持轻量；兼容思辨中国一次加载 300 条的历史客户端请求。
+  const size = Math.min(500, Math.max(1, Number.parseInt(query.size, 10) || 50));
   return { page, size, skip: (page - 1) * size };
 }
 
