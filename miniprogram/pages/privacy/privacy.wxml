@@ -1,0 +1,12 @@
+<view class="privacy-page">
+  <view class="privacy-card">
+    <text class="privacy-title">隐私保护指引</text>
+    <text class="privacy-intro">为了提供辩题练习、学习记录同步和账号安全服务，我们需要在获得你同意后处理必要的信息。</text>
+    <view class="privacy-item"><text class="privacy-label">我们会处理的信息</text><text class="privacy-copy">微信身份标识、昵称、年级，以及你主动填写的学校、班级、性别、出生日期、个人简介和手机号。</text></view>
+    <view class="privacy-item"><text class="privacy-label">使用目的与方式</text><text class="privacy-copy">用于创建和同步学习账号、保存辩论练习记录、展示个人成长数据、提供手机号绑定和短信登录服务。你主动使用语音评测时，录音会上传至云端并分段识别；使用 AI 对练时，你提交的辩论内容会发送给 AI 服务生成反馈。</text></view>
+    <view class="privacy-item"><text class="privacy-label">保存与保护</text><text class="privacy-copy">数据仅用于本小程序的学习服务，保存在受权限控制的云数据库中，不会用于与服务无关的用途。</text></view>
+    <view class="policy-links"><text bindtap="openPolicy" data-type="service">《用户服务协议》</text><text bindtap="openPolicy" data-type="privacy">《隐私政策》</text></view>
+    <checkbox-group class="agreement-check" bindchange="onAgreementChange"><label><checkbox value="agree" checked="{{readAgreement}}" color="#2563eb" /><text>我已阅读并同意以上协议</text></label></checkbox-group>
+    <button class="agree-button" loading="{{submitting}}" bindtap="agreeAndContinue">同意并继续</button>
+  </view>
+</view>

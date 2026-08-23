@@ -1,0 +1,11 @@
+.privacy-page { box-sizing: border-box; min-height: 100vh; padding: 36rpx 28rpx; background: #f1f5f9; color: #172033; }
+.privacy-card { padding: 34rpx 28rpx; background: #fff; border-radius: 16rpx; }
+.privacy-title { display: block; font-size: 40rpx; font-weight: 700; text-align: center; }
+.privacy-intro { display: block; margin-top: 26rpx; color: #475569; font-size: 27rpx; line-height: 1.7; }
+.privacy-item { margin-top: 28rpx; }
+.privacy-label { display: block; font-size: 28rpx; font-weight: 700; }
+.privacy-copy { display: block; margin-top: 10rpx; color: #475569; font-size: 25rpx; line-height: 1.7; }
+.policy-links { display: flex; gap: 30rpx; margin-top: 32rpx; color: #2563eb; font-size: 25rpx; }
+.agreement-check { display: block; margin-top: 34rpx; color: #334155; font-size: 24rpx; }
+.agreement-check label { display: flex; align-items: center; gap: 10rpx; }
+.agree-button { margin-top: 30rpx; background: #2563eb; color: #fff; font-size: 29rpx; }

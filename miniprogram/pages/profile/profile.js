@@ -52,6 +52,7 @@ Page({
   },
 
   async saveProfile() {
+    if (!this.ensurePrivacyConsent()) return;
     const app = getApp();
     if (app.globalData.userReady) await app.globalData.userReady.catch(() => {});
     try {
@@ -67,7 +68,22 @@ Page({
 
   onBindPhoneInput(e) { this.setData({ [e.currentTarget.dataset.field]: e.detail.value }); },
 
+  ensurePrivacyConsent() {
+    const app = getApp();
+    if (app.hasPrivacyConsent()) return true;
+    wx.showModal({
+      title: '需要隐私授权',
+      content: '手机号绑定和短信登录会处理手机号，请先阅读并同意隐私保护指引。',
+      confirmText: '查看协议',
+      success: result => {
+        if (result.confirm) wx.navigateTo({ url: '/pages/privacy/privacy' });
+      },
+    });
+    return false;
+  },
+
   async sendBindCode() {
+    if (!this.ensurePrivacyConsent()) return;
     const phone = String(this.data.bindPhone || '').trim();
     if (!/^1[3-9]\d{9}$/.test(phone)) return wx.showToast({ title: '请输入正确手机号', icon: 'none' });
     try {
@@ -80,6 +96,7 @@ Page({
   },
 
   async submitBindPhone() {
+    if (!this.ensurePrivacyConsent()) return;
     try {
       const res = await request('/auth/bind-phone', { method: 'POST', data: { phone: this.data.bindPhone, code: this.data.bindCode } });
       if (res.code !== 200) throw new Error(res.message || '绑定失败');
@@ -92,6 +109,7 @@ Page({
   },
 
   async miniLoginBySms() {
+    if (!this.ensurePrivacyConsent()) return;
     const phone = String(this.data.bindPhone || '').trim();
     const code = String(this.data.bindCode || '').trim();
     if (!/^1[3-9]\d{9}$/.test(phone) || !/^\d{6}$/.test(code)) return wx.showToast({ title: '请输入手机号和6位验证码', icon: 'none' });

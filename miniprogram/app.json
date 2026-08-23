@@ -6,6 +6,8 @@
     "pages/practice/practice",
     "pages/speech/speech",
     "pages/profile/profile",
+    "pages/privacy/privacy",
+    "pages/privacy/detail",
     "pages/portfolio/portfolio",
     "pages/sparring/sparring",
     "pages/tournament/tournament"
@@ -41,5 +43,6 @@
     ]
   },
   "style": "v2",
+  "__usePrivacyCheck__": true,
   "sitemapLocation": "sitemap.json"
 }

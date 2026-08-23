@@ -1,0 +1,1 @@
+<view class="detail-page"><text class="detail-title">{{title}}</text><text class="detail-paragraph" wx:for="{{paragraphs}}" wx:key="*this">{{item}}</text></view>

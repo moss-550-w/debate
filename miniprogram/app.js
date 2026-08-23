@@ -5,6 +5,7 @@ const API_BASE_URLS = {
   cloud: 'https://debate-api-297740-11-1469475059.sh.run.tcloudbase.com/api',
   'cloud-function': '',
 };
+const PRIVACY_VERSION = '2026-08-23';
 
 App({
   globalData: {
@@ -15,6 +16,7 @@ App({
     apiBaseUrl: API_BASE_URLS[API_MODE],
     apiMode: API_MODE,
     cloudFunctionName: 'apiGateway',
+    privacyVersion: PRIVACY_VERSION,
   },
 
   onLaunch() {
@@ -22,10 +24,29 @@ App({
       env: 'cloud1-d8g0k0m526d61652a',
       traceUser: true,
     });
+    if (this.hasPrivacyConsent()) {
+      this.globalData.userReady = this.autoLogin();
+      return;
+    }
+    this.globalData.userReady = Promise.resolve(null);
+    const launchPath = String((wx.getLaunchOptionsSync() || {}).path || '');
+    if (!launchPath.startsWith('pages/privacy/')) {
+      setTimeout(() => wx.reLaunch({ url: '/pages/privacy/privacy' }), 0);
+    }
+  },
+
+  hasPrivacyConsent() {
+    return wx.getStorageSync('privacy_agreed_version') === PRIVACY_VERSION;
+  },
+
+  startUserSession() {
+    if (!this.hasPrivacyConsent()) return Promise.resolve(null);
     this.globalData.userReady = this.autoLogin();
+    return this.globalData.userReady;
   },
 
   async autoLogin() {
+    if (!this.hasPrivacyConsent()) return null;
     let userInfo = wx.getStorageSync('userInfo');
     const legacyOpenid = wx.getStorageSync('openid');
     if (legacyOpenid && legacyOpenid.startsWith('mp_user_')) {
@@ -59,7 +80,12 @@ App({
       data: {
         method: 'POST',
         path: '/api/auth/mini-profile',
-        body: { nickname: userInfo.nickname, grade: userInfo.grade },
+        body: {
+          nickname: userInfo.nickname,
+          grade: userInfo.grade,
+          privacy_agreed: true,
+          privacy_version: this.globalData.privacyVersion,
+        },
       },
       success: res => {
         const result = res.result || {};

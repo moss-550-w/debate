@@ -471,7 +471,12 @@ router.patch('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-router.post('/mini-profile', authMiddleware, async (req, res) => {
+router.post('/mini-profile', (req, res, next) => {
+  if (req.body.privacy_agreed !== true || !String(req.body.privacy_version || '').trim()) {
+    return res.status(403).json({ code: 403, message: '请先同意隐私保护指引', data: null });
+  }
+  return next();
+}, authMiddleware, async (req, res) => {
   try {
     let userId = req.user.userId;
     if (!userId) {
@@ -489,6 +494,9 @@ router.post('/mini-profile', authMiddleware, async (req, res) => {
       ...(bio !== undefined ? { bio: String(bio).slice(0, 300) } : {}),
       source: 'miniprogram',
       last_login_at: new Date().toISOString(),
+      privacy_agreed: true,
+      privacy_version: String(req.body.privacy_version).slice(0, 32),
+      privacy_agreed_at: new Date().toISOString(),
     });
     const user = await authStore.findUserById(userId);
     return res.json({
