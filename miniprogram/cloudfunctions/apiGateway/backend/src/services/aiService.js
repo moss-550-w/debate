@@ -123,7 +123,7 @@ async function callDoubao(topic, position, role) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'ep-20260426144920-pwjqk',
+        model: 'ep-20260426145829-w6lfh',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         response_format: { type: 'json_object' },
@@ -309,7 +309,7 @@ async function callDoubaoCustom(prompt) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'ep-20260426144920-pwjqk',
+        model: 'ep-20260426145829-w6lfh',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         response_format: { type: 'json_object' },
@@ -347,7 +347,7 @@ async function callDoubaoDebateStream(prompt, onToken) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'ep-20260426144920-pwjqk',
+        model: 'ep-20260426145829-w6lfh',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         stream: true,
